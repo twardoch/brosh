@@ -1080,21 +1080,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.1.0]: https://github.com/twardoch/brosh/releases/tag/v0.1.0
 </file>
 
-<file path="cleanup.sh">
-#!/usr/bin/env bash
-
-python -m uzpy run -e src
-fd -e py -x autoflake {}
-fd -e py -x pyupgrade --py311-plus {}
-fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
-fd -e py -x ruff format --respect-gitignore --target-version py311 {}
-repomix -i varia,.specstory,AGENT.md,CLAUDE.md,PLAN.md,SPEC.md,llms.txt,.cursorrules -o llms.txt .
-python -m pytest
-
-rm -rf dist/brosh*.*
-uv build
-</file>
-
 <file path="LICENSE">
 MIT License
 
@@ -2768,6 +2753,21 @@ class BrowserScreenshotTool:
         if html_data:
             return html_data
         return saved_paths
+</file>
+
+<file path="cleanup.sh">
+#!/usr/bin/env bash
+
+rm -rf dist/brosh*.*
+uv build
+
+python -m uzpy run -e src
+fd -e py -x autoflake {}
+fd -e py -x pyupgrade --py311-plus {}
+fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
+fd -e py -x ruff format --respect-gitignore --target-version py311 {}
+repomix -i varia,.specstory,AGENT.md,CLAUDE.md,PLAN.md,SPEC.md,llms.txt,.cursorrules -o llms.txt .
+python -m pytest
 </file>
 
 <file path="pyproject.toml">

@@ -465,6 +465,29 @@ Add brosh to your Claude Desktop configuration:
 }
 ```
 
+**Note:** If you encounter issues with uvx, you can use the full path to brosh-mcp:
+
+```json
+{
+  "mcpServers": {
+    "brosh": {
+      "command": "/path/to/python/bin/brosh-mcp",
+      "args": [],
+      "type": "stdio"
+    }
+  }
+}
+```
+
+To find the full path:
+```bash
+# On Unix-like systems
+which brosh-mcp
+
+# Or with Python
+python -c "import shutil; print(shutil.which('brosh-mcp'))"
+```
+
 #### 3. Alternative Configurations
 
 **Using Python directly:**

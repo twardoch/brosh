@@ -10,6 +10,7 @@ import platformdirs
 try:
     from fastmcp import FastMCP, Image
 except ImportError:
+    print("FastMCP not installed. Please install it with: pip install fastmcp")
     sys.exit(1)
 
 from loguru import logger

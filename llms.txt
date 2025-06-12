@@ -561,6 +561,695 @@ if __name__ == "__main__":
     main()
 </file>
 
+<file path="src/brosh/image.py">
+#!/usr/bin/env python3
+# this_file: src/brosh/image.py
+
+"""Image processing utilities for brosh."""
+
+from pathlib import Path
+
+from loguru import logger
+from PIL import Image
+
+
+class ImageProcessor:
+    """Handles image processing operations."""
+
+    @staticmethod
+    def scale_image(filepath: Path, scale: int) -> None:
+        """Scale the image by the given percentage.
+
+        Args:
+            filepath: Path to the image file
+            scale: Scale percentage (100 = no scaling)
+
+        """
+        try:
+            img = Image.open(filepath)
+            new_width = int(img.width * scale / 100)
+            new_height = int(img.height * scale / 100)
+            resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            resized.save(filepath)
+        except Exception as e:
+            logger.error(f"Failed to scale image {filepath}: {e}")
+
+    @staticmethod
+    def convert_to_jpg(png_path: Path) -> Path:
+        """Convert PNG to JPG format.
+
+        Args:
+            png_path: Path to PNG file
+
+        Returns:
+            Path to JPG file
+
+        """
+        try:
+            jpg_path = png_path.with_suffix(".jpg")
+            img = Image.open(png_path)
+
+            # Convert RGBA to RGB for JPG
+            if img.mode in ("RGBA", "LA", "P"):
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                if img.mode == "P":
+                    img = img.convert("RGBA")
+                background.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
+                img = background
+
+            img.save(jpg_path, "JPEG", quality=90)
+            png_path.unlink()  # Remove original PNG
+            return jpg_path
+        except Exception as e:
+            logger.error(f"Failed to convert {png_path} to JPG: {e}")
+            return png_path  # Return original if conversion fails
+
+    @staticmethod
+    def create_apng(
+        png_paths: list[Path],
+        domain: str,
+        output_path: Path,
+        anim_spf: float,
+    ) -> Path:
+        """Create an animated PNG from a list of PNG files.
+
+        Args:
+            png_paths: List of PNG file paths to combine
+            domain: Domain name for output filename
+            output_path: Output directory
+            anim_spf: Seconds per frame
+
+        Returns:
+            Path to created APNG file
+
+        """
+        apng_path = output_path / f"{domain}-animated.png"
+
+        try:
+            # Load all images
+            images = []
+            for png_path in png_paths:
+                img = Image.open(png_path)
+                images.append(img)
+
+            # Convert seconds per frame to milliseconds
+            duration_ms = int(anim_spf * 1000)
+
+            # Save as animated PNG
+            if images:
+                images[0].save(
+                    apng_path,
+                    format="PNG",
+                    save_all=True,
+                    append_images=images[1:],
+                    duration=duration_ms,
+                    loop=0,  # Infinite loop
+                )
+        except Exception as e:
+            logger.error(f"Failed to create APNG: {e}")
+            raise
+
+        return apng_path
+</file>
+
+<file path="src/brosh/models.py">
+#!/usr/bin/env python3
+# this_file: src/brosh/models.py
+
+"""Data models and enums for the brosh package."""
+
+from enum import Enum
+
+
+class ImageFormat(str, Enum):
+    """Supported image output formats."""
+
+    PNG = "png"
+    JPG = "jpg"
+    APNG = "apng"
+</file>
+
+<file path=".cursorindexingignore">
+# Don't index SpecStory auto-save files, but allow explicit context inclusion via @ references
+.specstory/**
+</file>
+
+<file path=".gitignore">
+*_autogen/
+.DS_Store
+__version__.py
+__pycache__/
+_Chutzpah*
+_deps
+_NCrunch_*
+_pkginfo.txt
+_Pvt_Extensions
+_ReSharper*/
+_TeamCity*
+_UpgradeReport_Files/
+!?*.[Cc]ache/
+!.axoCover/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!**/[Pp]ackages/build/
+!Directory.Build.rsp
+.*crunch*.local.xml
+.axoCover/*
+.builds
+.cr/personal
+.fake/
+.history/
+.ionide/
+.localhistory/
+.mfractor/
+.ntvs_analysis.dat
+.paket/paket.exe
+.sass-cache/
+.vs/
+.vscode
+.vscode/*
+.vshistory/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+[Bb]in/
+[Bb]uild[Ll]og.*
+[Dd]ebug/
+[Dd]ebugPS/
+[Dd]ebugPublic/
+[Ee]xpress/
+[Ll]og/
+[Ll]ogs/
+[Oo]bj/
+[Rr]elease/
+[Rr]eleasePS/
+[Rr]eleases/
+[Tt]est[Rr]esult*/
+[Ww][Ii][Nn]32/
+*_h.h
+*_i.c
+*_p.c
+*_wpftmp.csproj
+*- [Bb]ackup ([0-9]).rdl
+*- [Bb]ackup ([0-9][0-9]).rdl
+*- [Bb]ackup.rdl
+*.[Cc]ache
+*.[Pp]ublish.xml
+*.[Rr]e[Ss]harper
+*.a
+*.app
+*.appx
+*.appxbundle
+*.appxupload
+*.aps
+*.azurePubxml
+*.bim_*.settings
+*.bim.layout
+*.binlog
+*.btm.cs
+*.btp.cs
+*.build.csdef
+*.cab
+*.cachefile
+*.code-workspace
+*.coverage
+*.coveragexml
+*.d
+*.dbmdl
+*.dbproj.schemaview
+*.dll
+*.dotCover
+*.DotSettings.user
+*.dsp
+*.dsw
+*.dylib
+*.e2e
+*.exe
+*.gch
+*.GhostDoc.xml
+*.gpState
+*.ilk
+*.iobj
+*.ipdb
+*.jfm
+*.jmconfig
+*.la
+*.lai
+*.ldf
+*.lib
+*.lo
+*.log
+*.mdf
+*.meta
+*.mm.*
+*.mod
+*.msi
+*.msix
+*.msm
+*.msp
+*.ncb
+*.ndf
+*.nuget.props
+*.nuget.targets
+*.nupkg
+*.nvuser
+*.o
+*.obj
+*.odx.cs
+*.opendb
+*.opensdf
+*.opt
+*.out
+*.pch
+*.pdb
+*.pfx
+*.pgc
+*.pgd
+*.pidb
+*.plg
+*.psess
+*.publishproj
+*.publishsettings
+*.pubxml
+*.pyc
+*.rdl.data
+*.rptproj.bak
+*.rptproj.rsuser
+*.rsp
+*.rsuser
+*.sap
+*.sbr
+*.scc
+*.sdf
+*.sln.docstates
+*.sln.iml
+*.slo
+*.smod
+*.snupkg
+*.so
+*.suo
+*.svclog
+*.tlb
+*.tlh
+*.tli
+*.tlog
+*.tmp
+*.tmp_proj
+*.tss
+*.user
+*.userosscache
+*.userprefs
+*.vbp
+*.vbw
+*.VC.db
+*.VC.VC.opendb
+*.VisualState.xml
+*.vsp
+*.vspscc
+*.vspx
+*.vssscc
+*.xsd.cs
+**/[Pp]ackages/*
+**/*.DesktopClient/GeneratedArtifacts
+**/*.DesktopClient/ModelManifest.xml
+**/*.HTMLClient/GeneratedArtifacts
+**/*.Server/GeneratedArtifacts
+**/*.Server/ModelManifest.xml
+*~
+~$*
+$tf/
+AppPackages/
+artifacts/
+ASALocalRun/
+AutoTest.Net/
+Backup*/
+BenchmarkDotNet.Artifacts/
+bld/
+BundleArtifacts/
+ClientBin/
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles
+CMakeLists.txt.user
+CMakeScripts
+CMakeUserPresets.json
+compile_commands.json
+coverage*.info
+coverage*.json
+coverage*.xml
+csx/
+CTestTestfile.cmake
+dlldata.c
+DocProject/buildhelp/
+DocProject/Help/*.hhc
+DocProject/Help/*.hhk
+DocProject/Help/*.hhp
+DocProject/Help/*.HxC
+DocProject/Help/*.HxT
+DocProject/Help/html
+DocProject/Help/Html2
+ecf/
+FakesAssemblies/
+FodyWeavers.xsd
+Generated_Code/
+Generated\ Files/
+healthchecksdb
+install_manifest.txt
+ipch/
+Makefile
+MigrationBackup/
+mono_crash.*
+nCrunchTemp_*
+node_modules/
+nunit-*.xml
+OpenCover/
+orleans.codegen.cs
+Package.StoreAssociation.xml
+paket-files/
+project.fragment.lock.json
+project.lock.json
+publish/
+PublishScripts/
+rcf/
+ScaffoldingReadMe.txt
+ServiceFabricBackup/
+StyleCopReport.xml
+Testing
+TestResult.xml
+UpgradeLog*.htm
+UpgradeLog*.XML
+x64/
+x86/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Distribution / packaging
+!dist/.gitkeep
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+.ruff_cache/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+__version__.py
+_private
+VERSION.txt
+</file>
+
+<file path=".pre-commit-config.yaml">
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.4
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+        args: [--respect-gitignore]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+      - id: debug-statements
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+</file>
+
+<file path="CHANGELOG.md">
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Initial public release of brosh (Browser Screenshot Tool)
+- Playwright-based async implementation for capturing scrolling screenshots
+- Support for Chrome, Edge, and Safari browsers
+- Smart section detection for descriptive filenames
+- Multiple output formats: PNG, JPG, and animated PNG (APNG)
+- Remote debugging mode to connect to existing browser sessions
+- MCP (Model Context Protocol) server integration
+- HTML extraction feature to capture visible element content
+- Configurable scroll steps and starting positions
+- Automatic browser detection and fallback logic
+- Comprehensive error handling and retry mechanisms
+
+### Changed
+- Refactored monolithic script into modular Python package structure
+- Migrated from script-based to package-based distribution
+- Updated to use modern Python packaging with pyproject.toml
+
+### Fixed
+- Browser connection issues with improved retry logic
+- Screenshot timeout handling
+- Image scaling and format conversion edge cases
+
+## [0.1.0] - 2025-06-12
+
+### Added
+- Initial implementation as a monolithic script
+- Basic screenshot capture functionality
+- Browser management commands (run, quit)
+- Fire-based CLI interface
+
+[Unreleased]: https://github.com/twardoch/brosh/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/twardoch/brosh/releases/tag/v0.1.0
+</file>
+
+<file path="cleanup.sh">
+#!/usr/bin/env bash
+
+python -m uzpy run -e src
+fd -e py -x autoflake {}
+fd -e py -x pyupgrade --py311-plus {}
+fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
+fd -e py -x ruff format --respect-gitignore --target-version py311 {}
+repomix -i varia,.specstory,AGENT.md,CLAUDE.md,PLAN.md,SPEC.md,llms.txt,.cursorrules -o llms.txt .
+python -m pytest
+
+rm -rf dist/brosh*.*
+uv build
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2025 Adam Twardoch
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="package.toml">
+# Package configuration
+[package]
+include_cli = true        # Include CLI boilerplate
+include_logging = true    # Include logging setup
+use_pydantic = true      # Use Pydantic for data validation
+use_rich = true          # Use Rich for terminal output
+
+[features]
+mkdocs = false           # Enable MkDocs documentation
+vcs = true              # Initialize Git repository
+github_actions = true   # Add GitHub Actions workflows
+</file>
+
+<file path="pyrightconfig.json">
+{
+  "include": [
+    "**/*.py"
+  ],
+  "exclude": [
+    "src",
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+  "reportMissingImports": false,
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.10"
+}
+</file>
+
+<file path="TODO.md">
+# TODO
+
+```
+brosh|cat
+
+NAME
+    brosh - Fire CLI interface for browser screenshot operations.
+
+SYNOPSIS
+    brosh - GROUP | COMMAND | VALUE
+
+DESCRIPTION
+    Provides organized commands for browser management and screenshot capture.
+
+GROUPS
+    GROUP is one of the following:
+
+     browser_manager
+       Manages browser detection, launching, and connection.
+
+     tool
+       Tool for capturing scrolling screenshots using Playwright async API.
+
+COMMANDS
+    COMMAND is one of the following:
+
+     mcp
+       Run MCP server for browser screenshots.
+
+     quit
+       Quit the specified browser.
+
+     run
+       Run browser in remote debug mode.
+
+     shot
+       Take screenshots of a webpage.
+
+VALUES
+    VALUE is one of the following:
+
+     app
+       Browser to use - chrome, edge, safari (default: auto-detect)
+
+     height
+       Height in pixels (default: main screen height)
+
+     output_dir
+       Output directory for screenshots (default: Pictures)
+
+     subdirs
+       Create subdirectories for domains (default: False)
+
+     verbose
+       Enable debug logging (default: False)
+
+     width
+       Width in pixels (default: main screen width)
+
+     zoom
+       Zoom level in % (default: 100)
+```
+
+```
+brosh-mcp
+[06/12/25 18:57:14] INFO     Starting MCP server 'Browser Screenshots' with transport 'stdio'                  server.py:1159
+```
+
+## Completed Tasks (2025-06-12)
+
+- [x] Run ./cleanup.sh and analyze the results. Use them to add new TODOs into this file. 
+- [x] Run the code checks and fix identified issues
+- [x] Start implementing the TODOs. 
+- [x] Repeat the above steps until the TODO list is reasonably empty. 
+- [x] Rewrite CHANGELOG.md to a sensible format (today is 2025 June 12). 
+- [x] Update README.md. Research 'uvx' instalation of MCP servers, write a very very extensive documentation for our tool (both the CLI and MCP). Describe how the tool works, and why it's useful.
+
+### Summary of Completed Work:
+- Successfully refactored monolithic brosh.py into modular package structure
+- Fixed all auto-fixable linting issues identified by ruff
+- Created comprehensive CHANGELOG.md following Keep a Changelog format
+- Created extensive 683-line README.md with:
+  - Detailed uvx/uv installation instructions
+  - Comprehensive usage examples
+  - MCP integration guide with Claude Desktop configuration
+  - Architecture overview
+  - Troubleshooting section
+  - Platform-specific notes
+
+## Future Enhancements (Optional)
+
+- [ ] Add unit tests for all modules
+- [ ] Create GitHub Actions CI/CD pipeline
+- [ ] Add support for additional browsers (Firefox)
+- [ ] Implement parallel screenshot capture for performance
+- [ ] Add screenshot annotation features
+- [ ] Create documentation website with Sphinx
+- [ ] Publish to PyPI for pip installation
+</file>
+
 <file path="src/brosh/browser.py">
 #!/usr/bin/env python3
 # this_file: src/brosh/browser.py
@@ -1697,117 +2386,6 @@ class BrowserScreenshotCLI:
         run_mcp_server()
 </file>
 
-<file path="src/brosh/image.py">
-#!/usr/bin/env python3
-# this_file: src/brosh/image.py
-
-"""Image processing utilities for brosh."""
-
-from pathlib import Path
-
-from loguru import logger
-from PIL import Image
-
-
-class ImageProcessor:
-    """Handles image processing operations."""
-
-    @staticmethod
-    def scale_image(filepath: Path, scale: int) -> None:
-        """Scale the image by the given percentage.
-
-        Args:
-            filepath: Path to the image file
-            scale: Scale percentage (100 = no scaling)
-
-        """
-        try:
-            img = Image.open(filepath)
-            new_width = int(img.width * scale / 100)
-            new_height = int(img.height * scale / 100)
-            resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-            resized.save(filepath)
-        except Exception as e:
-            logger.error(f"Failed to scale image {filepath}: {e}")
-
-    @staticmethod
-    def convert_to_jpg(png_path: Path) -> Path:
-        """Convert PNG to JPG format.
-
-        Args:
-            png_path: Path to PNG file
-
-        Returns:
-            Path to JPG file
-
-        """
-        try:
-            jpg_path = png_path.with_suffix(".jpg")
-            img = Image.open(png_path)
-
-            # Convert RGBA to RGB for JPG
-            if img.mode in ("RGBA", "LA", "P"):
-                background = Image.new("RGB", img.size, (255, 255, 255))
-                if img.mode == "P":
-                    img = img.convert("RGBA")
-                background.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
-                img = background
-
-            img.save(jpg_path, "JPEG", quality=90)
-            png_path.unlink()  # Remove original PNG
-            return jpg_path
-        except Exception as e:
-            logger.error(f"Failed to convert {png_path} to JPG: {e}")
-            return png_path  # Return original if conversion fails
-
-    @staticmethod
-    def create_apng(
-        png_paths: list[Path],
-        domain: str,
-        output_path: Path,
-        anim_spf: float,
-    ) -> Path:
-        """Create an animated PNG from a list of PNG files.
-
-        Args:
-            png_paths: List of PNG file paths to combine
-            domain: Domain name for output filename
-            output_path: Output directory
-            anim_spf: Seconds per frame
-
-        Returns:
-            Path to created APNG file
-
-        """
-        apng_path = output_path / f"{domain}-animated.png"
-
-        try:
-            # Load all images
-            images = []
-            for png_path in png_paths:
-                img = Image.open(png_path)
-                images.append(img)
-
-            # Convert seconds per frame to milliseconds
-            duration_ms = int(anim_spf * 1000)
-
-            # Save as animated PNG
-            if images:
-                images[0].save(
-                    apng_path,
-                    format="PNG",
-                    save_all=True,
-                    append_images=images[1:],
-                    duration=duration_ms,
-                    loop=0,  # Infinite loop
-                )
-        except Exception as e:
-            logger.error(f"Failed to create APNG: {e}")
-            raise
-
-        return apng_path
-</file>
-
 <file path="src/brosh/mcp.py">
 #!/usr/bin/env python3
 # this_file: src/brosh/mcp.py
@@ -1995,23 +2573,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-</file>
-
-<file path="src/brosh/models.py">
-#!/usr/bin/env python3
-# this_file: src/brosh/models.py
-
-"""Data models and enums for the brosh package."""
-
-from enum import Enum
-
-
-class ImageFormat(str, Enum):
-    """Supported image output formats."""
-
-    PNG = "png"
-    JPG = "jpg"
-    APNG = "apng"
 </file>
 
 <file path="src/brosh/tool.py">
@@ -2207,650 +2768,6 @@ class BrowserScreenshotTool:
         if html_data:
             return html_data
         return saved_paths
-</file>
-
-<file path=".cursorindexingignore">
-# Don't index SpecStory auto-save files, but allow explicit context inclusion via @ references
-.specstory/**
-</file>
-
-<file path=".gitignore">
-*_autogen/
-.DS_Store
-__version__.py
-__pycache__/
-_Chutzpah*
-_deps
-_NCrunch_*
-_pkginfo.txt
-_Pvt_Extensions
-_ReSharper*/
-_TeamCity*
-_UpgradeReport_Files/
-!?*.[Cc]ache/
-!.axoCover/settings.json
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/settings.json
-!.vscode/tasks.json
-!**/[Pp]ackages/build/
-!Directory.Build.rsp
-.*crunch*.local.xml
-.axoCover/*
-.builds
-.cr/personal
-.fake/
-.history/
-.ionide/
-.localhistory/
-.mfractor/
-.ntvs_analysis.dat
-.paket/paket.exe
-.sass-cache/
-.vs/
-.vscode
-.vscode/*
-.vshistory/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-[Bb]in/
-[Bb]uild[Ll]og.*
-[Dd]ebug/
-[Dd]ebugPS/
-[Dd]ebugPublic/
-[Ee]xpress/
-[Ll]og/
-[Ll]ogs/
-[Oo]bj/
-[Rr]elease/
-[Rr]eleasePS/
-[Rr]eleases/
-[Tt]est[Rr]esult*/
-[Ww][Ii][Nn]32/
-*_h.h
-*_i.c
-*_p.c
-*_wpftmp.csproj
-*- [Bb]ackup ([0-9]).rdl
-*- [Bb]ackup ([0-9][0-9]).rdl
-*- [Bb]ackup.rdl
-*.[Cc]ache
-*.[Pp]ublish.xml
-*.[Rr]e[Ss]harper
-*.a
-*.app
-*.appx
-*.appxbundle
-*.appxupload
-*.aps
-*.azurePubxml
-*.bim_*.settings
-*.bim.layout
-*.binlog
-*.btm.cs
-*.btp.cs
-*.build.csdef
-*.cab
-*.cachefile
-*.code-workspace
-*.coverage
-*.coveragexml
-*.d
-*.dbmdl
-*.dbproj.schemaview
-*.dll
-*.dotCover
-*.DotSettings.user
-*.dsp
-*.dsw
-*.dylib
-*.e2e
-*.exe
-*.gch
-*.GhostDoc.xml
-*.gpState
-*.ilk
-*.iobj
-*.ipdb
-*.jfm
-*.jmconfig
-*.la
-*.lai
-*.ldf
-*.lib
-*.lo
-*.log
-*.mdf
-*.meta
-*.mm.*
-*.mod
-*.msi
-*.msix
-*.msm
-*.msp
-*.ncb
-*.ndf
-*.nuget.props
-*.nuget.targets
-*.nupkg
-*.nvuser
-*.o
-*.obj
-*.odx.cs
-*.opendb
-*.opensdf
-*.opt
-*.out
-*.pch
-*.pdb
-*.pfx
-*.pgc
-*.pgd
-*.pidb
-*.plg
-*.psess
-*.publishproj
-*.publishsettings
-*.pubxml
-*.pyc
-*.rdl.data
-*.rptproj.bak
-*.rptproj.rsuser
-*.rsp
-*.rsuser
-*.sap
-*.sbr
-*.scc
-*.sdf
-*.sln.docstates
-*.sln.iml
-*.slo
-*.smod
-*.snupkg
-*.so
-*.suo
-*.svclog
-*.tlb
-*.tlh
-*.tli
-*.tlog
-*.tmp
-*.tmp_proj
-*.tss
-*.user
-*.userosscache
-*.userprefs
-*.vbp
-*.vbw
-*.VC.db
-*.VC.VC.opendb
-*.VisualState.xml
-*.vsp
-*.vspscc
-*.vspx
-*.vssscc
-*.xsd.cs
-**/[Pp]ackages/*
-**/*.DesktopClient/GeneratedArtifacts
-**/*.DesktopClient/ModelManifest.xml
-**/*.HTMLClient/GeneratedArtifacts
-**/*.Server/GeneratedArtifacts
-**/*.Server/ModelManifest.xml
-*~
-~$*
-$tf/
-AppPackages/
-artifacts/
-ASALocalRun/
-AutoTest.Net/
-Backup*/
-BenchmarkDotNet.Artifacts/
-bld/
-BundleArtifacts/
-ClientBin/
-cmake_install.cmake
-CMakeCache.txt
-CMakeFiles
-CMakeLists.txt.user
-CMakeScripts
-CMakeUserPresets.json
-compile_commands.json
-coverage*.info
-coverage*.json
-coverage*.xml
-csx/
-CTestTestfile.cmake
-dlldata.c
-DocProject/buildhelp/
-DocProject/Help/*.hhc
-DocProject/Help/*.hhk
-DocProject/Help/*.hhp
-DocProject/Help/*.HxC
-DocProject/Help/*.HxT
-DocProject/Help/html
-DocProject/Help/Html2
-ecf/
-FakesAssemblies/
-FodyWeavers.xsd
-Generated_Code/
-Generated\ Files/
-healthchecksdb
-install_manifest.txt
-ipch/
-Makefile
-MigrationBackup/
-mono_crash.*
-nCrunchTemp_*
-node_modules/
-nunit-*.xml
-OpenCover/
-orleans.codegen.cs
-Package.StoreAssociation.xml
-paket-files/
-project.fragment.lock.json
-project.lock.json
-publish/
-PublishScripts/
-rcf/
-ScaffoldingReadMe.txt
-ServiceFabricBackup/
-StyleCopReport.xml
-Testing
-TestResult.xml
-UpgradeLog*.htm
-UpgradeLog*.XML
-x64/
-x86/
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Distribution / packaging
-!dist/.gitkeep
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-.ruff_cache/
-
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Project specific
-__version__.py
-_private
-VERSION.txt
-</file>
-
-<file path=".pre-commit-config.yaml">
-repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.4
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
-        args: [--respect-gitignore]
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
-    hooks:
-      - id: trailing-whitespace
-      - id: check-yaml
-      - id: check-toml
-      - id: check-added-large-files
-      - id: debug-statements
-      - id: check-case-conflict
-      - id: mixed-line-ending
-        args: [--fix=lf]
-</file>
-
-<file path="CHANGELOG.md">
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Added
-- Initial public release of brosh (Browser Screenshot Tool)
-- Playwright-based async implementation for capturing scrolling screenshots
-- Support for Chrome, Edge, and Safari browsers
-- Smart section detection for descriptive filenames
-- Multiple output formats: PNG, JPG, and animated PNG (APNG)
-- Remote debugging mode to connect to existing browser sessions
-- MCP (Model Context Protocol) server integration
-- HTML extraction feature to capture visible element content
-- Configurable scroll steps and starting positions
-- Automatic browser detection and fallback logic
-- Comprehensive error handling and retry mechanisms
-
-### Changed
-- Refactored monolithic script into modular Python package structure
-- Migrated from script-based to package-based distribution
-- Updated to use modern Python packaging with pyproject.toml
-
-### Fixed
-- Browser connection issues with improved retry logic
-- Screenshot timeout handling
-- Image scaling and format conversion edge cases
-
-## [0.1.0] - 2025-06-12
-
-### Added
-- Initial implementation as a monolithic script
-- Basic screenshot capture functionality
-- Browser management commands (run, quit)
-- Fire-based CLI interface
-
-[Unreleased]: https://github.com/twardoch/brosh/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/twardoch/brosh/releases/tag/v0.1.0
-</file>
-
-<file path="cleanup.sh">
-#!/usr/bin/env bash
-
-python -m uzpy run -e src
-fd -e py -x autoflake {}
-fd -e py -x pyupgrade --py311-plus {}
-fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
-fd -e py -x ruff format --respect-gitignore --target-version py311 {}
-repomix -i varia,.specstory,AGENT.md,CLAUDE.md,PLAN.md,SPEC.md,llms.txt,.cursorrules -o llms.txt .
-python -m pytest
-
-rm -rf dist/brosh*.*
-uv build
-</file>
-
-<file path="LICENSE">
-MIT License
-
-Copyright (c) 2025 Adam Twardoch
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-</file>
-
-<file path="package.toml">
-# Package configuration
-[package]
-include_cli = true        # Include CLI boilerplate
-include_logging = true    # Include logging setup
-use_pydantic = true      # Use Pydantic for data validation
-use_rich = true          # Use Rich for terminal output
-
-[features]
-mkdocs = false           # Enable MkDocs documentation
-vcs = true              # Initialize Git repository
-github_actions = true   # Add GitHub Actions workflows
-</file>
-
-<file path="pyrightconfig.json">
-{
-  "include": [
-    "**/*.py"
-  ],
-  "exclude": [
-    "src",
-    "**/node_modules",
-    "**/__pycache__"
-  ],
-  "reportMissingImports": false,
-  "reportMissingTypeStubs": false,
-  "pythonVersion": "3.10"
-}
-</file>
-
-<file path="TODO.md">
-# TODO
-
-```
-brosh|cat
-
-NAME
-    brosh - Fire CLI interface for browser screenshot operations.
-
-SYNOPSIS
-    brosh - GROUP | COMMAND | VALUE
-
-DESCRIPTION
-    Provides organized commands for browser management and screenshot capture.
-
-GROUPS
-    GROUP is one of the following:
-
-     browser_manager
-       Manages browser detection, launching, and connection.
-
-     tool
-       Tool for capturing scrolling screenshots using Playwright async API.
-
-COMMANDS
-    COMMAND is one of the following:
-
-     mcp
-       Run MCP server for browser screenshots.
-
-     quit
-       Quit the specified browser.
-
-     run
-       Run browser in remote debug mode.
-
-     shot
-       Take screenshots of a webpage.
-
-VALUES
-    VALUE is one of the following:
-
-     app
-       Browser to use - chrome, edge, safari (default: auto-detect)
-
-     height
-       Height in pixels (default: main screen height)
-
-     output_dir
-       Output directory for screenshots (default: Pictures)
-
-     subdirs
-       Create subdirectories for domains (default: False)
-
-     verbose
-       Enable debug logging (default: False)
-
-     width
-       Width in pixels (default: main screen width)
-
-     zoom
-       Zoom level in % (default: 100)
-```
-
-```
-brosh-mcp
-[06/12/25 18:57:14] INFO     Starting MCP server 'Browser Screenshots' with transport 'stdio'                  server.py:1159
-```
-
-## Completed Tasks (2025-06-12)
-
-- [x] Run ./cleanup.sh and analyze the results. Use them to add new TODOs into this file. 
-- [x] Run the code checks and fix identified issues
-- [x] Start implementing the TODOs. 
-- [x] Repeat the above steps until the TODO list is reasonably empty. 
-- [x] Rewrite CHANGELOG.md to a sensible format (today is 2025 June 12). 
-- [x] Update README.md. Research 'uvx' instalation of MCP servers, write a very very extensive documentation for our tool (both the CLI and MCP). Describe how the tool works, and why it's useful.
-
-### Summary of Completed Work:
-- Successfully refactored monolithic brosh.py into modular package structure
-- Fixed all auto-fixable linting issues identified by ruff
-- Created comprehensive CHANGELOG.md following Keep a Changelog format
-- Created extensive 683-line README.md with:
-  - Detailed uvx/uv installation instructions
-  - Comprehensive usage examples
-  - MCP integration guide with Claude Desktop configuration
-  - Architecture overview
-  - Troubleshooting section
-  - Platform-specific notes
-
-## Future Enhancements (Optional)
-
-- [ ] Add unit tests for all modules
-- [ ] Create GitHub Actions CI/CD pipeline
-- [ ] Add support for additional browsers (Firefox)
-- [ ] Implement parallel screenshot capture for performance
-- [ ] Add screenshot annotation features
-- [ ] Create documentation website with Sphinx
-- [ ] Publish to PyPI for pip installation
-</file>
-
-<file path="src/brosh/brosh.py">
-#!/usr/bin/env python3
-"""brosh:
-
-Created by Adam Twardoch
-"""
-
-import logging
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-
-__version__ = "0.1.0"
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class Config:
-    """Configuration settings for brosh."""
-
-    name: str
-    value: str | int | float
-    options: dict[str, Any] | None = None
-
-
-def process_data(data: list[Any], config: Config | None = None, *, debug: bool = False) -> dict[str, Any]:
-    """Process the input data according to configuration.
-
-    Args:
-        data: Input data to process
-        config: Optional configuration settings
-        debug: Enable debug mode
-
-    Returns:
-        Processed data as a dictionary
-
-    Raises:
-        ValueError: If input data is invalid
-    """
-    if debug:
-        logger.setLevel(logging.DEBUG)
-        logger.debug("Debug mode enabled")
-
-    if not data:
-        msg = "Input data cannot be empty"
-        raise ValueError(msg)
-
-    # TODO: Implement data processing logic
-    result: dict[str, Any] = {}
-    return result
-
-
-def main() -> None:
-    """Main entry point for brosh."""
-    try:
-        # Example usage
-        config = Config(name="default", value="test", options={"key": "value"})
-        result = process_data([], config=config)
-        logger.info("Processing completed: %s", result)
-
-    except Exception as e:
-        logger.error("An error occurred: %s", str(e))
-        raise
-
-
-if __name__ == "__main__":
-    main()
-</file>
-
-<file path="tests/test_package.py">
-"""Test suite for brosh."""
-
-
-def test_version():
-    """Verify package exposes version."""
-    import brosh
-
-    assert brosh.__version__
 </file>
 
 <file path="pyproject.toml">
@@ -3990,6 +3907,89 @@ Created by [Adam Twardoch](https://github.com/twardoch)
 - Uses [Fire](https://github.com/google/python-fire) for the CLI interface
 - Implements [FastMCP](https://github.com/jlowin/fastmcp) for Model Context Protocol support
 - Inspired by various web scraping and screenshot tools
+</file>
+
+<file path="src/brosh/brosh.py">
+#!/usr/bin/env python3
+"""brosh:
+
+Created by Adam Twardoch
+"""
+
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+__version__ = "0.1.0"
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Config:
+    """Configuration settings for brosh."""
+
+    name: str
+    value: str | int | float
+    options: dict[str, Any] | None = None
+
+
+def process_data(data: list[Any], config: Config | None = None, *, debug: bool = False) -> dict[str, Any]:
+    """Process the input data according to configuration.
+
+    Args:
+        data: Input data to process
+        config: Optional configuration settings
+        debug: Enable debug mode
+
+    Returns:
+        Processed data as a dictionary
+
+    Raises:
+        ValueError: If input data is invalid
+    """
+    if debug:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug mode enabled")
+
+    if not data:
+        msg = "Input data cannot be empty"
+        raise ValueError(msg)
+
+    # TODO: Implement data processing logic
+    result: dict[str, Any] = {}
+    return result
+
+
+def main() -> None:
+    """Main entry point for brosh."""
+    try:
+        # Example usage
+        config = Config(name="default", value="test", options={"key": "value"})
+        result = process_data([], config=config)
+        logger.info("Processing completed: %s", result)
+
+    except Exception as e:
+        logger.error("An error occurred: %s", str(e))
+        raise
+
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="tests/test_package.py">
+"""Test suite for brosh."""
+
+
+def test_version():
+    """Verify package exposes version."""
+    import brosh
+
+    assert brosh.__version__
 </file>
 
 </files>

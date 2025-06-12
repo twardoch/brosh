@@ -13,7 +13,7 @@ from fastmcp import FastMCP
 from loguru import logger
 from platformdirs import user_pictures_dir
 
-from .api import capture_webpage
+from .api import capture_webpage_async
 from .models import ImageFormat, MCPImageContent, MCPTextContent, MCPToolResult
 from .texthtml import DOMProcessor
 
@@ -102,7 +102,7 @@ def run_mcp_server() -> None:
             }
 
             # Call the unified API
-            result = capture_webpage(**api_kwargs)
+            result = await capture_webpage_async(**api_kwargs)
 
             # Process results for MCP format
             return _convert_to_mcp_result(result, format_enum)
@@ -250,4 +250,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

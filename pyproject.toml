@@ -11,10 +11,17 @@
 #------------------------------------------------------------------------------
 [project]
 name = 'brosh' # Package name on PyPI
-description = '' # Short description
+description = 'Browser screenshot tool using Playwright async API' # Short description
 readme = 'README.md' # Path to README file
 requires-python = '>=3.10' # Minimum Python version
 keywords = [
+    'screenshot',
+    'browser',
+    'playwright',
+    'web',
+    'capture',
+    'automation',
+    'mcp',
 ] # Keywords for PyPI search
 dynamic = ["version"] # Fields set dynamically at build time
 
@@ -33,6 +40,12 @@ classifiers = [
 ]
 
 dependencies = [
+    'fire>=0.5.0',
+    'playwright>=1.40.0',
+    'pillow>=10.0.0',
+    'fastmcp>=0.5.0',
+    'platformdirs>=4.0.0',
+    'loguru>=0.7.0',
 ]
 
 # Author information
@@ -64,6 +77,7 @@ dev = [
     'absolufy-imports>=0.3.1', # Convert relative imports to absolute - Keep absolufy-imports as is, update if newer absolufy-imports version is required
     'pyupgrade>=3.19.1', # Upgrade Python syntax - Keep pyupgrade as is, update if newer pyupgrade version is required
     'isort>=6.0.1', # Sort imports - Keep isort as is, update if newer isort version is required
+    'uzpy>=1.0.0', 
 ]
 
 # Testing tools and frameworks
@@ -92,7 +106,8 @@ all = [
 # Entry points for command-line executables installed with the package.
 #------------------------------------------------------------------------------
 [project.scripts]
-# CLINAME = "brosh.__main__:main"
+brosh = "brosh.__main__:main"
+brosh-mcp = "brosh.mcp:main"
 
 #------------------------------------------------------------------------------
 # BUILD SYSTEM CONFIGURATION
@@ -346,6 +361,7 @@ compare = [
 [tool.ruff]
 target-version = "py310"
 line-length = 120
+exclude = [".git", ".venv", "venv", "dist", "build", "_private"]
 
 # Linting rules configuration
 [tool.ruff.lint]
@@ -413,8 +429,7 @@ unfixable = [
     'F401', # Don't automatically remove unused imports - may be needed later
 
 ]
-# Configure extend-exclude to ignore specific directories
-extend-exclude = [".git", ".venv", "venv", "dist", "build"]
+# Exclude patterns are handled in the main [tool.ruff] section
 
 # isort configuration within Ruff
 [tool.ruff.lint.isort]
@@ -422,7 +437,7 @@ known-first-party = ['brosh'] # Treat as first-party imports for sorting
 
 # flake8-tidy-imports configuration within Ruff
 [tool.ruff.lint.flake8-tidy-imports]
-ban-relative-imports = 'all' # Ban all relative imports for consistency
+ban-relative-imports = 'parents' # Allow relative imports within packages
 
 # Per-file rule exceptions
 [tool.ruff.lint.per-file-ignores]

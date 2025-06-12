@@ -1,0 +1,22 @@
+[
+  {
+    "fileName": "main-overview.mdc",
+    "description": "Complete system overview detailing the architecture, component interactions, and core functionality of the browser screenshot tool"
+  },
+  {
+    "fileName": "screenshot-algorithms.mdc",
+    "description": "Detailed documentation of the core screenshot algorithms including viewport scrolling logic, section detection, and image merging processes"
+  },
+  {
+    "fileName": "browser-management.mdc",
+    "description": "Documentation of browser detection, connection management, and platform-specific handling including debug mode operations and cleanup procedures"
+  },
+  {
+    "fileName": "data-models.mdc",
+    "description": "Specification of data models including ImageFormat enum, capture configurations, and browser management structures"
+  },
+  {
+    "fileName": "component-flow.mdc",
+    "description": "Documentation of data and control flow between core components (BrowserManager, CaptureManager, ImageProcessor) including async operations and error handling"
+  }
+]

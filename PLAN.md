@@ -228,5 +228,3 @@ Location: src/brosh/mcp.py
 - Dynamic content detection
 
 The system's unique value proposition lies in intelligent content detection and AI-ready capture capabilities, distinguishing it from basic screenshot utilities through semantic understanding of webpage structure.
-
-$END$

@@ -105,7 +105,8 @@ class BrowserScreenshotTool:
         """
         if mcp:
             # This should be handled in mcp.py now
-            raise RuntimeError("MCP mode should be handled by mcp module")
+            msg = "MCP mode should be handled by mcp module"
+            raise RuntimeError(msg)
 
         # Validate inputs
         self.capture_manager.validate_inputs(url, zoom, scroll_step, scale, format)
@@ -115,7 +116,8 @@ class BrowserScreenshotTool:
         parsed_url = urlparse(url)
         domain = parsed_url.netloc.replace("www.", "").replace(".", "_")
         if not domain:
-            raise ValueError(f"Invalid URL: {url}")
+            msg = f"Invalid URL: {url}"
+            raise ValueError(msg)
 
         # Create output directory structure
         output_path = Path(output_dir)
@@ -180,7 +182,8 @@ class BrowserScreenshotTool:
             except Exception as e:
                 logger.error(f"Attempt {attempt + 1}/{self.max_retries} failed: {e}")
                 if attempt == self.max_retries - 1:
-                    raise RuntimeError(f"Failed to capture screenshots after {self.max_retries} attempts: {e}")
+                    msg = f"Failed to capture screenshots after {self.max_retries} attempts: {e}"
+                    raise RuntimeError(msg)
                 await asyncio.sleep(2)  # Wait before retry
 
         # Always return html_data when populated (either HTML content or selectors)

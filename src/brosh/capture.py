@@ -42,19 +42,24 @@ class CaptureManager:
 
         """
         if not url or not url.startswith(("http://", "https://")):
-            raise ValueError(f"Invalid URL: {url}")
+            msg = f"Invalid URL: {url}"
+            raise ValueError(msg)
 
         if not (10 <= zoom <= 500):
-            raise ValueError(f"Zoom must be between 10-500%: {zoom}")
+            msg = f"Zoom must be between 10-500%: {zoom}"
+            raise ValueError(msg)
 
         if not (10 <= scroll_step <= 200):
-            raise ValueError(f"Scroll step must be between 10-200%: {scroll_step}")
+            msg = f"Scroll step must be between 10-200%: {scroll_step}"
+            raise ValueError(msg)
 
         if not (10 <= scale <= 200):
-            raise ValueError(f"Scale must be between 10-200%: {scale}")
+            msg = f"Scale must be between 10-200%: {scale}"
+            raise ValueError(msg)
 
         if format.lower() not in ["png", "jpg", "apng"]:
-            raise ValueError(f"Unsupported format: {format}. Use: png, jpg, apng")
+            msg = f"Unsupported format: {format}. Use: png, jpg, apng"
+            raise ValueError(msg)
 
     async def capture_screenshots(
         self,
@@ -110,7 +115,8 @@ class CaptureManager:
         except PlaywrightTimeoutError:
             logger.warning("Page load timeout, proceeding anyway")
         except Exception as e:
-            raise RuntimeError(f"Failed to navigate to {url}: {e}")
+            msg = f"Failed to navigate to {url}: {e}"
+            raise RuntimeError(msg)
 
         # Handle from_selector - scroll to element before starting
         start_position = 0
@@ -145,7 +151,8 @@ class CaptureManager:
                 viewport_height = height
                 logger.info(f"Page height: {total_height}px, viewport: {viewport_height}px")
         except Exception as e:
-            raise RuntimeError(f"Failed to get page dimensions: {e}")
+            msg = f"Failed to get page dimensions: {e}"
+            raise RuntimeError(msg)
 
         # Calculate all scroll positions based on step size
         scroll_positions = []
@@ -165,7 +172,7 @@ class CaptureManager:
         timestamp = now.strftime("%y%m%d-%H%M%S")
 
         # Capture screenshots at each scroll position
-        for i, scroll_pos in enumerate(scroll_positions):
+        for _i, scroll_pos in enumerate(scroll_positions):
             try:
                 # Scroll to the calculated position
                 await page.evaluate(f"window.scrollTo(0, {scroll_pos})")
@@ -263,7 +270,7 @@ class CaptureManager:
                 const headers = Array.from(
                     document.querySelectorAll('h1, h2, h3, h4, h5, h6, [id]')
                 );
-                
+
                 for (const header of headers) {
                     const rect = header.getBoundingClientRect();
                     if (rect.top >= 0 && rect.top < viewportHeight / 2) {
@@ -292,21 +299,21 @@ class CaptureManager:
 
         """
         try:
-            visible_html = await page.evaluate("""() => {
+            return await page.evaluate("""() => {
                 const {innerHeight: H, innerWidth: W} = window;
                 const nodes = [...document.querySelectorAll('*')];
                 const fullyVisibleElements = [];
-                
+
                 // Tags to exclude from capture
                 const excludeTags = ['HTML', 'HEAD', 'BODY', 'SCRIPT', 'STYLE', 'META', 'LINK', 'TITLE'];
-                
+
                 // Find elements that are FULLY visible in the viewport
                 nodes.forEach(node => {
                     // Skip excluded tags and non-element nodes
                     if (excludeTags.includes(node.tagName) || node.nodeType !== 1) {
                         return;
                     }
-                    
+
                     const r = node.getBoundingClientRect();
                     // Check if element is fully visible
                     if (r.top >= 0 && r.bottom <= H && r.left >= 0 && r.right <= W && r.width > 0 && r.height > 0) {
@@ -326,14 +333,13 @@ class CaptureManager:
                         }
                     }
                 });
-                
+
                 // Convert to HTML strings and concatenate
                 const htmlParts = fullyVisibleElements.map(el => el.outerHTML);
-                
+
                 // Return minified HTML
                 return htmlParts.join('').replace(/\\s+/g, ' ').trim();
             }""")
-            return visible_html
         except Exception as e:
             logger.error(f"Failed to get visible HTML: {e}")
             return ""
@@ -349,15 +355,15 @@ class CaptureManager:
 
         """
         try:
-            selector = await page.evaluate("""() => {
+            return await page.evaluate("""() => {
                 const {innerHeight: H} = window;
-                
+
                 // Try to find the most specific container for visible content
                 const candidates = [
                     'main', 'article', '[role="main"]', '.content', '#content',
                     'section:first-of-type', 'div.container'
                 ];
-                
+
                 for (const sel of candidates) {
                     const el = document.querySelector(sel);
                     if (el) {
@@ -367,7 +373,7 @@ class CaptureManager:
                         }
                     }
                 }
-                
+
                 // Find first visible section or div
                 const sections = [...document.querySelectorAll('section, div')];
                 for (const section of sections) {
@@ -380,11 +386,10 @@ class CaptureManager:
                         }
                     }
                 }
-                
+
                 // Fallback to body viewport
                 return 'body';
             }""")
-            return selector
         except Exception as e:
             logger.error(f"Failed to get visible selector: {e}")
             return "body"

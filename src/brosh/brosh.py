@@ -44,7 +44,8 @@ def process_data(data: list[Any], config: Config | None = None, *, debug: bool =
         logger.debug("Debug mode enabled")
 
     if not data:
-        raise ValueError("Input data cannot be empty")
+        msg = "Input data cannot be empty"
+        raise ValueError(msg)
 
     # TODO: Implement data processing logic
     result: dict[str, Any] = {}

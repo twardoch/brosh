@@ -92,7 +92,7 @@ class BrowserScreenshotCLI:
             width = self.width or 1440
             height = self.height or 900
 
-            args = [browser_path] + self._browser_manager.get_browser_args(browser_name, width, height, debug_port)
+            args = [browser_path, *self._browser_manager.get_browser_args(browser_name, width, height, debug_port)]
 
             if not args[1:]:  # No args returned (not chromium/msedge)
                 return f"Browser {browser_name} not supported for direct launch"
@@ -101,7 +101,7 @@ class BrowserScreenshotCLI:
             subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             # Wait and verify connection
-            for attempt in range(10):
+            for _attempt in range(10):
                 time.sleep(1)
                 try:
                     import urllib.request
@@ -132,19 +132,22 @@ class BrowserScreenshotCLI:
                 subprocess.run(
                     ["pkill", "-f", f"remote-debugging-port={debug_port}"],
                     capture_output=True,
-                    timeout=5, check=False,
+                    timeout=5,
+                    check=False,
                 )
                 if "chrome" in browser_name.lower():
                     subprocess.run(
                         ["pkill", "-f", "Google Chrome.*remote-debugging"],
                         capture_output=True,
-                        timeout=5, check=False,
+                        timeout=5,
+                        check=False,
                     )
             else:  # Windows/Linux
                 subprocess.run(
                     ["taskkill", "/F", "/IM", "chrome.exe"],
                     capture_output=True,
-                    timeout=5, check=False,
+                    timeout=5,
+                    check=False,
                 )
 
             return f"Quit {browser_name}"

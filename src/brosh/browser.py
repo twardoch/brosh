@@ -74,9 +74,9 @@ class BrowserManager:
 
         elif platform.system() == "Windows":
             try:
-                import tkinter
+                import tkinter as tk
 
-                root = tkinter.Tk()
+                root = tk.Tk()
                 # Get logical size (accounts for DPI scaling automatically)
                 width = root.winfo_screenwidth()
                 height = root.winfo_screenheight()
@@ -138,10 +138,7 @@ class BrowserManager:
         paths = self.get_browser_paths(browser_name)
 
         # Check if any path exists
-        for path in paths:
-            if os.path.exists(path):
-                return True
-        return False
+        return any(os.path.exists(path) for path in paths)
 
     def get_browser_paths(self, browser_name: str) -> list:
         """Get possible paths for a browser.
@@ -286,10 +283,11 @@ class BrowserManager:
             browser = await playwright.webkit.launch(headless=False)
 
         if not browser:
-            raise RuntimeError(
+            msg = (
                 f"Could not connect to or launch {browser_name} browser. "
                 "Please ensure the browser is installed and try again."
             )
+            raise RuntimeError(msg)
 
         # Create context without device scale factor to avoid scaling issues
         # Use default height if height is -1 (capture entire page)
@@ -342,20 +340,23 @@ class BrowserManager:
                     subprocess.run(
                         ["pkill", "-f", f"remote-debugging-port={debug_port}"],
                         capture_output=True,
-                        timeout=5, check=False,
+                        timeout=5,
+                        check=False,
                     )
                     # Also try killing by process name
                     if "Chrome" in browser_path:
                         subprocess.run(
                             ["pkill", "-f", "Google Chrome.*remote-debugging"],
                             capture_output=True,
-                            timeout=5, check=False,
+                            timeout=5,
+                            check=False,
                         )
                 else:  # Windows/Linux
                     subprocess.run(
                         ["taskkill", "/F", "/IM", "chrome.exe"],
                         capture_output=True,
-                        timeout=5, check=False,
+                        timeout=5,
+                        check=False,
                     )
             except Exception as e:
                 logger.debug(f"Process cleanup warning: {e}")

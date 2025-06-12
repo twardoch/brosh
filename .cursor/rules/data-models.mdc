@@ -1,44 +1,70 @@
 ---
-description: Specification for data models and enums used in browser-based screenshot capture and browser management
-globs: **/models.py,**/browser.py,**/capture.py
+description: Specifications for data models including ImageFormat enum, capture configurations, and browser management structures
+globs: src/brosh/models.py,src/brosh/capture.py,src/brosh/browser.py
 alwaysApply: false
 ---
 
 
 # data-models
 
-## Core Data Models
-Importance Score: 95
+### Core Data Models
 
-### ImageFormat Enum
-File: src/brosh/models.py
-- Defines supported screenshot output formats:
-  - PNG: Default lossless format
-  - JPG: Compressed format
-  - APNG: Animated format for scroll sequences
-- Used for format validation and conversion logic
+#### ImageFormat Enum
+- Defines supported output formats (PNG, JPG, APNG) with associated MIME types and extensions
+- Maps format strings to appropriate MIME types and file extensions
+- Business logic for format validation and file extension mapping
+- File: `src/brosh/models.py`
 
-### Capture Configuration Models 
-File: src/brosh/capture.py
-- Defines viewport capture parameters:
-  - scroll_step: Controls content overlap percentage (10-200)
-  - zoom_factor: Browser zoom level (10-500)
-  - scale_factor: Output image scaling (10-200)
-  - section_identifiers: Maps DOM sections to semantic names
+#### CaptureConfig Model
+- Encapsulates webpage capture parameters including:
+  - Viewport dimensions (width/height) with constraints
+  - Zoom level (10-500% range)
+  - Scroll step size (10-200% of viewport)
+  - Image scale (10-200%)
+  - Browser selection
+  - Output format preferences
+- Includes validation rules for parameter ranges and combinations
+- File: `src/brosh/models.py`
 
-### Browser Management Structures
-File: src/brosh/browser.py
-- Browser debug connection configurations:
-  - Debug port mappings per browser type
-  - Screen resolution detection rules
-  - Retina display handling (macOS)
-- Browser preference hierarchy:
-  Chrome > Edge > Safari (macOS only)
-- Platform-specific browser constraints:
-  - Safari restricted to macOS
-  - Firefox explicitly unsupported
+#### Browser Management Models
+- BrowserInstance tracks:
+  - Browser type (Chrome/Edge/Safari)
+  - Debug port assignments (9222-9225)
+  - Platform-specific paths and constraints
+- Priority system for browser selection
+- File: `src/brosh/browser.py`
 
-The data models implement specialized screenshot capture workflow configuration and browser management rules, focusing on viewport control, section identification, and cross-platform browser compatibility.
+#### Content Processing Models
+- MCPContentItem:
+  - Represents screenshot content with metadata
+  - Maps selectors to visual elements
+  - Handles text/HTML content association
+- MCPScreenshotResult:
+  - Captures frame metadata and content
+  - Associates frames with page sections
+  - Manages selector hierarchies
+- File: `src/brosh/models.py`
+
+### Core Business Logic
+
+1. Browser Priority System (Importance: 95)
+- Chrome > Edge > Safari (macOS only)
+- Firefox explicitly unsupported
+- Dedicated debug ports per browser type
+- File: `src/brosh/browser.py`
+
+2. Capture Parameter Validation (Importance: 90)
+- Zoom level constraints: 10-500%
+- Scroll step: 10-200% viewport 
+- Scale constraints: 10-200%
+- Format validation: PNG/JPG/APNG
+- File: `src/brosh/models.py`
+
+3. Content Metadata Management (Importance: 85)
+- Maps selectors to captured frames
+- Associates text/HTML with visual elements
+- Maintains section hierarchy
+- File: `src/brosh/models.py`
 
 $END$
 

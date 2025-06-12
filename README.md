@@ -48,6 +48,7 @@ A powerful browser screenshot tool that captures scrolling screenshots of webpag
 - **🔌 Remote Debugging**: Connects to existing browser sessions preserving cookies/auth
 - **🤖 MCP Server**: Integrate with AI tools via Model Context Protocol
 - **📄 HTML Extraction**: Optionally capture HTML content of visible elements
+- **📝 Text Extraction**: Automatically converts visible content to Markdown text
 - **📐 Flexible Scrolling**: Configurable scroll steps and starting positions
 - **🎯 Precise Control**: Set viewport size, zoom level, and output scaling
 - **🔄 Automatic Retries**: Robust error handling with configurable retry logic
@@ -342,20 +343,30 @@ github_com-250612-185234-00500-readme.png
 
 ### JSON Output
 
-When using `--html --json`, the output format is:
+The tool now always extracts text content from visible elements. When using `--json`:
 
+**Default output (without --html):**
 ```json
 {
   "/path/to/screenshot1.png": {
     "selector": "main.content",
-    "html": "<main class='content'>...</main>"
-  },
-  "/path/to/screenshot2.png": {
-    "selector": "#section-2",
-    "html": "<section id='section-2'>...</section>"
+    "text": "# Main Content\n\nThis is the extracted text in Markdown format..."
   }
 }
 ```
+
+**With --html flag:**
+```json
+{
+  "/path/to/screenshot1.png": {
+    "selector": "main.content",
+    "html": "<main class='content'>...</main>",
+    "text": "# Main Content\n\nThis is the extracted text in Markdown format..."
+  }
+}
+```
+
+The `text` field contains the visible content converted to Markdown format using html2text, making it easy to process the content programmatically.
 
 ## Advanced Usage
 

@@ -1,56 +1,58 @@
 ---
-description: Specifies core screenshot capture algorithms including viewport scrolling, section detection and image merging.
-globs: src/brosh/capture.py,src/brosh/tool.py,src/brosh/image.py
+description: Technical specification for browser screenshot capture algorithms including viewport scrolling, section detection, and image merging
+globs: src/brosh/capture.py,src/brosh/image.py,src/brosh/browser.py,src/brosh/models.py
 alwaysApply: false
 ---
 
 
 # screenshot-algorithms
 
-## Viewport Scrolling Algorithm (90/100)
-Core screenshot capture logic implemented in `src/brosh/capture.py`:
+### Core Screenshot Capture Logic
 
-1. Progressive Viewport Scrolling
-- Calculates scroll positions based on viewport height and configurable overlap
-- Handles dynamic content loading between scrolls
-- Maintains scroll state consistency across captures
-- Supports starting capture from specific DOM selectors
+**Viewport Scrolling Algorithm**
+- Progressive viewport scrolling with overlap detection
+- Scroll positions calculated using viewport height and configurable overlap (10-200%)
+- Dynamic content detection between scroll operations 
+- Scroll state maintenance across sequential captures
+- Support for starting capture from specific DOM selectors
 
-2. Section Detection (85/100)
-- Analyzes visible headers and ID elements to identify meaningful page sections
-- Generates semantic identifiers from visible content
-- Implements viewport intersection detection for section boundaries
-- Prioritizes selectors using predefined content patterns:
-```python
-['main', 'article', '[role="main"]', '.content', '#content']
-```
+**Section Detection Engine**
+- Semantic section identification using visible headers and ID elements 
+- Viewport intersection mapping against content hierarchy
+- Generation of contextual section identifiers from visible elements
+- Real-time detection of expanding/collapsing content
 
-3. Content Visibility Analysis (80/100)
-- Custom algorithm for detecting fully visible elements in viewport
-- Hierarchy-aware filtering to avoid duplicate content capture
-- Excludes non-visible structural elements
-- Handles partially visible elements at viewport boundaries
+**Image Processing Pipeline**
+- Frame assembly with intelligent overlap removal
+- APNG creation with configurable animation timing (0.1-10s per frame)
+- Alpha channel preservation across format conversions
+- Frame downsampling and optimization for size constraints
 
-## Image Processing (75/100)
-Screenshot merging and processing in `src/brosh/image.py`:
+**Browser Integration**  
+- Browser priority system (Chrome > Edge > Safari)
+- Debug port assignments per browser type:
+  - Chromium: 9222
+  - Edge: 9223 
+  - WebKit: 9225
+- Platform-specific resolution detection with Retina support
+- Dynamic content loading detection and wait states
 
-1. Frame Assembly
-- Merges sequential viewport captures with overlap removal
-- Maintains visual consistency across scroll transitions
-- Custom APNG creation for scrolling animation
-- Handles alpha channel preservation across formats
+### Key Components
 
-2. Business Rules
-- Scroll step: 10-200% of viewport height
-- Zoom range: 10-500%
-- Required overlap between consecutive captures
-- Section-based frame segmentation
+`src/brosh/capture.py`:
+- CaptureManager class implementing scrolling and section detection
+- Viewport state management and scroll position calculation
+- Dynamic content detection mechanisms
 
-## Key Differentiators
-- Semantic section identification for contextual organization
-- Intelligent viewport intersection detection
-- Dynamic content-aware scrolling algorithm
-- Automated section boundary detection
+`src/brosh/image.py`:
+- ImageProcessor class for frame assembly and optimization
+- APNG creation and animation control
+- Overlap detection and removal algorithms
+
+`src/brosh/browser.py`:
+- BrowserManager handling browser detection and connection
+- Debug port management and platform-specific optimizations
+- Screen resolution and DPI scaling logic
 
 $END$
 

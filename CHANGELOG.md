@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remote debugging mode to connect to existing browser sessions
 - MCP (Model Context Protocol) server integration
 - HTML extraction feature to capture visible element content
+- Automatic text extraction: converts visible HTML to Markdown format
 - Configurable scroll steps and starting positions
 - Automatic browser detection and fallback logic
 - Comprehensive error handling and retry mechanisms
@@ -27,6 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Browser connection issues with improved retry logic
+- MCP response format now properly excludes null fields and uses camelCase for field names (e.g., `mimeType` instead of `mime_type`)
+- MCP server results now handle size limits properly with progressive compression
+
+### Added
+- PNG optimization using pyoxipng for all captured screenshots
+- HTML content compression that removes SVG elements while preserving dimensions
+- Progressive compression strategy for MCP results exceeding 1MB size limit
+- Automatic downsampling and content reduction for oversized MCP responses
 - Screenshot timeout handling
 - Image scaling and format conversion edge cases
 

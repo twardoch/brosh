@@ -3,184 +3,251 @@
 
 """MCP server implementation for brosh."""
 
-import sys
+import asyncio
+import base64
+import json
+from pathlib import Path
+from typing import Any
 
-import platformdirs
-
-try:
-    from fastmcp import FastMCP, Image
-except ImportError:
-    sys.exit(1)
-
+from fastmcp import FastMCP
 from loguru import logger
+from platformdirs import user_pictures_dir
 
-from .tool import BrowserScreenshotTool
+from .api import capture_webpage
+from .models import ImageFormat, MCPImageContent, MCPTextContent, MCPToolResult
+from .texthtml import DOMProcessor
+
+# MCP has different defaults than CLI
+MCP_DEFAULTS = {
+    "scale": 50,  # Default to 50% scaling for MCP to reduce size
+}
 
 
-def run_mcp_server():
-    """Run the FastMCP server for browser screenshots."""
+def run_mcp_server() -> None:
+    """Run FastMCP server for browser screenshots.
+
+    Used in:
+    - cli.py
+    """
 
     mcp = FastMCP(
-        name="Browser Screenshots",
-        instructions=(
-            "This _tool captures sequential screenshots of a webpage "
-            "by scrolling through it in a real browser. "
-            "You can specify URL, zoom, viewport size, scroll step, "
-            "output scaling, format (png/jpg/apng), and animation "
-            "speed. Screenshots are saved with descriptive filenames "
-            "including domain, scroll position, and smart section "
-            "identifiers. Choose browser or use OS default. If "
-            "subdirs enabled, screenshots organized by domain. "
-            "Ideal for long pages, documentation, QA. Works with "
-            "remote debugging mode preserving authentication and "
-            "cookies."
-        ),
+        name="Brosh Web Capture",
+        instructions="Get a screenshot of a webpage in vertical slices together with text and/or HTML content.",
     )
 
-    @mcp.tool
-    async def capture_screenshot(
+    # Define the MCP tool function with explicit parameters matching api.capture_webpage
+    # This avoids **kwargs which FastMCP doesn't support
+    async def see_webpage(
         url: str,
         zoom: int = 100,
         width: int = 0,
         height: int = 0,
         scroll_step: int = 100,
-        scale: int = 100,
+        scale: int = 50,  # MCP default: lower scale for smaller images
         app: str = "",
-        output_dir: str = platformdirs.user_pictures_dir(),
+        output_dir: str = "",
         subdirs: bool = False,
         format: str = "png",
         anim_spf: float = 0.5,
         html: bool = False,
         max_frames: int = 0,
         from_selector: str = "",
-    ) -> dict[str, dict[str, str | Image]]:
-        """Capture screenshots of a webpage using Playwright.
+    ) -> MCPToolResult:
+        """Get screenshots and text or HTML from a webpage.
+
+        Captures scrolling screenshots of a webpage with various configuration options.
+        Optimized for AI tools with smaller default image scale.
 
         Args:
-            url: The URL to navigate to (mandatory)
-            zoom: Zoom level in % (default: 100)
-            width: Width in pixels (default: main screen width)
-            height: Height in pixels (default: main screen height). Use -1 to capture entire page
-            scroll_step: Scroll step in % of height (default: 100)
-            scale: Scale in % for resampling output image
-                   (default: 100)
-            app: Browser to use (default: OS default browser)
-            output_dir: Output directory for screenshots
-                       (default: Pictures)
-            subdirs: Create subdirectories for domains
-                    (default: False)
-            format: Output format - png, jpg, or apng (default: png)
-            anim_spf: Seconds per frame for APNG animation
-                     (default: 0.5)
-            html: Return dict with HTML/selectors instead of list
-                 (default: False)
-            max_frames: Maximum number of frames to capture, 0 for all
-                       (default: 0)
+            url: The webpage URL to capture
+            zoom: Browser zoom level (10-500%)
+            width: Viewport width in pixels (0 for screen width)
+            height: Viewport height in pixels (0 for screen height, -1 for full page)
+            scroll_step: Vertical scroll increment as percentage of viewport
+            scale: Output image scaling factor (default 50% for MCP)
+            app: Browser to use (chrome/edge/safari, empty for auto-detect)
+            output_dir: Directory to save screenshots (empty for default)
+            subdirs: Whether to create domain-based subdirectories
+            format: Output image format (png, jpg, apng)
+            anim_spf: Animation speed for APNG format
+            html: Whether to include HTML content in results
+            max_frames: Maximum frames to capture (0 for unlimited)
             from_selector: CSS selector to scroll to before starting capture
-                          (default: "")
 
         Returns:
-            Dict with screenshot paths as keys and values containing:
-            - "image": FastMCP Image object with the screenshot
-            - "selector": CSS selector for the visible portion
-            - "html": (optional, if html=True) HTML of visible elements
+            MCPToolResult with screenshots and optional HTML content
+
         """
-        # Create a new instance to avoid recursion
-        tool = BrowserScreenshotTool()
+        try:
+            # Convert string parameters to proper types for the API
+            format_enum = ImageFormat(format.lower())
+            output_path = Path(output_dir) if output_dir else Path(user_pictures_dir())
 
-        # Capture with both selectors and optionally HTML
-        result = await tool.capture(
-            url=url,
-            zoom=zoom,
-            width=width,
-            height=height,
-            scroll_step=scroll_step,
-            scale=scale,
-            app=app,
-            output_dir=output_dir,
-            subdirs=subdirs,
-            mcp=False,  # Never recurse into MCP mode
-            format=format,
-            anim_spf=anim_spf,
-            html=html,  # This will get both selector and HTML if True
-            max_frames=max_frames,
-            from_selector=from_selector,
-        )
+            # Build kwargs for the API call
+            api_kwargs = {
+                "url": url,
+                "zoom": zoom,
+                "width": width,
+                "height": height,
+                "scroll_step": scroll_step,
+                "scale": scale,
+                "app": app,
+                "output_dir": output_path,
+                "subdirs": subdirs,
+                "format": format_enum,
+                "anim_spf": anim_spf,
+                "html": html,
+                "max_frames": max_frames,
+                "from_selector": from_selector,
+            }
 
-        # For MCP mode, we need to return a dict with image data
-        if isinstance(result, dict):
-            # Result is already a dict with paths as keys
-            mcp_result = {}
-            for path, value in result.items():
-                # Read the image file
-                try:
-                    with open(path, "rb") as f:
-                        img_bytes = f.read()
+            # Call the unified API
+            result = capture_webpage(**api_kwargs)
 
-                    # Determine format from path
-                    path_lower = path.lower()
-                    if path_lower.endswith(".png"):
-                        img_format = "png"
-                    elif path_lower.endswith((".jpg", ".jpeg")):
-                        img_format = "jpeg"
-                    else:
-                        img_format = "png"
+            # Process results for MCP format
+            return _convert_to_mcp_result(result, format_enum)
 
-                    # Build the response dict
-                    response_dict = {
-                        "image": Image(data=img_bytes, format=img_format),
-                    }
+        except Exception as e:
+            logger.error(f"MCP capture failed: {e}")
+            return MCPToolResult(content=[MCPTextContent(text=f"Error: {e!s}")])
 
-                    # Handle both old format (string selector) and new format (dict with selector and html)
-                    if isinstance(value, dict):
-                        response_dict["selector"] = value.get("selector", "body")
-                        if "html" in value:
-                            response_dict["html"] = value["html"]
-                    else:
-                        # Old format - value is just the selector
-                        response_dict["selector"] = value
-
-                    mcp_result[path] = response_dict
-
-                except Exception as e:
-                    logger.error(f"Failed to read image {path}: {e}")
-                    continue
-
-            return mcp_result
-        # Result is a list of paths (shouldn't happen with current logic)
-        # Convert to dict format expected by MCP
-        mcp_result = {}
-        for path in result:
-            try:
-                with open(path, "rb") as f:
-                    img_bytes = f.read()
-
-                # Determine format from path
-                path_lower = path.lower()
-                if path_lower.endswith(".png"):
-                    img_format = "png"
-                elif path_lower.endswith((".jpg", ".jpeg")):
-                    img_format = "jpeg"
-                else:
-                    img_format = "png"
-
-                mcp_result[path] = {
-                    "image": Image(data=img_bytes, format=img_format),
-                    "selector": "body",  # Default selector
-                }
-            except Exception as e:
-                logger.error(f"Failed to read image {path}: {e}")
-                continue
-
-        return mcp_result
+    # Register the tool with mcp
+    mcp.tool(see_webpage)
 
     mcp.run()
 
 
-def main():
-    """Entry point for the brosh-mcp command."""
+def _convert_to_mcp_result(capture_result: dict[str, dict[str, Any]], format: ImageFormat) -> MCPToolResult:
+    """Convert standard capture results to MCP format.
+
+    Args:
+        capture_result: Results from capture_webpage
+        format: Image format used
+
+    Returns:
+        MCPToolResult with proper content items
+
+    """
+    content_items = []
+    dom_processor = DOMProcessor()
+
+    for filepath, metadata in capture_result.items():
+        try:
+            # Read the image file
+            with open(filepath, "rb") as f:
+                image_bytes = f.read()
+
+            # Create image content
+            image_content = MCPImageContent(
+                data=base64.b64encode(image_bytes).decode(),
+                mime_type=(format.mime_type if isinstance(format, ImageFormat) else "image/png"),
+            )
+            content_items.append(image_content)
+
+            # Create metadata content
+            meta_dict = {filepath: {"selector": metadata.get("selector", "body"), "text": metadata.get("text", "")}}
+
+            # Add compressed HTML if present
+            if "html" in metadata:
+                compressed = dom_processor.compress_html(metadata["html"])
+                meta_dict[filepath]["html"] = compressed
+
+            content_items.append(MCPTextContent(text=json.dumps(meta_dict)))
+
+        except Exception as e:
+            logger.error(f"Failed to process {filepath}: {e}")
+
+    # Apply size limits
+    return _apply_size_limits(MCPToolResult(content=content_items))
+
+
+def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
+    """Apply MCP size limits to results.
+
+    Progressive strategy:
+    1. Remove all but first HTML
+    2. Downsample images by 50%
+    3. Downsample again by 50%
+    4. Remove screenshots from end
+
+    Args:
+        result: MCPToolResult to process
+
+    Returns:
+        Size-limited MCPToolResult
+
+    """
+    MAX_SIZE = 1048576  # 1MB
+
+    # Calculate initial size
+    result_dict = result.model_dump()
+    size = len(json.dumps(result_dict).encode("utf-8"))
+
+    if size <= MAX_SIZE:
+        return result
+
+    logger.warning(f"Result size {size} exceeds limit, applying compression")
+
+    # Step 1: Remove all but first HTML
+    new_content = []
+    html_found = False
+
+    for item in result.content:
+        if isinstance(item, MCPTextContent):
+            try:
+                data = json.loads(item.text)
+                if isinstance(data, dict):
+                    for path, metadata in data.items():
+                        if "html" in metadata and html_found:
+                            metadata.pop("html", None)
+                            item = MCPTextContent(text=json.dumps({path: metadata}))
+                        elif "html" in metadata:
+                            html_found = True
+            except Exception:
+                pass
+        new_content.append(item)
+
+    result = MCPToolResult(content=new_content)
+    size = len(json.dumps(result.model_dump()).encode("utf-8"))
+
+    if size <= MAX_SIZE:
+        return result
+
+    # Step 2: Downsample images
+    from .image import ImageProcessor
+
+    processor = ImageProcessor()
+
+    new_content = []
+    for item in result.content:
+        if isinstance(item, MCPImageContent):
+            try:
+                img_data = base64.b64decode(item.data)
+                downsampled = processor.downsample_png_bytes(img_data, 50)
+                item = MCPImageContent(data=base64.b64encode(downsampled).decode(), mime_type=item.mime_type)
+            except Exception as e:
+                logger.error(f"Failed to downsample image: {e}")
+        new_content.append(item)
+
+    result = MCPToolResult(content=new_content)
+    size = len(json.dumps(result.model_dump()).encode("utf-8"))
+
+    if size <= MAX_SIZE:
+        return result
+
+    # Step 3: Remove screenshots from end
+    while len(result.content) > 2 and size > MAX_SIZE:
+        result.content = result.content[:-2]
+        size = len(json.dumps(result.model_dump()).encode("utf-8"))
+
+    return result
+
+
+def main() -> None:
+    """Run the MCP server."""
     run_mcp_server()
 
 
 if __name__ == "__main__":
     main()
+

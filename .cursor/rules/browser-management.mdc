@@ -1,61 +1,59 @@
 ---
-description: Browser detection, connection management, and platform-specific handling in a screenshot automation tool
-globs: src/brosh/browser.py,src/brosh/tool.py
+description: Handles browser lifecycle, connection management, and debugging for web page capture operations including cross-platform browser detection and cleanup
+globs: src/brosh/browser.py,src/brosh/capture.py,src/brosh/mcp.py
 alwaysApply: false
 ---
 
 
 # browser-management
 
-## Core Components (Importance: 85)
+### Browser Priority and Debug Management
 
-1. Platform-Specific Browser Detection
-- Chrome/Edge/Safari priority system with OS-dependent availability
-- Safari restricted to macOS environments
-- Firefox explicitly excluded per business requirements
-- Custom detection logic for remote debugging endpoints
+The browser management implements a hierarchical priority system for browser selection and debugging:
 
-2. Debug Mode Connection Management
-- Dedicated debug ports per browser:
-  - Chromium: 9222
-  - Edge: 9223
-  - WebKit: 9225
-- Progressive connection strategy with fallbacks:
-  - Attempt existing browser connection
-  - Launch new debug instance if needed
-  - Platform-specific cleanup procedures
+1. **Browser Priority Chain**
+- Chrome (Priority 1)
+- Edge (Priority 2) 
+- Safari (Priority 3, macOS only)
+- Firefox explicitly unsupported
 
-## Display Management (Importance: 75)
+2. **Debug Port Allocation**
+- Chromium: 9222
+- Edge: 9223 
+- WebKit: 9225
 
-1. Resolution Handling
-- OS-specific screen dimension detection
-- Special handling for Retina displays (physical resolution ÷ 2)
-- Fallback resolution: 1440x900
-- Full-page capture support (height=-1)
+### Connection Management
 
-2. Zoom Control
-- CSS-based zoom implementation vs device scaling
-- Custom DOM event listeners for zoom application
-- Validation constraints: 10-500% range
+The BrowserManager handles browser lifecycle with platform-specific implementations:
 
-## Browser Session Management (Importance: 80)
-
-1. Lifecycle Control
+1. **Session Initialization**
 - Aggressive process cleanup before debug launches
-- Platform-specific termination procedures
+- Platform-specific browser detection and path resolution
+- Debug mode connection verification with retry logic
+
+2. **State Management** 
 - Session persistence for authenticated captures
 - Automatic recovery from disconnections
+- Platform-aware screen dimension detection including Retina support
 
-2. Viewport Management 
-- Dynamic viewport resizing based on capture requirements
-- Content-aware dimension calculations
-- Platform-specific DPI handling
+### Cleanup Procedures
 
-File Paths:
-```
-src/brosh/browser.py  # Primary browser management implementation
-src/brosh/tool.py     # Integration with screenshot workflow
-```
+Implements robust cleanup for browser processes:
+
+1. **Pre-Launch Cleanup**
+- Force termination of existing debug instances
+- Port availability verification
+- Platform-specific process enumeration and termination
+
+2. **Post-Capture Cleanup**
+- Graceful session termination
+- Debug port release
+- Orphaned process cleanup
+
+File paths:
+- `src/brosh/browser.py`: Core browser management implementation
+- `src/brosh/capture.py`: Browser state handling during capture
+- `src/brosh/mcp.py`: Debug mode coordination for MCP server
 
 $END$
 

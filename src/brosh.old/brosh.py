@@ -33,7 +33,6 @@ def process_data(data: list[Any], config: Config | None = None, *, debug: bool =
 
     Raises:
         ValueError: If input data is invalid
-
     """
     if debug:
         logger.setLevel(logging.DEBUG)

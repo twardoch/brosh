@@ -1,192 +1,225 @@
 #!/usr/bin/env python3
 # this_file: src/brosh/tool.py
 
-"""Main screenshot tool implementation for brosh."""
+"""Main screenshot tool orchestration for brosh."""
 
 import asyncio
-import sys
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
 from urllib.parse import urlparse
 
-import platformdirs
 from loguru import logger
 from playwright.async_api import async_playwright
 
 from .browser import BrowserManager
 from .capture import CaptureManager
 from .image import ImageProcessor
-from .models import ImageFormat
+from .models import CaptureConfig, CaptureFrame, ImageFormat
+from .texthtml import DOMProcessor
 
 
 class BrowserScreenshotTool:
-    """Tool for capturing scrolling screenshots using Playwright async API.
+    """Main tool implementation orchestrating the capture process.
 
-    Optimized for reliability with comprehensive error handling,
-    intelligent browser detection, and performance optimizations.
-
+    Used in:
+    - __init__.py
+    - api.py
     """
 
     def __init__(self, verbose: bool = False):
-        """Initialize the screenshot _tool with default settings.
+        """Initialize the screenshot tool.
 
         Args:
             verbose: Enable debug logging
 
         """
-        self.max_retries = 3
-        self.connection_timeout = 30
-        self.page_timeout = 60
-        self.screenshot_timeout = 10
         self.verbose = verbose
-
-        # Configure logging based on verbose flag
-        if not verbose:
-            logger.remove()
-            logger.add(sys.stderr, level="ERROR")
-
-        # Initialize managers
-        self.browser_manager = BrowserManager(self.connection_timeout)
-        self.capture_manager = CaptureManager(self.page_timeout, self.screenshot_timeout)
+        self.browser_manager = BrowserManager()
+        self.capture_manager = CaptureManager()
         self.image_processor = ImageProcessor()
+        self.dom_processor = DOMProcessor()
 
-    async def capture(
-        self,
-        url: str,
-        zoom: int = 100,
-        width: int = 0,
-        height: int = 0,
-        scroll_step: int = 100,
-        scale: int = 100,
-        app: str = "",
-        output_dir: str = platformdirs.user_pictures_dir(),
-        subdirs: bool = False,
-        mcp: bool = False,
-        format: str = "png",
-        anim_spf: float = 0.5,
-        html: bool = False,
-        max_frames: int = 0,
-        from_selector: str = "",
-    ) -> list[str] | dict[str, str]:
-        """Capture screenshots of a webpage using Playwright.
-
-        This method navigates to a URL and captures sequential screenshots
-        while scrolling through the page. Each screenshot is named with
-        domain, scroll position, and section identifier.
+    async def capture(self, config: CaptureConfig) -> dict[str, dict[str, Any]]:
+        """Main capture method orchestrating the entire process.
 
         Args:
-            url: The URL to navigate to (mandatory)
-            zoom: Zoom level in % (default: 100)
-            width: Width in pixels (default: main screen width)
-            height: Height in pixels (default: main screen height). Use -1 to capture entire page
-            scroll_step: Scroll step in % of height (default: 100)
-            scale: Scale in % for resampling output image (default: 100)
-            app: Browser to use - chrome, edge, safari (default: auto-detect)
-            output_dir: Output directory for screenshots (default: Pictures)
-            subdirs: Create subdirectories for domains (default: False)
-            mcp: Run in FastMCP mode (default: False)
-            format: Output format - png, jpg, or apng (default: png)
-            anim_spf: Seconds per frame for APNG animation (default: 0.5)
-            html: Return dict with HTML/selectors instead of list
-                 (default: False)
-            max_frames: Maximum number of frames to capture, 0 for all
-                       (default: 0)
-            from_selector: CSS selector to scroll to before starting capture
-                          (default: "")
+            config: Validated capture configuration
 
         Returns:
-            If html=True: Dict with screenshot paths as keys and HTML/selectors
-                         as values
-            If html=False: List of paths to saved screenshot files
+            Dictionary mapping file paths to metadata
 
         Raises:
-            ValueError: For invalid parameters
-            RuntimeError: For browser connection or navigation failures
+            RuntimeError: For browser or capture failures
 
+        Used in:
+        - api.py
         """
-        if mcp:
-            # This should be handled in mcp.py now
-            msg = "MCP mode should be handled by mcp module"
-            raise RuntimeError(msg)
-
-        # Validate inputs
-        self.capture_manager.validate_inputs(url, zoom, scroll_step, scale, format)
-        img_format = format.lower()
-
-        # Parse URL and get domain for filename generation
-        parsed_url = urlparse(url)
+        # Parse URL for domain-based naming
+        parsed_url = urlparse(config.url)
         domain = parsed_url.netloc.replace("www.", "").replace(".", "_")
         if not domain:
-            msg = f"Invalid URL: {url}"
+            msg = f"Invalid URL: {config.url}"
             raise ValueError(msg)
 
-        # Create output directory structure
-        output_path = Path(output_dir)
-        if subdirs:
-            output_path = output_path / domain
-        output_path.mkdir(parents=True, exist_ok=True)
+        # Setup output directory
+        output_path = self._setup_output_directory(config, domain)
 
         # Get screen dimensions if not specified
-        if width == 0 or (height == 0 or height == -1):
+        if config.width == 0 or config.height == 0:
             default_width, default_height = self.browser_manager.get_screen_dimensions()
-            width = width or default_width
-            if height == 0:
-                height = default_height
-            # If height is -1, we'll handle it as "capture entire page"
+            if config.width == 0:
+                config.width = default_width
+            if config.height == 0:
+                config.height = default_height
 
-        if height == -1:
-            logger.info(f"Starting capture of {url} at {width}x(entire page)")
-        else:
-            logger.info(f"Starting capture of {url} at {width}x{height}")
+        logger.info(f"Starting capture of {config.url}")
 
-        # Determine browser to use (no Firefox support)
-        browser_name = self.browser_manager.get_browser_name(app)
-        logger.info(f"Using browser: {browser_name}")
+        results = {}
+        async with async_playwright() as p:
+            # Get browser instance
+            browser, context, page = await self.browser_manager.get_browser_instance(
+                p, self.browser_manager.get_browser_name(config.app), config.width, config.height, config.zoom
+            )
 
-        saved_paths = []
-        html_data = {}  # For HTML/selector data when html=True
-        temp_png_paths: list[Path] = []  # For APNG conversion
-
-        # Retry mechanism for browser connection
-        for attempt in range(self.max_retries):
             try:
-                async with async_playwright() as p:
-                    # Connect to existing browser or launch new one
-                    browser, context, page = await self.browser_manager.get_browser_instance(
-                        p, browser_name, width, height, zoom
-                    )
+                # Capture frames (in-memory)
+                frames = await self.capture_manager.capture_frames(page, config)
 
-                    try:
-                        saved_paths, html_data = await self.capture_manager.capture_screenshots(
-                            page,
-                            url,
-                            domain,
-                            output_path,
-                            width,
-                            height,
-                            scroll_step,
-                            scale,
-                            img_format,
-                            anim_spf,
-                            temp_png_paths,
-                            html,
-                            max_frames,
-                            from_selector,
-                        )
-                        logger.info(f"Successfully captured {len(saved_paths)} screenshots")
-                        break  # Success, exit retry loop
-
-                    finally:
-                        # Clean up browser resources
-                        await self.browser_manager.cleanup_browser(page, context, browser)
-
-            except Exception as e:
-                logger.error(f"Attempt {attempt + 1}/{self.max_retries} failed: {e}")
-                if attempt == self.max_retries - 1:
-                    msg = f"Failed to capture screenshots after {self.max_retries} attempts: {e}"
+                if not frames:
+                    msg = "No frames captured"
                     raise RuntimeError(msg)
-                await asyncio.sleep(2)  # Wait before retry
 
-        # Always return html_data when populated (either HTML content or selectors)
-        if html_data:
-            return html_data
-        return saved_paths
+                # Process based on format
+                if config.format == ImageFormat.APNG:
+                    results = await self._process_apng_frames(frames, domain, output_path, config)
+                else:
+                    results = await self._process_regular_frames(frames, domain, output_path, config)
+
+                logger.info(f"Successfully captured {len(results)} screenshots")
+
+            finally:
+                await self.browser_manager.cleanup_browser(page, context, browser)
+
+        return results
+
+    def _setup_output_directory(self, config: CaptureConfig, domain: str) -> Path:
+        """Setup output directory structure.
+
+        Args:
+            config: Capture configuration
+            domain: Domain name for subdirectory
+
+        Returns:
+            Path to output directory
+
+        """
+        output_path = Path(config.output_dir)
+        if config.subdirs:
+            output_path = output_path / domain
+        output_path.mkdir(parents=True, exist_ok=True)
+        return output_path
+
+    async def _process_regular_frames(
+        self, frames: list[CaptureFrame], domain: str, output_path: Path, config: CaptureConfig
+    ) -> dict[str, dict[str, Any]]:
+        """Process frames for regular image formats (PNG/JPG).
+
+        Args:
+            frames: Captured frames
+            domain: Domain name for filename
+            output_path: Output directory
+            config: Capture configuration
+
+        Returns:
+            Results dictionary
+
+        """
+        results = {}
+        timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
+
+        for _i, frame in enumerate(frames):
+            # Generate filename
+            section_id = await self._get_section_id_from_frame(frame)
+            filename = f"{domain}-{timestamp}-{frame.scroll_percentage:05d}-{section_id}.{config.format.value}"
+            filepath = output_path / filename
+
+            # Process image bytes
+            image_bytes = frame.image_bytes
+
+            # Scale if needed
+            if config.scale != 100:
+                image_bytes = self.image_processor.downsample_png_bytes(image_bytes, config.scale)
+
+            # Convert format if needed
+            if config.format == ImageFormat.JPG:
+                image_bytes = self.image_processor.convert_png_to_jpg_bytes(image_bytes)
+            elif config.format == ImageFormat.PNG:
+                image_bytes = self.image_processor.optimize_png_bytes(image_bytes)
+
+            # Save to disk
+            filepath.write_bytes(image_bytes)
+
+            # Store metadata
+            metadata = {"selector": frame.active_selector, "text": frame.visible_text or ""}
+            if config.html and frame.visible_html:
+                metadata["html"] = self.dom_processor.compress_html(frame.visible_html)
+
+            results[str(filepath)] = metadata
+
+        return results
+
+    async def _process_apng_frames(
+        self, frames: list[CaptureFrame], domain: str, output_path: Path, config: CaptureConfig
+    ) -> dict[str, dict[str, Any]]:
+        """Process frames for APNG animation.
+
+        Args:
+            frames: Captured frames
+            domain: Domain name for filename
+            output_path: Output directory
+            config: Capture configuration
+
+        Returns:
+            Results dictionary with APNG path
+
+        """
+        # Process all frame bytes
+        frame_bytes_list = []
+        for frame in frames:
+            image_bytes = frame.image_bytes
+            if config.scale != 100:
+                image_bytes = self.image_processor.downsample_png_bytes(image_bytes, config.scale)
+            frame_bytes_list.append(image_bytes)
+
+        # Create APNG
+        delay_ms = int(config.anim_spf * 1000)
+        apng_bytes = self.image_processor.create_apng_bytes(frame_bytes_list, delay_ms)
+
+        # Save APNG
+        apng_filename = f"{domain}-animated.png"
+        apng_path = output_path / apng_filename
+        apng_path.write_bytes(apng_bytes)
+
+        # Return metadata for the animation
+        return {
+            str(apng_path): {
+                "selector": "animated",
+                "text": f"Animation with {len(frames)} frames",
+                "frames": len(frames),
+            }
+        }
+
+    async def _get_section_id_from_frame(self, frame: CaptureFrame) -> str:
+        """Extract section ID from frame metadata.
+
+        Args:
+            frame: Capture frame
+
+        Returns:
+            Section identifier string
+
+        """
+        # This would be populated during capture
+        # For now, return a default
+        return "section"

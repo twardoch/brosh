@@ -4,22 +4,24 @@
 """CLI interface for brosh."""
 
 import asyncio
-import inspect
-import json
 import platform
 import subprocess
-import sys
 import time
 from pathlib import Path
-from typing import Any
 
-import fire
 from loguru import logger
 from platformdirs import user_pictures_dir
 
-from .api import capture_webpage
 from .browser import BrowserManager
-from .models import ImageFormat
+from .models import (
+    ImageFormat,
+    MCPImageContent,
+    MCPScreenshotResult,
+    MCPTextContent,
+    MCPToolResult,
+    ScreenshotRequest,
+)
+from .tool import BrowserScreenshotTool
 
 
 class BrowserScreenshotCLI:
@@ -27,9 +29,6 @@ class BrowserScreenshotCLI:
 
     Provides organized commands for browser management and screenshot capture.
 
-    Used in:
-    - __init__.py
-    - __main__.py
     """
 
     def __init__(
@@ -53,7 +52,6 @@ class BrowserScreenshotCLI:
             output_dir: Output folder for screenshots (default: user's pictures)
             subdirs: Create subfolders per domain
             verbose: Enable debug logging
-            json: Output results as JSON
 
         """
         self.app = app
@@ -64,11 +62,7 @@ class BrowserScreenshotCLI:
         self.subdirs = subdirs
         self.json = json
         self.verbose = verbose
-
-        if not verbose:
-            logger.remove()
-            logger.add(sys.stderr, level="ERROR")
-
+        self._tool = BrowserScreenshotTool(verbose=verbose)
         self._browser_manager = BrowserManager()
 
     def run(self, force_run: bool = False) -> str:
@@ -80,10 +74,6 @@ class BrowserScreenshotCLI:
         Returns:
             Status message
 
-        Used in:
-        - api.py
-        - browser.py
-        - mcp.py
         """
         browser_name = self._browser_manager.get_browser_name(self.app)
         debug_ports = self._browser_manager.debug_ports
@@ -175,59 +165,67 @@ class BrowserScreenshotCLI:
         except Exception as e:
             return f"Failed to quit {browser_name}: {e}"
 
-    def shot(self, url: str, **kwargs):
+    def shot(
+        self,
+        url: str,
+        scroll_step: int = 100,
+        scale: int = 100,
+        format: str = "png",
+        anim_spf: float = 0.5,
+        html: bool = False,
+        max_frames: int = 0,
+        from_selector: str = "",
+    ) -> list[str] | dict[str, str] | str:
         """Take screenshots of a webpage.
 
-        This method delegates to the api.capture_webpage function,
-        automatically using the parameter definitions from there.
+        Automatically ensures browser is running in debug mode.
 
         Args:
-            url: The URL to capture
-            **kwargs: All parameters from api.capture_webpage
+            url: The URL to navigate to (mandatory)
+            scroll_step: Scroll step in % of height (default: 100)
+            scale: Scale in % for resampling output image (default: 100)
+            format: Output format - png, jpg, or apng (default: png)
+            anim_spf: Seconds per frame for APNG animation (default: 0.5)
+            html: Return dict with HTML/selectors instead of list (default: False)
+            max_frames: Maximum number of frames to capture, 0 for all (default: 0)
+            json: Return JSON string output (default: False)
+            from_selector: CSS selector to scroll to before starting capture (default: "")
 
         Returns:
-            Screenshot results (dict or JSON string based on --json flag)
+            If json=True: JSON string of the results
+            If html=True: Dict with screenshot paths as keys and values containing selector, text, and HTML
+            If html=False: Dict with screenshot paths as keys and values containing selector and text
+            Legacy: List of paths to saved screenshot files (when no HTML/text extraction)
 
         """
         # Ensure browser is running in debug mode
         self.run(force_run=False)
 
-        # Merge global CLI options with command-specific options
-        merged_kwargs = {
-            "url": url,
-            "app": self.app,
-            "width": self.width,
-            "height": self.height,
-            "zoom": self.zoom,
-            "output_dir": self.output_dir,
-            "subdirs": self.subdirs,
-        }
+        result = asyncio.run(
+            self._tool.capture(
+                url=url,
+                zoom=self.zoom,
+                width=self.width,
+                height=self.height,
+                scroll_step=scroll_step,
+                scale=scale,
+                app=self.app,
+                output_dir=self.output_dir,
+                subdirs=self.subdirs,
+                mcp=False,
+                format=format,
+                anim_spf=anim_spf,
+                html=html,
+                max_frames=max_frames,
+                from_selector=from_selector,
+            )
+        )
 
-        # Override with any command-specific options
-        merged_kwargs.update(kwargs)
+        if self.json:
+            import json as json_module
 
-        # Filter to only valid parameters for capture_webpage
-        sig = inspect.signature(capture_webpage)
-        valid_params = {k: v for k, v in merged_kwargs.items() if k in sig.parameters}
-
-        # Call the API
-        try:
-            result = capture_webpage(**valid_params)
-
-            if self.json:
-                return json.dumps(result, indent=2)
-            # Pretty print results
-            for _path, metadata in result.items():
-                if metadata.get("text"):
-                    metadata["text"][:100] + "..." if len(metadata["text"]) > 100 else metadata["text"]
-
-            return result
-
-        except Exception as e:
-            if self.json:
-                return json.dumps({"error": str(e)})
-            logger.error(f"Failed to capture screenshots: {e}")
-            raise
+            return json_module.dumps(result, indent=2)
+        return result
 
     def mcp(self) -> None:
         """Run MCP server for browser screenshots.
@@ -242,12 +240,3 @@ class BrowserScreenshotCLI:
         from .mcp import run_mcp_server
 
         run_mcp_server()
-
-
-def main():
-    """Main CLI entry point."""
-    fire.Fire(BrowserScreenshotCLI)
-
-
-if __name__ == "__main__":
-    main()

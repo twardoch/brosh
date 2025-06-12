@@ -64,6 +64,7 @@ src/
     image.py
     mcp.py
     models.py
+    optimize.py
     tool.py
 tests/
   test_package.py
@@ -82,6 +83,184 @@ TODO.md
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="src/brosh/optimize.py">
+#!/usr/bin/env python3
+# this_file: src/brosh/optimize.py
+
+"""Image optimization utilities for brosh."""
+
+import os
+from pathlib import Path
+from typing import Union
+
+try:
+    import oxipng
+except ImportError:
+    oxipng = None
+
+from loguru import logger
+from PIL import Image
+
+
+def optimize_png_file(
+    file_path: str | Path,
+    level: int = 6,
+    preserve_file: bool = True,
+) -> bytes:
+    """Optimize a PNG file using pyoxipng.
+
+    Args:
+        file_path: Path to the PNG file to optimize
+        level: Optimization level (0-6, default 6)
+        preserve_file: If True, keeps the original file; if False, overwrites it
+
+    Returns:
+        Optimized PNG data as bytes
+    """
+    if oxipng is None:
+        logger.warning("pyoxipng not available, skipping PNG optimization")
+        with open(file_path, "rb") as f:
+            return f.read()
+
+    try:
+        # Read the original file
+        with open(file_path, "rb") as f:
+            original_data = f.read()
+
+        # Optimize the PNG data
+        optimized_data = oxipng.optimize_from_memory(
+            original_data,
+            level=level,
+            strip=oxipng.StripChunks.safe(),
+            interlace=None,  # Keep existing interlacing
+            optimize_alpha=True,
+            fast_evaluation=False,
+        )
+
+        original_size = len(original_data)
+        optimized_size = len(optimized_data)
+        reduction_pct = 100 * (1 - optimized_size / original_size)
+
+        logger.debug(f"PNG optimization: {original_size} -> {optimized_size} bytes ({reduction_pct:.1f}% reduction)")
+
+        # Write back if not preserving original
+        if not preserve_file:
+            with open(file_path, "wb") as f:
+                f.write(optimized_data)
+
+        return optimized_data
+
+    except Exception as e:
+        logger.error(f"Failed to optimize PNG: {e}")
+        with open(file_path, "rb") as f:
+            return f.read()
+
+
+def downsample_png_data(
+    png_data: bytes,
+    scale_factor: float = 0.5,
+) -> bytes:
+    """Downsample PNG data by a given scale factor.
+
+    Args:
+        png_data: Raw PNG data
+        scale_factor: Scale factor (0.5 = 50% size)
+
+    Returns:
+        Downsampled PNG data as bytes
+    """
+    import io
+
+    try:
+        # Load image from bytes
+        img = Image.open(io.BytesIO(png_data))
+
+        # Calculate new dimensions
+        new_width = int(img.width * scale_factor)
+        new_height = int(img.height * scale_factor)
+
+        # Resize with high-quality resampling
+        resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        # Save to bytes
+        output = io.BytesIO()
+        resized.save(output, format="PNG", optimize=True)
+        output.seek(0)
+
+        return output.read()
+
+    except Exception as e:
+        logger.error(f"Failed to downsample PNG: {e}")
+        return png_data
+
+
+def compress_html_content(html: str) -> str:
+    """Compress HTML content by removing SVG elements and other optimizations.
+
+    Args:
+        html: Raw HTML content
+
+    Returns:
+        Compressed HTML content
+    """
+    import re
+
+    # Remove SVG content but keep placeholder
+    def replace_svg(match):
+        svg_tag = match.group(0)
+        # Extract width and height if present
+        width_match = re.search(r'width=["\']([\d.]+)["\']', svg_tag)
+        height_match = re.search(r'height=["\']([\d.]+)["\']', svg_tag)
+
+        attrs = []
+        if width_match:
+            attrs.append(f'width="{width_match.group(1)}"')
+        if height_match:
+            attrs.append(f'height="{height_match.group(1)}"')
+
+        attr_str = " " + " ".join(attrs) if attrs else ""
+        return f"<svg{attr_str}></svg>"
+
+    # Replace SVG elements
+    html = re.sub(r"<svg[^>]*>.*?</svg>", replace_svg, html, flags=re.DOTALL | re.IGNORECASE)
+
+    # Remove comments
+    html = re.sub(r"<!--.*?-->", "", html, flags=re.DOTALL)
+
+    # Remove excessive whitespace
+    html = re.sub(r"\s+", " ", html)
+    html = re.sub(r">\s+<", "><", html)
+
+    # Remove inline styles if they're too long
+    html = re.sub(r'style="[^"]{500,}"', 'style=""', html)
+
+    # Remove data URIs
+    html = re.sub(r'src="data:[^"]{100,}"', 'src=""', html)
+    html = re.sub(r'href="data:[^"]{100,}"', 'href=""', html)
+
+    return html.strip()
+
+
+def calculate_result_size(result: dict) -> int:
+    """Calculate the serialized size of a result dictionary.
+
+    Args:
+        result: Dictionary to calculate size for
+
+    Returns:
+        Size in bytes
+    """
+    import json
+
+    try:
+        # Serialize to JSON to get actual size
+        json_str = json.dumps(result, ensure_ascii=False)
+        return len(json_str.encode("utf-8"))
+    except Exception as e:
+        logger.error(f"Failed to calculate result size: {e}")
+        return 0
+</file>
 
 <file path=".cursor/rules/browser-management.mdc">
 ---
@@ -572,6 +751,8 @@ from pathlib import Path
 from loguru import logger
 from PIL import Image
 
+from .optimize import optimize_png_file
+
 
 class ImageProcessor:
     """Handles image processing operations."""
@@ -623,6 +804,20 @@ class ImageProcessor:
         except Exception as e:
             logger.error(f"Failed to convert {png_path} to JPG: {e}")
             return png_path  # Return original if conversion fails
+
+    @staticmethod
+    def optimize_png(png_path: Path) -> None:
+        """Optimize a PNG file in-place.
+
+        Args:
+            png_path: Path to PNG file to optimize
+        """
+        try:
+            # Optimize the PNG file, overwriting the original
+            optimize_png_file(png_path, level=6, preserve_file=False)
+            logger.debug(f"Optimized PNG: {png_path}")
+        except Exception as e:
+            logger.error(f"Failed to optimize PNG {png_path}: {e}")
 
     @staticmethod
     def create_apng(
@@ -679,6 +874,12 @@ class ImageProcessor:
 """Data models and enums for the brosh package."""
 
 from enum import Enum
+from pathlib import Path
+from typing import Any, Literal, Union
+
+from platformdirs import user_pictures_dir
+from pydantic import BaseModel, Field
+from pydantic.networks import AnyUrl
 
 
 class ImageFormat(str, Enum):
@@ -687,6 +888,184 @@ class ImageFormat(str, Enum):
     PNG = "png"
     JPG = "jpg"
     APNG = "apng"
+
+    @property
+    def mime_type(self) -> str:
+        """Get the MIME type for this image format."""
+        mime_types = {
+            self.PNG: "image/png",
+            self.JPG: "image/jpeg",
+            self.APNG: "image/apng",
+        }
+        return mime_types[self]
+
+    @property
+    def file_extension(self) -> str:
+        """Get the file extension for this image format."""
+        extensions = {
+            self.PNG: ".png",
+            self.JPG: ".jpg",
+            self.APNG: ".apng",
+        }
+        return extensions[self]
+
+    @classmethod
+    def from_mime_type(cls, mime_type: str) -> "ImageFormat":
+        """Create an ImageFormat from a MIME type."""
+        mime_map = {
+            "image/png": cls.PNG,
+            "image/jpeg": cls.JPG,
+            "image/jpg": cls.JPG,
+            "image/apng": cls.APNG,
+        }
+        if mime_type not in mime_map:
+            msg = f"Unsupported MIME type: {mime_type}"
+            raise ValueError(msg)
+        return mime_map[mime_type]
+
+    @classmethod
+    def from_extension(cls, extension: str) -> "ImageFormat":
+        """Create an ImageFormat from a file extension."""
+        if not extension.startswith("."):
+            extension = f".{extension}"
+        ext_map = {
+            ".png": cls.PNG,
+            ".jpg": cls.JPG,
+            ".jpeg": cls.JPG,
+            ".apng": cls.APNG,
+        }
+        if extension.lower() not in ext_map:
+            msg = f"Unsupported file extension: {extension}"
+            raise ValueError(msg)
+        return ext_map[extension.lower()]
+
+
+class MCPResource(BaseModel):
+    """Model for MCP resource content."""
+
+    uri: str = Field(..., description="Resource URI")
+    mime_type: str = Field(..., description="MIME type of the resource")
+    text: str | None = Field(
+        None,
+        description="Text content if available",
+    )
+    blob: str | None = Field(
+        None,
+        description="Base64-encoded binary data",
+    )
+
+
+class MCPTextContent(BaseModel):
+    """Model for MCP text content items."""
+
+    type: Literal["text"] = Field(default="text")
+    text: str = Field(..., description="Text content")
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        """Override to ensure exclude_none is always True."""
+        kwargs["exclude_none"] = True
+        return super().model_dump(**kwargs)
+
+
+class MCPImageContent(BaseModel):
+    """Model for MCP image content items."""
+
+    type: Literal["image"] = Field(default="image")
+    data: str = Field(..., description="Base64-encoded image data")
+    mime_type: str = Field(..., description="MIME type for image content", serialization_alias="mimeType")
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        """Override to ensure exclude_none is always True and use by_alias."""
+        kwargs["exclude_none"] = True
+        kwargs["by_alias"] = True
+        return super().model_dump(**kwargs)
+
+
+class MCPContentItem(BaseModel):
+    """Model for MCP content items."""
+
+    type: str = Field(
+        ...,
+        description="Content type (text, image, resource)",
+    )
+    text: str | None = Field(
+        None,
+        description="Text content if type is text",
+    )
+    data: str | None = Field(
+        None,
+        description="Base64-encoded data for binary content",
+    )
+    mime_type: str | None = Field(
+        None,
+        description="MIME type for binary content",
+    )
+    resource: MCPResource | None = Field(
+        None,
+        description="Resource content",
+    )
+
+    def to_camel_dict(self) -> dict[str, Any]:
+        """Return a dict with camelCase keys for MCP output."""
+        d = self.dict(exclude_none=True)
+        if "mime_type" in d:
+            d["mimeType"] = d.pop("mime_type")
+        return d
+
+
+class MCPScreenshotResult(BaseModel):
+    """Model for MCP screenshot result metadata."""
+
+    image: MCPImageContent = Field(..., description="Screenshot image data")
+    selector: str = Field(
+        "body",
+        description="CSS selector for visible element",
+    )
+    text: str | None = Field(
+        None,
+        description="Extracted text content",
+    )
+    html: str | None = Field(
+        None,
+        description="Extracted HTML content",
+    )
+
+    def metadata_json(self, path: str) -> str:
+        """Return JSON metadata for the text content item, keyed by file path."""
+        import json
+
+        meta = {
+            path: {
+                "selector": self.selector,
+                "text": self.text,
+            }
+        }
+        if self.html is not None:
+            meta[path]["html"] = self.html
+        return json.dumps(meta, ensure_ascii=False)
+
+
+class MCPToolResult(BaseModel):
+    """Model for MCP tool results."""
+
+    content: list[MCPTextContent | MCPImageContent] = Field(
+        ...,
+        description="Content items in the result",
+    )
+
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        """Override to ensure proper serialization of content items."""
+        kwargs["exclude_none"] = True
+        # First get the raw data without dumping the content items
+        data = super().model_dump(**kwargs, mode="python")
+        # Now manually serialize each content item with its own model_dump method
+        if "content" in data and self.content:
+            serialized_content = []
+            for item in self.content:
+                # Each item should use its own model_dump method
+                serialized_content.append(item.model_dump())
+            data["content"] = serialized_content
+        return data
 </file>
 
 <file path=".cursorindexingignore">
@@ -1054,6 +1433,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remote debugging mode to connect to existing browser sessions
 - MCP (Model Context Protocol) server integration
 - HTML extraction feature to capture visible element content
+- Automatic text extraction: converts visible HTML to Markdown format
 - Configurable scroll steps and starting positions
 - Automatic browser detection and fallback logic
 - Comprehensive error handling and retry mechanisms
@@ -1065,6 +1445,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Browser connection issues with improved retry logic
+- MCP response format now properly excludes null fields and uses camelCase for field names (e.g., `mimeType` instead of `mime_type`)
+- MCP server results now handle size limits properly with progressive compression
+
+### Added
+- PNG optimization using pyoxipng for all captured screenshots
+- HTML content compression that removes SVG elements while preserving dimensions
+- Progressive compression strategy for MCP results exceeding 1MB size limit
+- Automatic downsampling and content reduction for oversized MCP responses
 - Screenshot timeout handling
 - Image scaling and format conversion edge cases
 
@@ -1853,21 +2241,34 @@ class CaptureManager:
                 # Convert to JPG if needed
                 if img_format == "jpg":
                     filepath = self.image_processor.convert_to_jpg(filepath)
+                elif img_format == "png":
+                    # Optimize PNG files
+                    self.image_processor.optimize_png(filepath)
 
                 if img_format != "apng":
                     saved_paths.append(str(filepath))
                     logger.debug(f"Captured: {filepath}")
 
-                # Capture HTML or selector if requested
-                # Always get selector
+                # Always capture HTML and convert to text
                 selector = await self.get_visible_selector(page)
+                visible_html = await self.get_visible_html(page)
 
+                # Convert HTML to text
+                import html2text
+
+                h = html2text.HTML2Text()
+                h.ignore_links = False
+                h.ignore_images = True
+                h.body_width = 0  # Don't wrap lines
+                visible_text = h.handle(visible_html).strip()
+
+                # Store data based on html flag
                 if html:
-                    visible_html = await self.get_visible_html(page)
-                    # Store both selector and HTML when in html mode
-                    html_data[str(filepath)] = {"selector": selector, "html": visible_html}
+                    # Include HTML when requested
+                    html_data[str(filepath)] = {"selector": selector, "html": visible_html, "text": visible_text}
                 else:
-                    html_data[str(filepath)] = selector
+                    # Only include selector and text
+                    html_data[str(filepath)] = {"selector": selector, "text": visible_text}
 
             except Exception as e:
                 logger.error(f"Failed to capture screenshot at position {scroll_pos}: {e}")
@@ -2046,11 +2447,20 @@ import asyncio
 import platform
 import subprocess
 import time
+from pathlib import Path
 
-import platformdirs
 from loguru import logger
+from platformdirs import user_pictures_dir
 
 from .browser import BrowserManager
+from .models import (
+    ImageFormat,
+    MCPImageContent,
+    MCPScreenshotResult,
+    MCPTextContent,
+    MCPToolResult,
+    ScreenshotRequest,
+)
 from .tool import BrowserScreenshotTool
 
 
@@ -2067,9 +2477,10 @@ class BrowserScreenshotCLI:
         width: int = 0,
         height: int = 0,
         zoom: int = 100,
-        output_dir: str = platformdirs.user_pictures_dir(),
+        output_dir: Path = Path(user_pictures_dir()),
         subdirs: bool = False,
         verbose: bool = False,
+        json: bool = False,
     ) -> None:
         """Initialize CLI with common parameters.
 
@@ -2089,6 +2500,7 @@ class BrowserScreenshotCLI:
         self.zoom = zoom
         self.output_dir = output_dir
         self.subdirs = subdirs
+        self.json = json
         self.verbose = verbose
         self._tool = BrowserScreenshotTool(verbose=verbose)
         self._browser_manager = BrowserManager()
@@ -2202,7 +2614,6 @@ class BrowserScreenshotCLI:
         anim_spf: float = 0.5,
         html: bool = False,
         max_frames: int = 0,
-        json: bool = False,
         from_selector: str = "",
     ) -> list[str] | dict[str, str] | str:
         """Take screenshots of a webpage.
@@ -2222,8 +2633,9 @@ class BrowserScreenshotCLI:
 
         Returns:
             If json=True: JSON string of the results
-            If html=True: Dict with screenshot paths as keys and HTML/selectors as values
-            If html=False: List of paths to saved screenshot files
+            If html=True: Dict with screenshot paths as keys and values containing selector, text, and HTML
+            If html=False: Dict with screenshot paths as keys and values containing selector and text
+            Legacy: List of paths to saved screenshot files (when no HTML/text extraction)
 
         """
         # Ensure browser is running in debug mode
@@ -2249,7 +2661,7 @@ class BrowserScreenshotCLI:
             )
         )
 
-        if json:
+        if self.json:
             import json as json_module
 
             return json_module.dumps(result, indent=2)
@@ -2525,10 +2937,12 @@ classifiers = [
 dependencies = [
     'fire>=0.5.0',
     'playwright>=1.40.0',
-    'pillow>=10.0.0',
-    'fastmcp>=0.5.0',
+    'pillow>=11.2.1',
+    'fastmcp>=2.8.0',
     'platformdirs>=4.0.0',
     'loguru>=0.7.0',
+    'html2text>=2025.4.15',
+    'pyoxipng>=9.1.1',
 ]
 
 # Author information
@@ -2569,15 +2983,15 @@ test = [
     'pytest-cov>=6.0.0', # Coverage plugin for pytest - Keep pytest-cov as is, update if newer pytest-cov version is required
     'pytest-xdist>=3.6.1', # Parallel test execution - Keep pytest-xdist as is, update if newer pytest-xdist version is required
     'pytest-benchmark[histogram]>=5.1.0', # Benchmarking plugin - Keep pytest-benchmark as is, update if newer pytest-benchmark version is required
-    'pytest-asyncio>=0.25.3', # Async test support - Keep pytest-asyncio as is, update if newer pytest-asyncio version is required
+    'pytest-asyncio>=1.0.0', # Async test support - Keep pytest-asyncio as is, update if newer pytest-asyncio version is required
     'coverage[toml]>=7.6.12',
 ]
 
 docs = [
-    "sphinx>=7.2.6",
-    "sphinx-rtd-theme>=2.0.0",
-    "sphinx-autodoc-typehints>=2.0.0",
-    "myst-parser>=3.0.0", # Markdown support in Sphinx
+    "sphinx>=8.2.3",
+    "sphinx-rtd-theme>=3.0.2",
+    "sphinx-autodoc-typehints>=3.2.0",
+    "myst-parser>=4.0.1", # Markdown support in Sphinx
 ]
 
 # All optional dependencies combined
@@ -2936,8 +3350,347 @@ ban-relative-imports = 'parents' # Allow relative imports within packages
 <file path="TODO.md">
 # TODO
 
-- [ ] Add unit tests for all modules
-- [ ] Research and create GitHub Actions CI/CD pipeline
+## ✅ COMPLETED IMPROVEMENTS (2025-06-12)
+
+All the tasks listed below have been successfully implemented:
+
+1. **Removed `"structured_content": null` from MCP responses** - The field has been completely removed from the MCPToolResult model
+2. **Implemented comprehensive MCP result size management**:
+   - Added pyoxipng dependency for PNG compression
+   - All PNG files are now automatically optimized (both CLI and MCP)
+   - HTML compression removes SVG content while preserving dimensions
+   - Progressive compression strategy for results exceeding 1MB
+   - Size checking and fallback mechanisms
+
+### Original TODO items (now completed):
+
+- `"structured_content": null` needs to be fully removed from MCP responses
+
+- MCP server results cause problems if they’re too large: `result exceeds maximum length of 1048576`. We need a post-processing step before sending the result to the client: 
+  - Always compress images with pyoxipng* (also when used with CLI, not just MCP).
+  - If html=True, always "compress" the html content: remove all `svg` content (just keep a placeholder `svg` tag with `width` and `height` attributes), think about other ways to compress the html content to save space.
+  - Check the size of the result > 1048576 bytes.
+  - If it's too large and html=True, remove all HTMLs except the first one, and check the size again.
+  - If it's too large, downsample each image by 50%, and check the size again.
+  - If it's too large, downsample each image by 50% once more, and check the size again.
+  - If it's too large, start removing the last screenshot and its metadata, and check the size again, continue until there is only one left. 
+
+
+
+--------------------------------
+
+*) 
+
+# pyoxipng
+
+[![CI](https://github.com/nfrasser/pyoxipng/actions/workflows/CI.yml/badge.svg)](https://github.com/nfrasser/pyoxipng/actions/workflows/CI.yml)
+[![PyPI](https://badgen.net/pypi/v/pyoxipng)](https://pypi.org/project/pyoxipng/)
+
+Python wrapper for multithreaded .png image file optimizer
+[oxipng](https://github.com/shssoichiro/oxipng) (written in Rust). Use
+`pyoxipng` to reduce the file size of your PNG images.
+
+Jump to a section
+
+- [Installation](#installation)
+- [API](#api)
+
+  - [optimize](#oxipngoptimizeinput-outputnone-kwargs)
+  - [optimize_from_memory](#oxipngoptimize_from_memorydata-kwargs)
+  - [RawImage](#oxipngrawimage)
+
+- [Options](#options)
+  - [filter](#filter)
+  - [interlace](#interlace)
+  - [strip](#strip)
+  - [deflate](#deflate)
+- [Development](#development)
+- [License](#license)
+
+## Installation
+
+Install from PyPI:
+
+```sh
+pip install pyoxipng
+```
+
+Import in your Python code:
+
+```py
+import oxipng
+```
+
+## API
+
+### oxipng.optimize(input, output=None, \*\*kwargs)
+
+Optimize a file on disk.
+
+**Parameters**:
+
+- **input** _(str | bytes | PathLike)_ – path to input file to optimize
+- **output** _(str | bytes | PathLike, optional)_ – path to optimized output result file. If not specified, overwrites input. Defaults to None
+- **\*\*kwargs** – [Options](#options)
+
+**Returns**
+
+- None
+
+**Raises**
+
+- **oxipng.PngError** – optimization could not be completed
+
+**Examples:**
+
+Optimize a file on disk and overwrite
+
+```py
+oxipng.optimize("/path/to/image.png")
+```
+
+Optimize a file and save to a new location:
+
+```py
+oxipng.optimize("/path/to/image.png", "/path/to/image-optimized.png")
+```
+
+### oxipng.optimize_from_memory(data, \*\*kwargs)
+
+Optimize raw data from a PNG file loaded in Python as a `bytes` object:
+
+**Parameters**:
+
+- **data** _(bytes)_ – raw PNG data to optimize
+- **\*\*kwargs** – [Options](#options)
+
+**Returns**
+
+- _(bytes)_ – optimized raw PNG data
+
+**Raises**
+
+- **oxipng.PngError** – optimization could not be completed
+
+**Examples:**
+
+```py
+data = ...  # bytes of png data
+optimized_data = oxipng.optimize_from_memory(data)
+with open("/path/to/image-optimized.png", "wb") as f:
+    f.write(optimized_data)
+```
+
+### oxipng.RawImage
+
+Create an optimized PNG file from raw image data:
+
+```python
+raw = oxipng.RawImage(data, width, height)
+optimized_data = raw.create_optimized_png()
+```
+
+By default, assumes the input data is 8-bit, row-major RGBA, where every 4 bytes represents one pixel with Red-Green-Blue-Alpha channels. To interpret non-RGBA data, specify a `color_type` parameter with the `oxipng.ColorType` class:
+
+| Method                                                       | Description                                                                                                                            |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `oxipng.ColorType.grayscale(int \| None)`                    | Grayscale, with one color channel. Specify optional shade of gray that should be rendered as transparent.                              |
+| `oxipng.ColorType.rgb(tuple[int, int, int])`                 | RGB, with three color channels. Specify optional color value that should be rendered as transparent.                                   |
+| `oxipng.ColorType.indexed(list[[tuple[int, int, int, int]])` | Indexed, with one byte per pixel representing a color from the palette. Specify palette containing the colors used, up to 256 entries. |
+| `oxipng.ColorType.grayscale_alpha()`                         | Grayscale + Alpha, with two color channels.                                                                                            |
+| `oxipng.ColorType.rgba()`                                    | RGBA, with four color channels.                                                                                                        |
+
+**Parameters:**
+
+- **data** _(bytes | bytearray)_ – Raw image data bytes. Format depends on `color_type` and `bit_depth` parameters
+- **width** _(int)_ – Width of raw image, in pixels
+- **height** _(int)_ – Height of raw image, in pixels
+- **color_type** _([oxipng.ColorType, optional)_ – Descriptor for color type used to represent this image. Optional, defaults to `oxipng.ColorType.rgba()`
+- **bit_depth** _(int, optional)_ – Bit depth of raw image. Optional, defaults to 8
+
+**Examples:**
+
+Save RGB image data from a JPEG file, interpreting black pixels as transparent.
+
+```python
+from PIL import Image
+import numpy as np
+
+# Load an image file with Pillow
+jpg = Image.open("/path/to/image.jpg")
+
+# Convert to RGB numpy array
+rgb_array = np.array(jpg.convert("RGB"), dtype=np.uint8)
+height, width, channels = rgb_array.shape
+
+# Create raw image with sRGB color profile
+data = rgb_array.tobytes()
+color_type = oxipng.ColorType.rgb((0, 0, 0))  # black is transparent
+raw = oxipng.RawImage(data, width, height, color_type=color_type)
+raw.add_png_chunk(b"sRGB", b"\0")
+
+# Optimize and save
+optimized = raw.create_optimized_png(level=6)
+with open("/path/to/image/optimized.png", "wb") as f:
+    f.write(optimized)
+```
+
+Save with data where bytes reference a color palette
+
+```python
+data = b"\0\1\2..."  # get index data
+palette = [[0, 0, 0, 255], [1, 23, 234, 255], ...]
+color_type = oxipng.ColorType.indexed(palette)
+raw = oxipng.RawImage(data, 100, 100, color_type=color_type)
+optimized = raw.create_optimized_png()
+```
+
+**Methods:**
+
+#### add_png_chunk(name, data)
+
+Add a png chunk, such as `b"iTXt"`, to be included in the output
+
+**Parameters:**
+
+- **name** _(bytes)_ – PNG chunk identifier
+- **data** _(bytes | bytarray)_
+
+**Returns:**
+
+- None
+
+#### add_icc_profile(data)
+
+Add an ICC profile for the image
+
+**Parameters:**
+
+- **data** _(bytes)_ – ICC profile data
+
+**Returns:**
+
+- None
+
+#### create_optimized_png(\*\*kwargs)
+
+Create an optimized png from the raw image data using the options provided
+
+**Parameters:**
+
+- **\*\*kwargs** – [Options](#options)
+
+**Returns:**
+
+- _(bytes)_ optimized PNG image data
+
+## Options
+
+`optimize` , `optimize_from_memory` and `RawImage.create_optimized_png` accept the following options as keyword arguments.
+
+**Example:**
+
+```py
+oxipng.optimize("/path/to/image.png", level=6, fix_errors=True, interlace=oxipng.Interlacing.Adam7)
+```
+
+| Option                 | Description                                                                                                                       | Type                              | Default                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- | ------------------------- |
+| `level`                | Set the optimization level to an integer between 0 and 6 (inclusive)                                                              | int                               | `2`                       |
+| `fix_errors`           | Attempt to fix errors when decoding the input file rather than throwing `PngError`                                                | bool                              | `False`                   |
+| `force`                | Write to output even if there was no improvement in compression                                                                   | bool                              | `False`                   |
+| `filter`               | Which filters to try on the file. Use Use enum values from `oxipng.RowFilter`                                                     | Sequence[[RowFilter](#filter)]    | `[RowFilter.NoOp]`        |
+| `interlace`            | Whether to change the interlacing type of the file. `None` will not change current interlacing type                               | [Interlacing](#interlace) \| None | `None`                    |
+| `optimize_alpha`       | Whether to allow transparent pixels to be altered to improve compression                                                          | bool                              | `False`                   |
+| `bit_depth_reduction`  | Whether to attempt bit depth reduction                                                                                            | bool                              | `True`                    |
+| `color_type_reduction` | Whether to attempt color type reduction                                                                                           | bool                              | `True`                    |
+| `palette_reduction`    | Whether to attempt palette reduction                                                                                              | bool                              | `True`                    |
+| `grayscale_reduction`  | Whether to attempt grayscale reduction                                                                                            | bool                              | `True`                    |
+| `idat_recoding`        | If any type of reduction is performed, IDAT recoding will be performed regardless of this setting                                 | bool                              | `True`                    |
+| `scale_16`             | Whether to forcibly reduce 16-bit to 8-bit by scaling                                                                             | bool                              | `False`                   |
+| `strip`                | Which headers to strip from the PNG file, if any. Specify with `oxipng.StripChunks`                                               | [StripChunks](#strip)             | `StripChunks.none()`      |
+| `deflate`              | Which DEFLATE algorithm to use. Specify with `oxipng.Deflaters`                                                                   | [Deflaters](#deflate)             | `Deflaters.libdeflater()` |
+| `fast_evaluation`      | Whether to use fast evaluation to pick the best filter                                                                            | bool                              | `False`                   |
+| `timeout`              | Maximum amount of time to spend (in seconds) on optimizations. Further potential optimizations skipped if the timeout is exceeded | float \| None                     | `None`                    |
+
+### filter
+
+Initialize a `filter` list or tuple with any of the following `oxipng.RowFilter` enum options:
+
+- `oxipng.RowFilter.NoOp`
+- `oxipng.RowFilter.Sub`
+- `oxipng.RowFilter.Up`
+- `oxipng.RowFilter.Average`
+- `oxipng.RowFilter.Paeth`
+- `oxipng.RowFilter.Bigrams`
+- `oxipng.RowFilter.BigEnt`
+- `oxipng.RowFilter.Brute`
+
+### interlace
+
+Set `interlace` to `None` to keep existing interlacing or to one of following `oxipng.Interlacing` enum options:
+
+- `oxipng.Interlacing.Off` (interlace disabled)
+- `oxipng.Interlacing.Adam7` (interlace enabled)
+
+### strip
+
+Initialize the `strip` option with one of the following static methods in the
+`oxipng.StripChunks` class.
+
+| Method                                      | Description                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `oxipng.StripChunks.none()`                 | None                                                                                        |
+| `oxipng.StripChunks.strip(Sequence[bytes])` | Strip chunks specified in the given list                                                    |
+| `oxipng.StripChunks.safe()`                 | Strip chunks that won't affect rendering (all but cICP, iCCP, sRGB, pHYs, acTL, fcTL, fdAT) |
+| `oxipng.StripChunks.keep(Sequence[bytes])`  | Strip all non-critical chunks except those in the given list                                |
+| `oxipng.StripChunks.all()`                  | Strip all non-critical chunks                                                               |
+
+### deflate
+
+Initialize the `deflate` option with one of the following static methods in the
+`oxipng.Deflaters` class.
+
+| Method                              | Description                                                |
+| ----------------------------------- | ---------------------------------------------------------- |
+| `oxipng.Deflaters.libdeflater(int)` | Libdeflater with compression level [0-12]                  |
+| `oxipng.Deflaters.zopfli(int)`      | Zopfli with number of compression iterations to do [1-255] |
+
+## Development
+
+1. Install [Rust](https://www.rust-lang.org/tools/install)
+1. Install [Python 3.8+](https://www.python.org/downloads/)
+1. Install [Pipenv](https://pipenv.pypa.io/en/latest/)
+1. Clone this repository and navigate to it via command line
+   ```sh
+   git clone https://github.com/nfrasser/pyoxipng.git
+   cd pyoxipng
+   ```
+1. Install dependencies
+   ```sh
+   pipenv install --dev
+   ```
+1. Activate the dev environment
+   ```
+   pipenv shell
+   ```
+1. Build
+   ```sh
+   maturin develop
+   ```
+1. Run tests
+   ```
+   pytest
+   ```
+1. Format code
+   ```
+   ruff check .
+   ruff format .
+   ```
+
+## License
+
+MIT
 </file>
 
 <file path="src/brosh/brosh.py">
@@ -2947,16 +3700,11 @@ ban-relative-imports = 'parents' # Allow relative imports within packages
 Created by Adam Twardoch
 """
 
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-__version__ = "0.1.0"
-
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 @dataclass
@@ -3006,195 +3754,6 @@ def main() -> None:
     except Exception as e:
         logger.error("An error occurred: %s", str(e))
         raise
-
-
-if __name__ == "__main__":
-    main()
-</file>
-
-<file path="src/brosh/mcp.py">
-#!/usr/bin/env python3
-# this_file: src/brosh/mcp.py
-
-"""MCP server implementation for brosh."""
-
-import sys
-
-import platformdirs
-
-try:
-    from fastmcp import FastMCP, Image
-except ImportError:
-    sys.exit(1)
-
-from loguru import logger
-
-from .tool import BrowserScreenshotTool
-
-
-def run_mcp_server():
-    """Run the FastMCP server for browser screenshots."""
-
-    mcp = FastMCP(
-        name="Browser Screenshots",
-        instructions=(
-            "This _tool captures sequential screenshots of a webpage "
-            "by scrolling through it in a real browser. "
-            "You can specify URL, zoom, viewport size, scroll step, "
-            "output scaling, format (png/jpg/apng), and animation "
-            "speed. Screenshots are saved with descriptive filenames "
-            "including domain, scroll position, and smart section "
-            "identifiers. Choose browser or use OS default. If "
-            "subdirs enabled, screenshots organized by domain. "
-            "Ideal for long pages, documentation, QA. Works with "
-            "remote debugging mode preserving authentication and "
-            "cookies."
-        ),
-    )
-
-    @mcp.tool
-    async def capture_screenshot(
-        url: str,
-        zoom: int = 100,
-        width: int = 0,
-        height: int = 0,
-        scroll_step: int = 100,
-        scale: int = 100,
-        app: str = "",
-        output_dir: str = platformdirs.user_pictures_dir(),
-        subdirs: bool = False,
-        format: str = "png",
-        anim_spf: float = 0.5,
-        html: bool = False,
-        max_frames: int = 0,
-        from_selector: str = "",
-    ) -> dict[str, dict[str, str | Image]]:
-        """Capture screenshots of a webpage using Playwright.
-
-        Args:
-            url: The URL to navigate to (mandatory)
-            zoom: Zoom level in % (default: 100)
-            width: Width in pixels (default: main screen width)
-            height: Height in pixels (default: main screen height). Use -1 to capture entire page
-            scroll_step: Scroll step in % of height (default: 100)
-            scale: Scale in % for resampling output image
-                   (default: 100)
-            app: Browser to use (default: OS default browser)
-            output_dir: Output directory for screenshots
-                       (default: Pictures)
-            subdirs: Create subdirectories for domains
-                    (default: False)
-            format: Output format - png, jpg, or apng (default: png)
-            anim_spf: Seconds per frame for APNG animation
-                     (default: 0.5)
-            html: Return dict with HTML/selectors instead of list
-                 (default: False)
-            max_frames: Maximum number of frames to capture, 0 for all
-                       (default: 0)
-            from_selector: CSS selector to scroll to before starting capture
-                          (default: "")
-
-        Returns:
-            Dict with screenshot paths as keys and values containing:
-            - "image": FastMCP Image object with the screenshot
-            - "selector": CSS selector for the visible portion
-            - "html": (optional, if html=True) HTML of visible elements
-        """
-        # Create a new instance to avoid recursion
-        tool = BrowserScreenshotTool()
-
-        # Capture with both selectors and optionally HTML
-        result = await tool.capture(
-            url=url,
-            zoom=zoom,
-            width=width,
-            height=height,
-            scroll_step=scroll_step,
-            scale=scale,
-            app=app,
-            output_dir=output_dir,
-            subdirs=subdirs,
-            mcp=False,  # Never recurse into MCP mode
-            format=format,
-            anim_spf=anim_spf,
-            html=html,  # This will get both selector and HTML if True
-            max_frames=max_frames,
-            from_selector=from_selector,
-        )
-
-        # For MCP mode, we need to return a dict with image data
-        if isinstance(result, dict):
-            # Result is already a dict with paths as keys
-            mcp_result = {}
-            for path, value in result.items():
-                # Read the image file
-                try:
-                    with open(path, "rb") as f:
-                        img_bytes = f.read()
-
-                    # Determine format from path
-                    path_lower = path.lower()
-                    if path_lower.endswith(".png"):
-                        img_format = "png"
-                    elif path_lower.endswith((".jpg", ".jpeg")):
-                        img_format = "jpeg"
-                    else:
-                        img_format = "png"
-
-                    # Build the response dict
-                    response_dict = {
-                        "image": Image(data=img_bytes, format=img_format),
-                    }
-
-                    # Handle both old format (string selector) and new format (dict with selector and html)
-                    if isinstance(value, dict):
-                        response_dict["selector"] = value.get("selector", "body")
-                        if "html" in value:
-                            response_dict["html"] = value["html"]
-                    else:
-                        # Old format - value is just the selector
-                        response_dict["selector"] = value
-
-                    mcp_result[path] = response_dict
-
-                except Exception as e:
-                    logger.error(f"Failed to read image {path}: {e}")
-                    continue
-
-            return mcp_result
-        # Result is a list of paths (shouldn't happen with current logic)
-        # Convert to dict format expected by MCP
-        mcp_result = {}
-        for path in result:
-            try:
-                with open(path, "rb") as f:
-                    img_bytes = f.read()
-
-                # Determine format from path
-                path_lower = path.lower()
-                if path_lower.endswith(".png"):
-                    img_format = "png"
-                elif path_lower.endswith((".jpg", ".jpeg")):
-                    img_format = "jpeg"
-                else:
-                    img_format = "png"
-
-                mcp_result[path] = {
-                    "image": Image(data=img_bytes, format=img_format),
-                    "selector": "body",  # Default selector
-                }
-            except Exception as e:
-                logger.error(f"Failed to read image {path}: {e}")
-                continue
-
-        return mcp_result
-
-    mcp.run()
-
-
-def main():
-    """Entry point for the brosh-mcp command."""
-    run_mcp_server()
 
 
 if __name__ == "__main__":
@@ -3263,6 +3822,7 @@ A powerful browser screenshot tool that captures scrolling screenshots of webpag
 - **🔌 Remote Debugging**: Connects to existing browser sessions preserving cookies/auth
 - **🤖 MCP Server**: Integrate with AI tools via Model Context Protocol
 - **📄 HTML Extraction**: Optionally capture HTML content of visible elements
+- **📝 Text Extraction**: Automatically converts visible content to Markdown text
 - **📐 Flexible Scrolling**: Configurable scroll steps and starting positions
 - **🎯 Precise Control**: Set viewport size, zoom level, and output scaling
 - **🔄 Automatic Retries**: Robust error handling with configurable retry logic
@@ -3557,20 +4117,30 @@ github_com-250612-185234-00500-readme.png
 
 ### JSON Output
 
-When using `--html --json`, the output format is:
+The tool now always extracts text content from visible elements. When using `--json`:
 
+**Default output (without --html):**
 ```json
 {
   "/path/to/screenshot1.png": {
     "selector": "main.content",
-    "html": "<main class='content'>...</main>"
-  },
-  "/path/to/screenshot2.png": {
-    "selector": "#section-2",
-    "html": "<section id='section-2'>...</section>"
+    "text": "# Main Content\n\nThis is the extracted text in Markdown format..."
   }
 }
 ```
+
+**With --html flag:**
+```json
+{
+  "/path/to/screenshot1.png": {
+    "selector": "main.content",
+    "html": "<main class='content'>...</main>",
+    "text": "# Main Content\n\nThis is the extracted text in Markdown format..."
+  }
+}
+```
+
+The `text` field contains the visible content converted to Markdown format using html2text, making it easy to process the content programmatically.
 
 ## Advanced Usage
 
@@ -3919,6 +4489,472 @@ Created by [Adam Twardoch](https://github.com/twardoch)
 - Uses [Fire](https://github.com/google/python-fire) for the CLI interface
 - Implements [FastMCP](https://github.com/jlowin/fastmcp) for Model Context Protocol support
 - Inspired by various web scraping and screenshot tools
+</file>
+
+<file path="src/brosh/mcp.py">
+#!/usr/bin/env -S uv run -s
+# /// script
+# dependencies = ["fastmcp", "platformdirs", "pydantic", "loguru"]
+# ///
+# this_file: src/brosh/mcp.py
+
+"""MCP server implementation for brosh.
+
+This module provides FastMCP server functionality for capturing browser
+screenshots using the brosh tool. It enables AI tools to request and receive
+webpage captures with visual context and optional HTML/text content.
+"""
+
+import asyncio
+import base64
+import concurrent.futures
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Annotated
+
+from loguru import logger
+from platformdirs import user_pictures_dir
+from pydantic import Field
+from pydantic.networks import AnyUrl
+
+try:
+    from playwright.async_api import Error as PlaywrightError
+except ImportError:
+    PlaywrightError = Exception
+
+from fastmcp import FastMCP
+
+from .models import (
+    ImageFormat,
+    MCPImageContent,
+    MCPScreenshotResult,
+    MCPTextContent,
+    MCPToolResult,
+)
+from .optimize import (
+    calculate_result_size,
+    compress_html_content,
+    downsample_png_data,
+    optimize_png_file,
+)
+from .tool import BrowserScreenshotTool
+
+
+def run_mcp_server() -> None:
+    """Get a screenshot of a webpage in vertical slices together with text and/or HTML content."""
+    mcp = FastMCP(
+        name="Brosh Web Capture",
+        instructions=("Get a screenshot of a webpage in vertical slices together with text and/or HTML content."),
+    )
+
+    @mcp.tool
+    async def see_webpage(
+        url: Annotated[AnyUrl, Field(description="The URL to capture")],
+        zoom: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Zoom level in %",
+                ge=10,
+                le=500,
+            ),
+        ],
+        width: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Width in pixels (0: screen width)",
+            ),
+        ],
+        height: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Height in pixels (0: screen height, -1: full page height)",
+            ),
+        ],
+        from_selector: Annotated[
+            str,
+            Field(
+                default="",
+                description="CSS selector to start from (empty: page top)",
+            ),
+        ],
+        scroll_step: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Scroll step in % of height",
+                ge=10,
+                le=200,
+            ),
+        ],
+        max_frames: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Max vertical scroll shots (0: unlimited)",
+            ),
+        ],
+        app: Annotated[
+            str,
+            Field(
+                default="",
+                description="Browser to use (default: chrome)",
+            ),
+        ],
+        scale: Annotated[
+            int,
+            Field(
+                default=50,
+                description="Output image downsample %",
+                ge=5,
+                le=100,
+            ),
+        ],
+        output_dir: Annotated[
+            Path,
+            Field(
+                default=Path(user_pictures_dir()),
+                description="Output folder for screenshots",
+            ),
+        ],
+        subdirs: Annotated[
+            bool,
+            Field(
+                default=False,
+                description="Create per-domain subfolders",
+            ),
+        ],
+        format: Annotated[
+            str,
+            Field(
+                default="png",
+                description="Output format: png (default), jpg, apng",
+            ),
+        ],
+        anim_spf: Annotated[
+            float,
+            Field(
+                default=0.5,
+                description="APNG seconds per frame",
+                ge=0.1,
+                le=10.0,
+            ),
+        ],
+        html: Annotated[
+            bool,
+            Field(
+                default=False,
+                description="Get visible HTML code for each screenshot",
+            ),
+        ],
+    ) -> MCPToolResult:
+        """Get screenshots and text or HTML from a webpage.
+
+        Call this tool when you must *see* the page as a user would (e.g. verify design). Tweak zoom, viewport size, scroll_step, max_frames, format for optimal results. It scrolls from the given CSS selector (or top).
+
+        Args:
+            url: The webpage URL to capture
+            zoom: Browser zoom level (10-500%)
+            width: Viewport width (0: screen width)
+            height: Viewport height (0: screen height, -1: full page)
+            from_selector: Starting CSS selector (empty: page top)
+            scroll_step: Vertical scroll increment (10-200% of height)
+            max_frames: Maximum scroll captures (0: unlimited)
+            app: Browser to use (default: chrome)
+            scale: Output image scale (10-200%)
+            output_dir: Screenshot save location
+            subdirs: Create domain-based subdirectories
+            format: Output image format (png/jpg/apng)
+            anim_spf: APNG animation speed (0.1-10.0 seconds)
+            html: Include visible HTML content
+
+        Returns:
+            {
+                "<file_path>": {
+                    "image": Image(...),      # screenshot or APNG frame
+                    "selector": "<css>",      # DOM element in view
+                    "text": "<markdown>",     # readable text found
+                    "html": "<raw_html>"      # optional, if html=True
+                },
+                ...
+            }
+
+        Raises:
+            Exception: If screenshot capture or processing fails
+        """
+        tool = BrowserScreenshotTool()
+        logger.debug(f"MCP see_webpage called for url={url} html={html}")
+        try:
+            # Run capture in a separate event loop to avoid conflicts
+            # This is similar to how the CLI works (asyncio.run)
+            def run_capture():
+                return asyncio.run(
+                    tool.capture(
+                        url=url,
+                        zoom=zoom,
+                        width=width,
+                        height=height,
+                        scroll_step=scroll_step,
+                        scale=scale,
+                        app=app,
+                        output_dir=output_dir,
+                        subdirs=subdirs,
+                        mcp=False,  # Never recurse into MCP mode
+                        format=format,
+                        anim_spf=anim_spf,
+                        html=html,  # Get both selector and HTML if True
+                        max_frames=max_frames,
+                        from_selector=from_selector,
+                    )
+                )
+
+            # Execute in thread executor with timeout
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = loop.run_in_executor(executor, run_capture)
+                result = await asyncio.wait_for(future, timeout=60.0)
+
+            logger.debug("MCP see_webpage capture completed successfully")
+        except TimeoutError:
+            logger.error("MCP see_webpage: capture timed out")
+            return MCPToolResult(content=[MCPTextContent(text="Error: Screenshot capture timed out.")])
+        except asyncio.InvalidStateError as e:
+            logger.error(f"MCP see_webpage: InvalidStateError: {e}")
+            return MCPToolResult(content=[MCPTextContent(text=f"Error: InvalidStateError: {e}")])
+        except PlaywrightError as e:
+            logger.error(f"MCP see_webpage: Playwright error: {e}")
+            return MCPToolResult(content=[MCPTextContent(text=f"Error: Playwright error: {e}")])
+        except Exception as e:
+            logger.error(f"MCP see_webpage: Unexpected error: {e}")
+            return MCPToolResult(content=[MCPTextContent(text=f"Error: Unexpected error: {e}")])
+        # Process capture results for MCP response
+        if isinstance(result, dict):
+            mcp_result = _process_dict_result(result, format)
+        else:
+            mcp_result = _process_list_result(result, format)
+
+        # Post-process to ensure size limits
+        return _post_process_result(mcp_result, has_html=html)
+
+    mcp.run()
+
+
+def _process_dict_result(
+    result: Mapping[str, str | dict[str, str]],
+    format: ImageFormat,
+) -> MCPToolResult:
+    """Process dictionary-format capture results.
+
+    Args:
+        result: Raw capture results with paths as keys
+        format: Image format used for the captures
+
+    Returns:
+        Processed results with image data and metadata
+    """
+    content_items = []
+
+    for path, value in result.items():
+        try:
+            screenshot = _create_screenshot_result(path, format)
+            # Add metadata from the capture result
+            if isinstance(value, dict):
+                screenshot.selector = value.get("selector", "body")
+                if "html" in value:
+                    # Compress HTML to save space
+                    screenshot.html = compress_html_content(value["html"])
+                if "text" in value:
+                    screenshot.text = value["text"]
+            else:
+                # Legacy format - value is just the selector
+                screenshot.selector = str(value)
+            # Add the image content item
+            content_items.append(screenshot.image)
+            # Add text metadata item
+            content_items.append(MCPTextContent(text=screenshot.metadata_json(path)))
+        except Exception as e:
+            logger.error(f"Failed to process {path}: {e}")
+            continue
+    return MCPToolResult(content=content_items)
+
+
+def _process_list_result(
+    result: list[str],
+    format: ImageFormat,
+) -> MCPToolResult:
+    """Process list-format capture results.
+
+    Args:
+        result: List of screenshot file paths
+        format: Image format used for the captures
+
+    Returns:
+        Processed results with image data
+    """
+    content_items = []
+    for path in result:
+        try:
+            screenshot = _create_screenshot_result(path, format)
+            content_items.append(screenshot.image)
+            content_items.append(MCPTextContent(text=screenshot.metadata_json(path)))
+        except Exception as e:
+            logger.error(f"Failed to process {path}: {e}")
+            continue
+    return MCPToolResult(content=content_items)
+
+
+def _create_screenshot_result(
+    path: str,
+    format: ImageFormat,
+    optimize: bool = True,
+) -> MCPScreenshotResult:
+    """Create a screenshot result from a file path.
+
+    Args:
+        path: Path to the image file
+        format: Image format used for the capture
+        optimize: Whether to optimize PNG files
+
+    Returns:
+        Screenshot result with image data and metadata
+
+    Raises:
+        Exception: If image file cannot be read
+    """
+    # Optimize PNG files if requested
+    if optimize and format == ImageFormat.PNG:
+        img_bytes = optimize_png_file(path, level=6, preserve_file=True)
+    else:
+        with open(path, "rb") as f:
+            img_bytes = f.read()
+
+    # Create image content item
+    image = MCPImageContent(
+        data=base64.b64encode(img_bytes).decode(),
+        mime_type=format.mime_type,
+    )
+
+    return MCPScreenshotResult(
+        image=image,
+        selector="body",
+        text=None,
+        html=None,
+    )
+
+
+def _post_process_result(result: MCPToolResult, has_html: bool = False) -> MCPToolResult:
+    """Post-process MCP result to ensure it fits within size limits.
+
+    Args:
+        result: The MCPToolResult to process
+        has_html: Whether the result contains HTML content
+
+    Returns:
+        Processed MCPToolResult that fits within size limits
+    """
+    MAX_SIZE = 1048576  # 1MB limit
+
+    # Check initial size
+    result_dict = result.model_dump()
+    size = calculate_result_size(result_dict)
+
+    if size <= MAX_SIZE:
+        return result
+
+    logger.warning(f"Result size {size} exceeds limit {MAX_SIZE}, applying compression")
+
+    # Step 1: If has HTML, remove all HTML except the first one
+    if has_html and len(result.content) > 2:
+        new_content = []
+        html_found = False
+
+        for _i, item in enumerate(result.content):
+            if isinstance(item, MCPTextContent):
+                # Parse the text to check if it contains HTML
+                try:
+                    import json
+
+                    data = json.loads(item.text)
+                    if isinstance(data, dict):
+                        for path, metadata in data.items():
+                            if "html" in metadata and html_found:
+                                # Remove HTML from subsequent items
+                                metadata.pop("html", None)
+                                item = MCPTextContent(text=json.dumps({path: metadata}))
+                            elif "html" in metadata:
+                                html_found = True
+                except:
+                    pass
+            new_content.append(item)
+
+        result = MCPToolResult(content=new_content)
+        size = calculate_result_size(result.model_dump())
+
+        if size <= MAX_SIZE:
+            return result
+
+    # Step 2: Downsample images by 50%
+    new_content = []
+    for item in result.content:
+        if isinstance(item, MCPImageContent):
+            try:
+                # Decode, downsample, re-encode
+                img_data = base64.b64decode(item.data)
+                downsampled = downsample_png_data(img_data, scale_factor=0.5)
+                item = MCPImageContent(
+                    data=base64.b64encode(downsampled).decode(),
+                    mime_type=item.mime_type,
+                )
+            except Exception as e:
+                logger.error(f"Failed to downsample image: {e}")
+        new_content.append(item)
+
+    result = MCPToolResult(content=new_content)
+    size = calculate_result_size(result.model_dump())
+
+    if size <= MAX_SIZE:
+        return result
+
+    # Step 3: Downsample again by 50%
+    new_content = []
+    for item in result.content:
+        if isinstance(item, MCPImageContent):
+            try:
+                img_data = base64.b64decode(item.data)
+                downsampled = downsample_png_data(img_data, scale_factor=0.5)
+                item = MCPImageContent(
+                    data=base64.b64encode(downsampled).decode(),
+                    mime_type=item.mime_type,
+                )
+            except Exception as e:
+                logger.error(f"Failed to downsample image again: {e}")
+        new_content.append(item)
+
+    result = MCPToolResult(content=new_content)
+    size = calculate_result_size(result.model_dump())
+
+    if size <= MAX_SIZE:
+        return result
+
+    # Step 4: Start removing screenshots from the end
+    while len(result.content) > 2 and size > MAX_SIZE:
+        # Remove last image and its metadata
+        new_content = result.content[:-2]
+        result = MCPToolResult(content=new_content)
+        size = calculate_result_size(result.model_dump())
+
+    return result
+
+
+def main() -> None:
+    """Run the MCP server."""
+    run_mcp_server()
+
+
+if __name__ == "__main__":
+    main()
 </file>
 
 </files>

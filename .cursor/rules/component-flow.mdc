@@ -1,65 +1,68 @@
 ---
-description: Analyzes data and control flow between core browser screenshot components, focusing on async operations and error handling
-globs: src/brosh/browser.py,src/brosh/capture.py,src/brosh/image.py,src/brosh/tool.py
+description: Specifies data and control flow between BrowserManager, CaptureManager, and ImageProcessor components including error handling and async operations.
+globs: src/brosh/**/browser.py,src/brosh/**/capture.py,src/brosh/**/image.py,src/brosh/**/mcp.py
 alwaysApply: false
 ---
 
 
 # component-flow
 
-Core component interaction flow for browser screenshot operations:
+### Core Component Flow
 
-## Primary Component Flow (Importance: 95)
+The component flow between BrowserManager, CaptureManager and ImageProcessor follows a specific sequence to handle webpage capture:
+
+#### Primary Flow
+1. BrowserManager detects and initializes browser (Chrome > Edge > Safari)
+2. CaptureManager receives capture request with parameters
+3. CaptureManager coordinates with BrowserManager for viewport management and scrolling
+4. ImageProcessor receives raw captures for optimization and assembly
+5. Results flow back through CaptureManager to BrowserManager
+
+#### Async Flow Management
+- BrowserManager maintains browser lifecycle asynchronously
+- CaptureManager coordinates multiple async capture operations
+- ImageProcessor handles frame processing in parallel
+- Events coordinate state between components
+
+#### Error Flow
+- Browser connection failures trigger retries in BrowserManager
+- Capture synchronization errors handled by CaptureManager
+- Image processing failures bubble up through ImageProcessor
+- Each component implements domain-specific recovery logic
+
+### Key Integration Points
 
 1. BrowserManager → CaptureManager
-- Provides browser context and viewport configuration
-- Handles browser lifecycle events and connection status
-- Passes viewport dimensions and scroll capabilities
+- Browser instance handoff
+- Viewport dimension updates 
+- Scroll position coordination
 
 2. CaptureManager → ImageProcessor
-- Sends sequential viewport captures during scrolling
-- Provides scroll position metadata for frame alignment
-- Transmits visible HTML content for section detection
+- Raw frame delivery
+- Capture metadata
+- Processing instructions
 
-3. ImageProcessor → BrowserManager
-- Signals frame capture completion for scroll coordination
-- Provides merged image dimensions for viewport updates
-- Reports animation frame timing for scroll synchronization
+3. ImageProcessor → CaptureManager
+- Processed frames
+- Assembly status
+- Optimization results
 
-## Error Flow Paths (Importance: 85)
+### State Coordination
 
-1. Browser Connection Failures
-- BrowserManager retries connection with exponential backoff
-- Falls back to new browser instance launch
-- Notifies CaptureManager of viewport reconfiguration
+1. Browser State
+- Debug mode status
+- Connection health
+- Viewport position
 
-2. Capture Synchronization
-- CaptureManager validates scroll state before captures
-- Implements retry logic for failed frame captures
-- Maintains capture session state across retries
+2. Capture State  
+- Active selectors
+- Scroll progress
+- Frame sequence
 
-3. Image Processing Failures 
-- ImageProcessor maintains partial results for recovery
-- Supports resuming from last successful frame
-- Preserves capture metadata during retries
-
-## Async Operation Flow (Importance: 80)
-
-1. Progressive Capture Pipeline
-- BrowserManager initiates async browser operation
-- CaptureManager orchestrates parallel scroll and capture
-- ImageProcessor handles concurrent frame processing
-
-2. State Management
-- Components maintain isolated state machines
-- Async event coordination via message passing
-- Viewport synchronization through state broadcasts
-
-File paths:
-- `src/brosh/browser.py`
-- `src/brosh/capture.py`
-- `src/brosh/image.py`
-- `src/brosh/tool.py`
+3. Processing State
+- Frame assembly progress
+- Format conversions
+- Optimization status
 
 $END$
 

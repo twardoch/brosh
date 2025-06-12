@@ -13,19 +13,13 @@ from playwright.async_api import async_playwright
 
 
 class BrowserManager:
-    """Manages browser detection, launching, and connection.
-
-    Used in:
-    - cli.py
-    - tool.py
-    """
+    """Manages browser detection, launching, and connection."""
 
     def __init__(self, connection_timeout: int = 30):
         """Initialize browser manager.
 
         Args:
             connection_timeout: Timeout for browser connections in seconds
-
         """
         self.connection_timeout = connection_timeout
         self.debug_ports = {
@@ -40,8 +34,6 @@ class BrowserManager:
         Returns:
             Tuple of (width, height) in logical pixels (CSS pixels)
 
-        Used in:
-        - tool.py
         """
         if platform.system() == "Darwin":  # macOS
             try:
@@ -108,9 +100,6 @@ class BrowserManager:
         Returns:
             Browser name compatible with Playwright
 
-        Used in:
-        - cli.py
-        - tool.py
         """
         if bool(app):
             app_lower = app.lower()
@@ -159,7 +148,6 @@ class BrowserManager:
 
         Returns:
             List of possible paths
-
         """
         if browser_name == "chromium":
             return [
@@ -190,8 +178,6 @@ class BrowserManager:
         Returns:
             Path to browser executable or None if not found
 
-        Used in:
-        - cli.py
         """
         paths = self.get_browser_paths(browser_name)
 
@@ -220,8 +206,6 @@ class BrowserManager:
         Raises:
             RuntimeError: If browser connection fails
 
-        Used in:
-        - tool.py
         """
         debug_port = self.debug_ports.get(browser_name, 9222)
 
@@ -460,8 +444,6 @@ class BrowserManager:
             context: Playwright context instance
             browser: Playwright browser instance
 
-        Used in:
-        - tool.py
         """
         try:
             if page:
@@ -492,9 +474,6 @@ class BrowserManager:
 
         Returns:
             List of command line arguments
-
-        Used in:
-        - cli.py
         """
         if browser_type in ["chromium", "msedge"]:
             return [

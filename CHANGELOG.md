@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New: `{"image_path": "/path/to/file.png", "selector": "...", "text": "..."}`
 - Renamed `html` parameter to `fetch_html` throughout the codebase for consistency
 - Text extraction now automatically trims to 200 characters by default (configurable)
+- Added support for `file://` URLs to capture local HTML files
 
 ## [0.1.0] - 2025-06-12
 

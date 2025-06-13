@@ -137,7 +137,7 @@ class CaptureConfig:
         Used in:
         - api.py
         """
-        if not self.url.startswith(("http://", "https://")):
+        if not self.url.startswith(("http://", "https://", "file://")):
             msg = f"Invalid URL: {self.url}"
             raise ValueError(msg)
         if not 10 <= self.zoom <= 500:

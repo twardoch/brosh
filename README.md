@@ -135,6 +135,9 @@ playwright install
 # Capture a single webpage
 brosh shot "https://example.com"
 
+# Capture a local HTML file
+brosh shot "file:///path/to/local/file.html"
+
 # Start browser in debug mode for better performance
 brosh run
 brosh shot "https://example.com"

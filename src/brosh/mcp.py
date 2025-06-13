@@ -12,9 +12,9 @@ from fastmcp import FastMCP
 from loguru import logger
 
 from .api import capture_webpage_async
-from .tool import dflt_output_folder
 from .models import ImageFormat, MCPImageContent, MCPTextContent, MCPToolResult
 from .texthtml import DOMProcessor
+from .tool import dflt_output_folder
 
 # MCP has different defaults than CLI
 MCP_DEFAULTS = {

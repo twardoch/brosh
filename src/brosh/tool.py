@@ -9,6 +9,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from loguru import logger
+from platformdirs import user_pictures_dir
 from playwright.async_api import async_playwright
 
 from .browser import BrowserManager
@@ -16,7 +17,6 @@ from .capture import CaptureManager
 from .image import ImageProcessor
 from .models import CaptureConfig, CaptureFrame, ImageFormat
 from .texthtml import DOMProcessor
-from platformdirs import user_pictures_dir
 
 
 def dflt_output_folder(subfolder: str | Path = "brosh") -> Path:

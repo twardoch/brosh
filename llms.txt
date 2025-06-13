@@ -86,7 +86,6 @@ package.toml
 pyproject.toml
 pyrightconfig.json
 README.md
-run_tests.py
 TODO.md
 </directory_structure>
 
@@ -2135,267 +2134,6 @@ $END$
  If you're using this file in context, clearly say in italics in one small line that "Context added by Giga screenshot-algorithms".
 </file>
 
-<file path="src/brosh/api.py">
-#!/usr/bin/env python3
-# this_file: src/brosh/api.py
-
-"""Public API for brosh - single source of truth for all parameters."""
-
-import asyncio
-from pathlib import Path
-from typing import Annotated, Any
-
-from platformdirs import dflt_output_folder
-from pydantic import Field
-from pydantic.networks import AnyUrl
-
-from .models import CaptureConfig, ImageFormat
-from .tool import BrowserScreenshotTool
-
-
-def capture_webpage(
-    url: Annotated[AnyUrl, Field(description="The webpage URL to capture")],
-    zoom: Annotated[int, Field(default=100, ge=10, le=500, description="Browser zoom level in %")] = 100,
-    width: Annotated[int, Field(default=0, ge=0, description="Viewport width in pixels (0: screen width)")] = 0,
-    height: Annotated[
-        int, Field(default=0, ge=-1, description="Viewport height in pixels (0: screen height, -1: full page)")
-    ] = 0,
-    scroll_step: Annotated[
-        int, Field(default=100, ge=10, le=200, description="Scroll step in % of viewport height")
-    ] = 100,
-    scale: Annotated[int, Field(default=100, ge=10, le=200, description="Output image scale in %")] = 100,
-    app: Annotated[
-        str, Field(default="", description="Browser to use (chrome, edge, safari; empty: auto-detect)")
-    ] = "",
-    output_dir: Annotated[
-        Path | None,
-        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
-    ] = None,
-    subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
-    format: Annotated[
-        ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")
-    ] = ImageFormat.PNG,
-    anim_spf: Annotated[
-        float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
-    ] = 0.5,
-    fetch_html: Annotated[
-        bool, Field(default=False, description="Include visible HTML content for each screenshot")
-    ] = False,
-    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
-    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
-    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
-    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
-    max_frames: Annotated[
-        int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
-    ] = 0,
-    from_selector: Annotated[
-        str, Field(default="", description="CSS selector to scroll to before starting capture")
-    ] = "",
-) -> dict[str, dict[str, Any]]:
-    """Capture webpage screenshots with comprehensive options.
-
-    This is the main public API for the brosh screenshot tool. It captures
-    scrolling screenshots of a webpage with various configuration options.
-
-    Args:
-        url: The webpage URL to capture
-        zoom: Browser zoom level (10-500%)
-        width: Viewport width in pixels (0 for screen width)
-        height: Viewport height in pixels (0 for screen height, -1 for full page)
-        scroll_step: Vertical scroll increment as percentage of viewport
-        scale: Output image scaling factor
-        app: Browser to use (chrome/edge/safari, empty for auto-detect)
-        output_dir: Directory to save screenshots
-        subdirs: Whether to create domain-based subdirectories
-        format: Output image format
-        anim_spf: Animation speed for APNG format
-        fetch_html: Whether to include HTML content in results
-        fetch_image: Whether to include image data in MCP output
-        fetch_image_path: Whether to include image path in MCP output
-        fetch_text: Whether to include extracted text in MCP output
-        trim_text: Whether to trim text to 200 characters
-        max_frames: Maximum frames to capture (0 for unlimited)
-        from_selector: CSS selector to start capture from
-
-    Returns:
-        Dictionary mapping file paths to metadata:
-        {
-            "/path/to/screenshot.png": {
-                "selector": "main",
-                "text": "visible text content",
-                "html": "<div>...</div>"  # if fetch_html=True
-            },
-            ...
-        }
-
-    Raises:
-        ValueError: For invalid parameters
-        RuntimeError: For browser or capture failures
-
-    Used in:
-    - __init__.py
-    - cli.py
-    - mcp.py
-    """
-    # Handle default for output_dir
-    if output_dir is None:
-        output_dir = Path(dflt_output_folder())
-
-    # Create configuration object
-    config = CaptureConfig(
-        url=str(url),
-        width=width,
-        height=height,
-        zoom=zoom,
-        scroll_step=scroll_step,
-        scale=scale,
-        format=format,
-        app=app,
-        output_dir=str(output_dir),
-        subdirs=subdirs,
-        anim_spf=anim_spf,
-        fetch_html=fetch_html,
-        fetch_image=fetch_image,
-        fetch_image_path=fetch_image_path,
-        fetch_text=fetch_text,
-        trim_text=trim_text,
-        max_frames=max_frames,
-        from_selector=from_selector,
-    )
-
-    # Validate configuration
-    config.validate()
-
-    # Create and run tool
-    tool = BrowserScreenshotTool()
-
-    # Handle async execution
-    loop = None
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # No running loop
-        pass
-
-    if loop is not None:
-        # Already in async context (e.g., from MCP)
-        # Return the coroutine directly - caller will await it
-        return tool.capture(config)
-    # Sync context (e.g., from CLI)
-    return asyncio.run(tool.capture(config))
-
-
-# Async version for MCP and other async contexts
-async def capture_webpage_async(
-    url: Annotated[AnyUrl, Field(description="The webpage URL to capture")],
-    zoom: Annotated[int, Field(default=100, ge=10, le=500, description="Browser zoom level in %")] = 100,
-    width: Annotated[int, Field(default=0, ge=0, description="Viewport width in pixels (0: screen width)")] = 0,
-    height: Annotated[
-        int, Field(default=0, ge=-1, description="Viewport height in pixels (0: screen height, -1: full page)")
-    ] = 0,
-    scroll_step: Annotated[
-        int, Field(default=100, ge=10, le=200, description="Scroll step in % of viewport height")
-    ] = 100,
-    scale: Annotated[int, Field(default=100, ge=10, le=200, description="Output image scale in %")] = 100,
-    app: Annotated[
-        str, Field(default="", description="Browser to use (chrome, edge, safari; empty: auto-detect)")
-    ] = "",
-    output_dir: Annotated[
-        Path | None,
-        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
-    ] = None,
-    subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
-    format: Annotated[
-        ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")
-    ] = ImageFormat.PNG,
-    anim_spf: Annotated[
-        float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
-    ] = 0.5,
-    fetch_html: Annotated[
-        bool, Field(default=False, description="Include visible HTML content for each screenshot")
-    ] = False,
-    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
-    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
-    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
-    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
-    max_frames: Annotated[
-        int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
-    ] = 0,
-    from_selector: Annotated[
-        str, Field(default="", description="CSS selector to scroll to before starting capture")
-    ] = "",
-) -> dict[str, dict[str, Any]]:
-    """Async version of capture_webpage for use in async contexts like MCP.
-
-    See capture_webpage for full documentation.
-    """
-    # Handle default for output_dir
-    if output_dir is None:
-        output_dir = Path(dflt_output_folder())
-
-    # Create configuration object
-    config = CaptureConfig(
-        url=str(url),
-        width=width,
-        height=height,
-        zoom=zoom,
-        scroll_step=scroll_step,
-        scale=scale,
-        format=format,
-        app=app,
-        output_dir=str(output_dir),
-        subdirs=subdirs,
-        anim_spf=anim_spf,
-        fetch_html=fetch_html,
-        fetch_image=fetch_image,
-        fetch_image_path=fetch_image_path,
-        fetch_text=fetch_text,
-        trim_text=trim_text,
-        max_frames=max_frames,
-        from_selector=from_selector,
-    )
-
-    # Validate configuration
-    config.validate()
-
-    # Create and run tool
-    tool = BrowserScreenshotTool()
-    return await tool.capture(config)
-
-
-# Convenience functions for common use cases
-def capture_full_page(url: str, **kwargs) -> dict[str, dict[str, Any]]:
-    """Capture entire webpage in a single screenshot.
-
-    Used in:
-    - __init__.py
-    """
-    kwargs["height"] = -1
-    kwargs["scroll_step"] = 100
-    kwargs["max_frames"] = 1
-    return capture_webpage(url, **kwargs)
-
-
-def capture_visible_area(url: str, **kwargs) -> dict[str, dict[str, Any]]:
-    """Capture only the visible viewport area.
-
-    Used in:
-    - __init__.py
-    """
-    kwargs["max_frames"] = 1
-    return capture_webpage(url, **kwargs)
-
-
-def capture_animation(url: str, **kwargs) -> dict[str, dict[str, Any]]:
-    """Capture scrolling animation as APNG.
-
-    Used in:
-    - __init__.py
-    """
-    kwargs["format"] = ImageFormat.APNG
-    return capture_webpage(url, **kwargs)
-</file>
-
 <file path="src/brosh/browser.py">
 #!/usr/bin/env python3
 # this_file: src/brosh/browser.py
@@ -3042,6 +2780,292 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
         loop.close()
 </file>
 
+<file path="tests/test_package.py">
+"""Test suite for brosh."""
+
+
+def test_version():
+    """Verify package exposes version."""
+    import brosh
+
+    assert brosh.__version__
+</file>
+
+<file path="cleanup.sh">
+#!/usr/bin/env bash
+
+rm -rf dist/brosh*.*
+uv build
+
+python -m uzpy run -e src
+fd -e py -x autoflake -i {}
+fd -e py -x pyupgrade --py311-plus {}
+fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
+fd -e py -x ruff format --respect-gitignore --target-version py311 {}
+repomix -i varia,.specstory,AGENT.md,CLAUDE.md,PLAN.md,SPEC.md,llms.txt,.cursorrules -o llms.txt .
+python -m pytest
+</file>
+
+<file path="src/brosh/api.py">
+#!/usr/bin/env python3
+# this_file: src/brosh/api.py
+
+"""Public API for brosh - single source of truth for all parameters."""
+
+import asyncio
+from pathlib import Path
+from typing import Annotated, Any
+
+from pydantic import Field
+from pydantic.networks import AnyUrl
+
+from .models import CaptureConfig, ImageFormat
+from .tool import BrowserScreenshotTool, dflt_output_folder
+
+
+def capture_webpage(
+    url: Annotated[AnyUrl, Field(description="The webpage URL to capture")],
+    zoom: Annotated[int, Field(default=100, ge=10, le=500, description="Browser zoom level in %")] = 100,
+    width: Annotated[int, Field(default=0, ge=0, description="Viewport width in pixels (0: screen width)")] = 0,
+    height: Annotated[
+        int, Field(default=0, ge=-1, description="Viewport height in pixels (0: screen height, -1: full page)")
+    ] = 0,
+    scroll_step: Annotated[
+        int, Field(default=100, ge=10, le=200, description="Scroll step in % of viewport height")
+    ] = 100,
+    scale: Annotated[int, Field(default=100, ge=10, le=200, description="Output image scale in %")] = 100,
+    app: Annotated[
+        str, Field(default="", description="Browser to use (chrome, edge, safari; empty: auto-detect)")
+    ] = "",
+    output_dir: Annotated[
+        Path | None,
+        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
+    ] = None,
+    subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
+    format: Annotated[
+        ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")
+    ] = ImageFormat.PNG,
+    anim_spf: Annotated[
+        float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
+    ] = 0.5,
+    fetch_html: Annotated[
+        bool, Field(default=False, description="Include visible HTML content for each screenshot")
+    ] = False,
+    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
+    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
+    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
+    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
+    max_frames: Annotated[
+        int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
+    ] = 0,
+    from_selector: Annotated[
+        str, Field(default="", description="CSS selector to scroll to before starting capture")
+    ] = "",
+) -> dict[str, dict[str, Any]]:
+    """Capture webpage screenshots with comprehensive options.
+
+    This is the main public API for the brosh screenshot tool. It captures
+    scrolling screenshots of a webpage with various configuration options.
+
+    Args:
+        url: The webpage URL to capture
+        zoom: Browser zoom level (10-500%)
+        width: Viewport width in pixels (0 for screen width)
+        height: Viewport height in pixels (0 for screen height, -1 for full page)
+        scroll_step: Vertical scroll increment as percentage of viewport
+        scale: Output image scaling factor
+        app: Browser to use (chrome/edge/safari, empty for auto-detect)
+        output_dir: Directory to save screenshots
+        subdirs: Whether to create domain-based subdirectories
+        format: Output image format
+        anim_spf: Animation speed for APNG format
+        fetch_html: Whether to include HTML content in results
+        fetch_image: Whether to include image data in MCP output
+        fetch_image_path: Whether to include image path in MCP output
+        fetch_text: Whether to include extracted text in MCP output
+        trim_text: Whether to trim text to 200 characters
+        max_frames: Maximum frames to capture (0 for unlimited)
+        from_selector: CSS selector to start capture from
+
+    Returns:
+        Dictionary mapping file paths to metadata:
+        {
+            "/path/to/screenshot.png": {
+                "selector": "main",
+                "text": "visible text content",
+                "html": "<div>...</div>"  # if fetch_html=True
+            },
+            ...
+        }
+
+    Raises:
+        ValueError: For invalid parameters
+        RuntimeError: For browser or capture failures
+
+    Used in:
+    - __init__.py
+    - cli.py
+    - mcp.py
+    """
+    # Handle default for output_dir
+    if output_dir is None:
+        output_dir = Path(dflt_output_folder())
+
+    # Create configuration object
+    config = CaptureConfig(
+        url=str(url),
+        width=width,
+        height=height,
+        zoom=zoom,
+        scroll_step=scroll_step,
+        scale=scale,
+        format=format,
+        app=app,
+        output_dir=str(output_dir),
+        subdirs=subdirs,
+        anim_spf=anim_spf,
+        fetch_html=fetch_html,
+        fetch_image=fetch_image,
+        fetch_image_path=fetch_image_path,
+        fetch_text=fetch_text,
+        trim_text=trim_text,
+        max_frames=max_frames,
+        from_selector=from_selector,
+    )
+
+    # Validate configuration
+    config.validate()
+
+    # Create and run tool
+    tool = BrowserScreenshotTool()
+
+    # Handle async execution
+    loop = None
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running loop
+        pass
+
+    if loop is not None:
+        # Already in async context (e.g., from MCP)
+        # Return the coroutine directly - caller will await it
+        return tool.capture(config)
+    # Sync context (e.g., from CLI)
+    return asyncio.run(tool.capture(config))
+
+
+# Async version for MCP and other async contexts
+async def capture_webpage_async(
+    url: Annotated[AnyUrl, Field(description="The webpage URL to capture")],
+    zoom: Annotated[int, Field(default=100, ge=10, le=500, description="Browser zoom level in %")] = 100,
+    width: Annotated[int, Field(default=0, ge=0, description="Viewport width in pixels (0: screen width)")] = 0,
+    height: Annotated[
+        int, Field(default=0, ge=-1, description="Viewport height in pixels (0: screen height, -1: full page)")
+    ] = 0,
+    scroll_step: Annotated[
+        int, Field(default=100, ge=10, le=200, description="Scroll step in % of viewport height")
+    ] = 100,
+    scale: Annotated[int, Field(default=100, ge=10, le=200, description="Output image scale in %")] = 100,
+    app: Annotated[
+        str, Field(default="", description="Browser to use (chrome, edge, safari; empty: auto-detect)")
+    ] = "",
+    output_dir: Annotated[
+        Path | None,
+        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
+    ] = None,
+    subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
+    format: Annotated[
+        ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")
+    ] = ImageFormat.PNG,
+    anim_spf: Annotated[
+        float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
+    ] = 0.5,
+    fetch_html: Annotated[
+        bool, Field(default=False, description="Include visible HTML content for each screenshot")
+    ] = False,
+    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
+    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
+    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
+    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
+    max_frames: Annotated[
+        int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
+    ] = 0,
+    from_selector: Annotated[
+        str, Field(default="", description="CSS selector to scroll to before starting capture")
+    ] = "",
+) -> dict[str, dict[str, Any]]:
+    """Async version of capture_webpage for use in async contexts like MCP.
+
+    See capture_webpage for full documentation.
+    """
+    # Handle default for output_dir
+    if output_dir is None:
+        output_dir = Path(dflt_output_folder())
+
+    # Create configuration object
+    config = CaptureConfig(
+        url=str(url),
+        width=width,
+        height=height,
+        zoom=zoom,
+        scroll_step=scroll_step,
+        scale=scale,
+        format=format,
+        app=app,
+        output_dir=str(output_dir),
+        subdirs=subdirs,
+        anim_spf=anim_spf,
+        fetch_html=fetch_html,
+        fetch_image=fetch_image,
+        fetch_image_path=fetch_image_path,
+        fetch_text=fetch_text,
+        trim_text=trim_text,
+        max_frames=max_frames,
+        from_selector=from_selector,
+    )
+
+    # Validate configuration
+    config.validate()
+
+    # Create and run tool
+    tool = BrowserScreenshotTool()
+    return await tool.capture(config)
+
+
+# Convenience functions for common use cases
+def capture_full_page(url: str, **kwargs) -> dict[str, dict[str, Any]]:
+    """Capture entire webpage in a single screenshot.
+
+    Used in:
+    - __init__.py
+    """
+    kwargs["height"] = -1
+    kwargs["scroll_step"] = 100
+    kwargs["max_frames"] = 1
+    return capture_webpage(url, **kwargs)
+
+
+def capture_visible_area(url: str, **kwargs) -> dict[str, dict[str, Any]]:
+    """Capture only the visible viewport area.
+
+    Used in:
+    - __init__.py
+    """
+    kwargs["max_frames"] = 1
+    return capture_webpage(url, **kwargs)
+
+
+def capture_animation(url: str, **kwargs) -> dict[str, dict[str, Any]]:
+    """Capture scrolling animation as APNG.
+
+    Used in:
+    - __init__.py
+    """
+    kwargs["format"] = ImageFormat.APNG
+    return capture_webpage(url, **kwargs)
+</file>
+
 <file path="tests/test_api.py">
 """Tests for brosh.api module."""
 
@@ -3317,17 +3341,6 @@ class TestAPIConvenienceMethods:
             pass
 </file>
 
-<file path="tests/test_package.py">
-"""Test suite for brosh."""
-
-
-def test_version():
-    """Verify package exposes version."""
-    import brosh
-
-    assert brosh.__version__
-</file>
-
 <file path="CHANGELOG.md">
 # Changelog
 
@@ -3394,21 +3407,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Unreleased]: https://github.com/twardoch/brosh/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/twardoch/brosh/releases/tag/v0.1.0
-</file>
-
-<file path="cleanup.sh">
-#!/usr/bin/env bash
-
-rm -rf dist/brosh*.*
-uv build
-
-python -m uzpy run -e src
-fd -e py -x autoflake -i {}
-fd -e py -x pyupgrade --py311-plus {}
-fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
-fd -e py -x ruff format --respect-gitignore --target-version py311 {}
-repomix -i varia,.specstory,AGENT.md,CLAUDE.md,PLAN.md,SPEC.md,llms.txt,.cursorrules -o llms.txt .
-python -m pytest
 </file>
 
 <file path="src/brosh/capture.py">
@@ -3635,11 +3633,11 @@ from pathlib import Path
 
 import fire
 from loguru import logger
-from platformdirs import dflt_output_folder
 
 from .api import capture_webpage
 from .browser import BrowserManager
 from .models import ImageFormat
+from .tool import dflt_output_folder
 
 
 class BrowserScreenshotCLI:
@@ -3871,6 +3869,140 @@ def main():
 
 if __name__ == "__main__":
     main()
+</file>
+
+<file path="src/brosh/image.py">
+#!/usr/bin/env python3
+# this_file: src/brosh/image.py
+
+"""Image processing utilities for brosh."""
+
+import io
+
+from loguru import logger
+from PIL import Image
+
+try:
+    import oxipng
+
+    HAS_OXIPNG = True
+except ImportError:
+    HAS_OXIPNG = False
+
+
+class ImageProcessor:
+    """Handles all image manipulation operations in memory.
+
+    Used in:
+    - mcp.py
+    - tool.py
+    """
+
+    @staticmethod
+    def optimize_png_bytes(png_bytes: bytes, level: int = 6) -> bytes:
+        """Optimize PNG data in memory using pyoxipng.
+
+        Args:
+            png_bytes: Raw PNG data
+            level: Optimization level (0-6)
+
+        Returns:
+            Optimized PNG bytes
+        """
+        if not HAS_OXIPNG:
+            return png_bytes  # Return original if oxipng not available
+
+        try:
+            return oxipng.optimize_from_memory(
+                png_bytes,
+                level=level,
+                strip=oxipng.StripChunks.safe(),
+                optimize_alpha=True,
+            )
+        except Exception as e:
+            logger.error(f"Failed to optimize PNG: {e}")
+            return png_bytes  # Return original on failure
+
+    @staticmethod
+    def downsample_png_bytes(png_bytes: bytes, scale: int) -> bytes:
+        """Scale PNG data without writing to disk.
+
+        Args:
+            png_bytes: Raw PNG data
+            scale: Scale percentage (e.g., 50 for 50%)
+
+        Returns:
+            Scaled PNG bytes
+        """
+        try:
+            img = Image.open(io.BytesIO(png_bytes))
+            new_width = int(img.width * scale / 100)
+            new_height = int(img.height * scale / 100)
+            resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+            output = io.BytesIO()
+            resized.save(output, format="PNG", optimize=True)
+            return output.getvalue()
+        except Exception as e:
+            logger.error(f"Failed to downsample PNG: {e}")
+            return png_bytes  # Return original on failure
+
+    @staticmethod
+    def convert_png_to_jpg_bytes(png_bytes: bytes, quality: int = 85) -> bytes:
+        """Convert PNG to JPG in memory.
+
+        Args:
+            png_bytes: Raw PNG data
+            quality: JPEG quality (1-100)
+
+        Returns:
+            JPEG bytes
+        """
+        try:
+            img = Image.open(io.BytesIO(png_bytes))
+
+            # Handle transparency
+            if img.mode in ("RGBA", "LA", "P"):
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                if img.mode == "P":
+                    img = img.convert("RGBA")
+                if img.mode == "RGBA":
+                    background.paste(img, mask=img.split()[-1])
+                else:
+                    background.paste(img)
+                img = background
+
+            output = io.BytesIO()
+            img.save(output, format="JPEG", quality=quality)
+            return output.getvalue()
+        except Exception as e:
+            logger.error(f"Failed to convert PNG to JPG: {e}")
+            return png_bytes  # Return original on failure
+
+    @staticmethod
+    def create_apng_bytes(frame_bytes_list: list[bytes], delay_ms: int = 500) -> bytes:
+        """Create APNG animation from frame bytes.
+
+        Args:
+            frame_bytes_list: List of PNG frame data
+            delay_ms: Delay between frames in milliseconds
+
+        Returns:
+            APNG animation bytes
+        """
+        try:
+            images = []
+            for frame_bytes in frame_bytes_list:
+                img = Image.open(io.BytesIO(frame_bytes))
+                images.append(img)
+
+            output = io.BytesIO()
+            if images:
+                images[0].save(output, format="PNG", save_all=True, append_images=images[1:], duration=delay_ms, loop=0)
+            return output.getvalue()
+        except Exception as e:
+            logger.error(f"Failed to create APNG: {e}")
+            raise
 </file>
 
 <file path="src/brosh/models.py">
@@ -4126,6 +4258,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from loguru import logger
+from platformdirs import user_pictures_dir
 from playwright.async_api import async_playwright
 
 from .browser import BrowserManager
@@ -4133,6 +4266,11 @@ from .capture import CaptureManager
 from .image import ImageProcessor
 from .models import CaptureConfig, CaptureFrame, ImageFormat
 from .texthtml import DOMProcessor
+
+
+def dflt_output_folder(subfolder: str | Path = "brosh") -> Path:
+    """Get the 'brosh' folder within the user's pictures directory."""
+    return Path(user_pictures_dir(), subfolder)
 
 
 class BrowserScreenshotTool:
@@ -4391,7 +4529,7 @@ dependencies = [
     'platformdirs>=4.0.0',
     'loguru>=0.7.0',
     'html2text>=2025.4.15',
-    'pyoxipng>=9.1.1',
+    'pyoxipng>=9.1.0',
 ]
 
 # Author information
@@ -4777,193 +4915,6 @@ ban-relative-imports = 'parents' # Allow relative imports within packages
     'TID252'
     # Allow relative imports in tests for convenience
 ]
-</file>
-
-<file path="run_tests.py">
-#!/usr/bin/env python3
-"""Simple test runner for brosh package."""
-
-import subprocess
-import sys
-from pathlib import Path
-
-
-def main() -> int:
-    """Run tests with appropriate options."""
-    # Get the project root directory
-    project_root = Path(__file__).parent
-
-    # Basic test command
-    cmd = [
-        sys.executable,
-        "-m",
-        "pytest",
-        str(project_root / "tests"),
-        "--verbose",
-        "--tb=short",
-    ]
-
-    # Add coverage if pytest-cov is available
-    try:
-        import pytest_cov
-
-        del pytest_cov  # We just need to check if it's importable
-        cmd.extend(
-            [
-                "--cov=src/brosh",
-                "--cov-report=term-missing",
-                "--cov-report=html:htmlcov",
-            ]
-        )
-    except ImportError:
-        pass
-
-    # Run the tests
-    try:
-        result = subprocess.run(cmd, cwd=project_root, check=False)
-        return result.returncode
-    except KeyboardInterrupt:
-        return 1
-    except (OSError, subprocess.SubprocessError):
-        return 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())
-</file>
-
-<file path="src/brosh/image.py">
-#!/usr/bin/env python3
-# this_file: src/brosh/image.py
-
-"""Image processing utilities for brosh."""
-
-import io
-
-from loguru import logger
-from PIL import Image
-
-try:
-    import oxipng
-
-    HAS_OXIPNG = True
-except ImportError:
-    HAS_OXIPNG = False
-
-
-class ImageProcessor:
-    """Handles all image manipulation operations in memory.
-
-    Used in:
-    - mcp.py
-    - tool.py
-    """
-
-    @staticmethod
-    def optimize_png_bytes(png_bytes: bytes, level: int = 6) -> bytes:
-        """Optimize PNG data in memory using pyoxipng.
-
-        Args:
-            png_bytes: Raw PNG data
-            level: Optimization level (0-6)
-
-        Returns:
-            Optimized PNG bytes
-        """
-        if not HAS_OXIPNG:
-            return png_bytes  # Return original if oxipng not available
-
-        try:
-            return oxipng.optimize_from_memory(
-                png_bytes,
-                level=level,
-                strip=oxipng.StripChunks.safe(),
-                optimize_alpha=True,
-            )
-        except Exception as e:
-            logger.error(f"Failed to optimize PNG: {e}")
-            return png_bytes  # Return original on failure
-
-    @staticmethod
-    def downsample_png_bytes(png_bytes: bytes, scale: int) -> bytes:
-        """Scale PNG data without writing to disk.
-
-        Args:
-            png_bytes: Raw PNG data
-            scale: Scale percentage (e.g., 50 for 50%)
-
-        Returns:
-            Scaled PNG bytes
-        """
-        try:
-            img = Image.open(io.BytesIO(png_bytes))
-            new_width = int(img.width * scale / 100)
-            new_height = int(img.height * scale / 100)
-            resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-
-            output = io.BytesIO()
-            resized.save(output, format="PNG", optimize=True)
-            return output.getvalue()
-        except Exception as e:
-            logger.error(f"Failed to downsample PNG: {e}")
-            return png_bytes  # Return original on failure
-
-    @staticmethod
-    def convert_png_to_jpg_bytes(png_bytes: bytes, quality: int = 85) -> bytes:
-        """Convert PNG to JPG in memory.
-
-        Args:
-            png_bytes: Raw PNG data
-            quality: JPEG quality (1-100)
-
-        Returns:
-            JPEG bytes
-        """
-        try:
-            img = Image.open(io.BytesIO(png_bytes))
-
-            # Handle transparency
-            if img.mode in ("RGBA", "LA", "P"):
-                background = Image.new("RGB", img.size, (255, 255, 255))
-                if img.mode == "P":
-                    img = img.convert("RGBA")
-                if img.mode == "RGBA":
-                    background.paste(img, mask=img.split()[-1])
-                else:
-                    background.paste(img)
-                img = background
-
-            output = io.BytesIO()
-            img.save(output, format="JPEG", quality=quality)
-            return output.getvalue()
-        except Exception as e:
-            logger.error(f"Failed to convert PNG to JPG: {e}")
-            return png_bytes  # Return original on failure
-
-    @staticmethod
-    def create_apng_bytes(frame_bytes_list: list[bytes], delay_ms: int = 500) -> bytes:
-        """Create APNG animation from frame bytes.
-
-        Args:
-            frame_bytes_list: List of PNG frame data
-            delay_ms: Delay between frames in milliseconds
-
-        Returns:
-            APNG animation bytes
-        """
-        try:
-            images = []
-            for frame_bytes in frame_bytes_list:
-                img = Image.open(io.BytesIO(frame_bytes))
-                images.append(img)
-
-            output = io.BytesIO()
-            if images:
-                images[0].save(output, format="PNG", save_all=True, append_images=images[1:], duration=delay_ms, loop=0)
-            return output.getvalue()
-        except Exception as e:
-            logger.error(f"Failed to create APNG: {e}")
-            raise
 </file>
 
 <file path="tests/test_cli.py">
@@ -5604,9 +5555,9 @@ A powerful browser screenshot tool that captures scrolling screenshots of webpag
 - **🖼️ Multiple Formats**: PNG, JPG, and animated PNG (APNG) output
 - **🌐 Browser Support**: Chrome, Edge, and Safari (macOS)
 - **🔌 Remote Debugging**: Connects to existing browser sessions preserving cookies/auth
-- **🤖 MCP Server**: Integrate with AI tools via Model Context Protocol
+- **🤖 MCP Server**: Integrate with AI tools via Model Context Protocol with configurable output
 - **📄 HTML Extraction**: Optionally capture HTML content of visible elements
-- **📝 Text Extraction**: Automatically converts visible content to Markdown text
+- **📝 Text Extraction**: Automatically converts visible content to Markdown text with optional trimming
 - **📐 Flexible Scrolling**: Configurable scroll steps and starting positions
 - **🎯 Precise Control**: Set viewport size, zoom level, and output scaling
 - **🔄 Automatic Retries**: Robust error handling with configurable retry logic
@@ -5706,7 +5657,7 @@ brosh shot "https://example.com" --format apng
 brosh --width 1920 --height 1080 shot "https://example.com"
 
 # Extract HTML content
-brosh shot "https://example.com" --html --json > content.json
+brosh shot "https://example.com" --fetch_html --json > content.json
 ```
 
 ## 6. Usage
@@ -5873,7 +5824,22 @@ brosh [OPTIONS] shot URL [SHOT_OPTIONS]
 
 - `URL`: The webpage URL to capture
 
-**Shot Options:** | Option | Type | Default | Description | |--------|------|---------|-------------| | `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) | | `--scale` | int | 100 | Scale output images by % (10-200) | | `--format` | str | png | Output format: `png`, `jpg`, `apng` | | `--anim_spf` | float | 0.5 | Seconds per frame for APNG | | `--html` | bool | False | Extract HTML content of visible elements | | `--json` | bool | False | Output results as JSON | | `--max_frames` | int | 0 | Maximum screenshots (0 = all) | | `--from_selector` | str | "" | CSS selector to start capture from |
+**Shot Options:** 
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) |
+| `--scale` | int | 100 | Scale output images by % (10-200) |
+| `--format` | str | png | Output format: `png`, `jpg`, `apng` |
+| `--anim_spf` | float | 0.5 | Seconds per frame for APNG |
+| `--fetch_html` | bool | False | Extract HTML content of visible elements |
+| `--fetch_image` | bool | False | Include image data in MCP output |
+| `--fetch_image_path` | bool | True | Include image paths in MCP output |
+| `--fetch_text` | bool | True | Include extracted text in MCP output |
+| `--trim_text` | bool | True | Trim text to 200 characters |
+| `--json` | bool | False | Output results as JSON |
+| `--max_frames` | int | 0 | Maximum screenshots (0 = all) |
+| `--from_selector` | str | "" | CSS selector to start capture from |
 
 #### 7.2.4. `mcp` - Run MCP Server
 
@@ -5914,7 +5880,7 @@ github_com-250612-185234-00500-readme.png
 
 The tool now always extracts text content from visible elements. When using `--json`:
 
-**Default output (without --html):**
+**Default output (without --fetch_html):**
 
 ```json
 {
@@ -5925,7 +5891,7 @@ The tool now always extracts text content from visible elements. When using `--j
 }
 ```
 
-**With --html flag:**
+**With --fetch_html flag:**
 
 ```json
 {
@@ -5983,7 +5949,7 @@ Extract the HTML content of visible elements for each screenshot:
 
 ```bash
 # Get HTML with screenshots
-brosh shot "https://example.com" --html --json > content.json
+brosh shot "https://example.com" --fetch_html --json > content.json
 
 # Process the extracted content
 cat content.json | jq 'to_entries | .[] | {
@@ -6108,6 +6074,26 @@ Once configured, you can ask Claude to:
 - "Show me what the Hacker News homepage looks like"
 
 Claude will use brosh to capture the screenshots and can analyze the visual content or extracted HTML.
+
+### 10.4. MCP Output Format
+
+The MCP server returns results in a flat JSON structure for better compatibility:
+
+```json
+{
+  "image_path": "/path/to/screenshot.png",
+  "selector": "main.content",
+  "text": "Extracted text content (trimmed to 200 chars by default)...",
+  "html": "<main>...</main>"  // Only if fetch_html=True
+}
+```
+
+**Control output with flags:**
+- `fetch_image`: Include actual image data (default: False)
+- `fetch_image_path`: Include image file path (default: True)
+- `fetch_text`: Include extracted text (default: True)
+- `trim_text`: Trim text to 200 characters (default: True)
+- `fetch_html`: Include HTML content (default: False)
 
 ## 11. Architecture
 
@@ -6309,11 +6295,11 @@ from typing import Any
 
 from fastmcp import FastMCP
 from loguru import logger
-from platformdirs import dflt_output_folder
 
 from .api import capture_webpage_async
 from .models import ImageFormat, MCPImageContent, MCPTextContent, MCPToolResult
 from .texthtml import DOMProcessor
+from .tool import dflt_output_folder
 
 # MCP has different defaults than CLI
 MCP_DEFAULTS = {
@@ -6403,7 +6389,7 @@ def run_mcp_server() -> None:
                 "format": format_enum,
                 "anim_spf": anim_spf,
                 "fetch_html": fetch_html,
-                "fetch_image": fetch_image,
+                "fetch_image": False,  # FIXME: fetch_image,
                 "fetch_image_path": fetch_image_path,
                 "fetch_text": fetch_text,
                 "trim_text": trim_text,

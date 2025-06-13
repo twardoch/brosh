@@ -29,9 +29,9 @@ class BrowserManager:
         """
         self.connection_timeout = connection_timeout
         self.debug_ports = {
-            "chromium": 9222,
-            "msedge": 9223,
-            "webkit": 9225,
+            "chrome": 9222,
+            "edge": 9223,
+            "safari": 9225,
         }
 
     def get_screen_dimensions(self) -> tuple[int, int]:
@@ -115,26 +115,26 @@ class BrowserManager:
         if bool(app):
             app_lower = app.lower()
             if "chrome" in app_lower:
-                return "chromium"
+                return "chrome"
             if "edge" in app_lower:
-                return "msedge"
+                return "edge"
             if "safari" in app_lower and platform.system() == "Darwin":
-                return "webkit"
+                return "safari"
 
         # Auto-detect available browser in priority order
         if platform.system() == "Darwin":  # macOS
             # Priority: Chrome > Edge > Safari
-            for browser in ["chromium", "msedge", "webkit"]:
+            for browser in ["chrome", "edge", "safari"]:
                 if self.is_browser_available(browser):
                     return browser
         else:  # Windows/Linux
             # Priority: Chrome > Edge
-            for browser in ["chromium", "msedge"]:
+            for browser in ["chrome", "edge"]:
                 if self.is_browser_available(browser):
                     return browser
 
         # Fallback
-        return "chromium"
+        return "chrome"
 
     def is_browser_available(self, browser_name: str) -> bool:
         """Check if browser is installed and available.
@@ -161,23 +161,23 @@ class BrowserManager:
             List of possible paths
 
         """
-        if browser_name == "chromium":
+        if browser_name == "chrome":
             return [
                 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                 "/Applications/Chromium.app/Contents/MacOS/Chromium",
                 "/usr/bin/google-chrome",
                 "/usr/bin/chromium-browser",
                 "/opt/google/chrome/chrome",
-                ("C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"),
-                ("C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"),
+                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
             ]
-        if browser_name == "msedge":
+        if browser_name == "edge":
             return [
-                ("/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
-                ("C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"),
-                ("C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe"),
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+                "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+                "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
             ]
-        if browser_name == "webkit":
+        if browser_name == "safari":
             return ["/Applications/Safari.app/Contents/MacOS/Safari"]
         return []
 
@@ -228,7 +228,7 @@ class BrowserManager:
         # Try to connect to existing browser instance first
         browser = None
         try:
-            if browser_name in ["chromium", "msedge"]:
+            if browser_name in ["chrome", "edge"]:
                 browser = await playwright.chromium.connect_over_cdp(
                     f"http://localhost:{debug_port}",
                     timeout=self.connection_timeout * 1000,
@@ -258,9 +258,9 @@ class BrowserManager:
         # in debug mode (not Playwright's browser)
         browser = None
 
-        if browser_name == "chromium":
+        if browser_name == "chrome":
             # Try to launch user's Chrome in debug mode
-            chrome_paths = self.get_browser_paths("chromium")
+            chrome_paths = self.get_browser_paths("chrome")
 
             for chrome_path in chrome_paths:
                 if await self.launch_browser_and_connect(
@@ -269,14 +269,14 @@ class BrowserManager:
                     width,
                     height,
                     playwright.chromium,
-                    "chromium",
+                    "chrome",
                 ):
                     browser = await playwright.chromium.connect_over_cdp(f"http://localhost:{debug_port}")
                     break
 
-        elif browser_name == "msedge":
+        elif browser_name == "edge":
             # Try to launch user's Edge in debug mode
-            edge_paths = self.get_browser_paths("msedge")
+            edge_paths = self.get_browser_paths("edge")
 
             for edge_path in edge_paths:
                 if await self.launch_browser_and_connect(
@@ -285,17 +285,17 @@ class BrowserManager:
                     width,
                     height,
                     playwright.chromium,
-                    "msedge",
+                    "edge",
                 ):
                     browser = await playwright.chromium.connect_over_cdp(f"http://localhost:{debug_port}")
                     break
 
-        elif browser_name == "webkit":
+        elif browser_name == "safari":
             # For Safari, we need to enable "Develop" menu first
             logger.info("For Safari: Enable Develop menu in Preferences > Advanced")
             logger.info("Then enable 'Allow Remote Automation' in Develop menu")
             # Safari doesn't support remote debugging like Chrome/Firefox
-            # Fall back to launching webkit
+            # Fall back to launching safari
             browser = await playwright.webkit.launch(headless=False)
 
         if not browser:
@@ -338,7 +338,7 @@ class BrowserManager:
             width: Window width
             height: Window height
             playwright_browser: Playwright browser module
-            browser_type: Type of browser (chromium, msedge)
+            browser_type: Type of browser (chrome, edge)
 
         Returns:
             True if successfully launched and connected
@@ -380,7 +380,7 @@ class BrowserManager:
             await asyncio.sleep(2)  # Give processes time to die
 
             # Launch browser with remote debugging
-            if browser_type in ["chromium", "msedge"]:
+            if browser_type in ["chrome", "edge"]:
                 args = [
                     browser_path,
                     f"--remote-debugging-port={debug_port}",
@@ -415,7 +415,7 @@ class BrowserManager:
             for attempt in range(10):  # More attempts
                 await asyncio.sleep(1)  # Shorter intervals
                 try:
-                    if browser_type in ["chromium", "msedge"]:
+                    if browser_type in ["chrome", "edge"]:
                         test_browser = await playwright_browser.connect_over_cdp(
                             f"http://localhost:{debug_port}", timeout=5000
                         )
@@ -496,7 +496,7 @@ class BrowserManager:
         Used in:
         - cli.py
         """
-        if browser_type in ["chromium", "msedge"]:
+        if browser_type in ["chrome", "edge"]:
             return [
                 f"--remote-debugging-port={debug_port}",
                 "--no-startup-window",

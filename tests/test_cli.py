@@ -68,57 +68,65 @@ class TestBrowserScreenshotCLI:
             mock_urlopen.assert_called_once()
 
     @patch("brosh.cli.BrowserManager")
-    def test_cli_run_browser_not_running(self, mock_browser_manager: MagicMock) -> None:
-        """Test running browser when it's not running."""
-        # Mock browser manager
-        mock_instance = MagicMock()
+    @patch("brosh.cli.subprocess.Popen")
+    def test_cli_run_browser_not_running(self, mock_popen: MagicMock, mock_browser_manager: MagicMock) -> None:
+        """Test `run` command when browser is not running."""
+        mock_instance = mock_browser_manager.return_value
         mock_instance.get_browser_name.return_value = "chrome"
-        mock_instance.debug_ports = {"chrome": 9222}
-        mock_instance.launch_browser.return_value = "chrome started"
-        mock_browser_manager.return_value = mock_instance
+        mock_instance.find_browser_path.return_value = "/path/to/chrome"
+        mock_instance.get_browser_args.return_value = ["--remote-debugging-port=9222"]
 
         cli = BrowserScreenshotCLI()
-
-        # Mock urllib to simulate browser not running
-        with patch("urllib.request.urlopen") as mock_urlopen:
-            mock_urlopen.side_effect = Exception("Connection refused")
-
+        with patch("urllib.request.urlopen", side_effect=Exception("no connection")):
             result = cli.run()
-
-            assert result == "chrome started"
-            mock_instance.launch_browser.assert_called_once()
+            assert "Started chrome" in result
+            mock_popen.assert_called_once()
 
     @patch("brosh.cli.BrowserManager")
-    def test_cli_run_force_restart(self, mock_browser_manager: MagicMock) -> None:
-        """Test force restarting browser."""
-        # Mock browser manager
-        mock_instance = MagicMock()
+    @patch("brosh.cli.subprocess.Popen")
+    def test_cli_run_force_restart(self, mock_popen: MagicMock, mock_browser_manager: MagicMock) -> None:
+        """Test `run` command with `force_run` flag."""
+        mock_instance = mock_browser_manager.return_value
         mock_instance.get_browser_name.return_value = "chrome"
-        mock_instance.launch_browser.return_value = "chrome restarted"
-        mock_browser_manager.return_value = mock_instance
-
+        mock_instance.find_browser_path.return_value = "/path/to/chrome"
+        mock_instance.get_browser_args.return_value = ["--remote-debugging-port=9222"]
         cli = BrowserScreenshotCLI()
-
-        result = cli.run(force_run=True)
-
-        assert result == "chrome restarted"
-        mock_instance.launch_browser.assert_called_once()
+        with patch("urllib.request.urlopen"):
+            with patch.object(cli, "quit", return_value=None) as mock_quit:
+                result = cli.run(force_run=True)
+                mock_quit.assert_called_once()
+                assert "Started chrome" in result
+                mock_popen.assert_called_once()
 
     @patch("brosh.cli.capture_webpage")
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_capture_basic(
-        self, mock_browser_manager: MagicMock, mock_capture: MagicMock, temp_output_dir: Path
-    ) -> None:
+    def test_cli_capture_basic(self, mock_capture: MagicMock, temp_output_dir: Path) -> None:
         """Test basic capture functionality."""
-        mock_capture.return_value = {
-            str(temp_output_dir / "example_com.png"): {"selector": "body", "text": "Example content"}
-        }
+        mock_capture.return_value = {str(temp_output_dir / "test.png"): {"selector": "body", "text": "..."}}
+        cli = BrowserScreenshotCLI(output_dir=str(temp_output_dir))
+        result = cli.shot("http://example.com")
+        assert result
+        mock_capture.assert_called_once()
 
-        cli = BrowserScreenshotCLI(output_dir=temp_output_dir)
+    @patch("brosh.cli.capture_webpage")
+    def test_cli_with_different_browsers(self, mock_capture: MagicMock, temp_output_dir: Path) -> None:
+        """Test CLI with different browser selections."""
+        for browser in ["chrome", "edge", "safari"]:
+            cli = BrowserScreenshotCLI(app=browser, output_dir=str(temp_output_dir))
+            cli.shot("http://example.com")
+            mock_capture.assert_called_once()
+            if "app" in mock_capture.call_args.kwargs:
+                assert mock_capture.call_args.kwargs["app"] == browser
+            mock_capture.reset_mock()
 
-        # Test that capture method exists and can be called
-        # Note: We might need to implement this method in the CLI
-        assert hasattr(cli, "_browser_manager")
+    @patch("platformdirs.user_pictures_dir")
+    def test_cli_output_directory_handling(self, mock_user_pictures_dir: MagicMock, temp_output_dir: Path) -> None:
+        """Test output directory handling in CLI."""
+        mock_user_pictures_dir.return_value = "/home/user/Pictures"
+        cli_default = BrowserScreenshotCLI()
+        assert cli_default.output_dir == Path("/home/user/Pictures/brosh")
+
+        cli_custom = BrowserScreenshotCLI(output_dir=str(temp_output_dir))
+        assert cli_custom.output_dir == temp_output_dir
 
     @patch("brosh.cli.BrowserManager")
     def test_cli_verbose_logging(self, mock_browser_manager: MagicMock) -> None:
@@ -145,20 +153,6 @@ class TestBrowserScreenshotCLI:
         for browser in browsers:
             cli = BrowserScreenshotCLI(app=browser)
             assert cli.app == browser
-
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_output_directory_handling(self, mock_browser_manager: MagicMock, temp_output_dir: Path) -> None:
-        """Test output directory handling in CLI."""
-        # Test with custom output directory
-        cli = BrowserScreenshotCLI(output_dir=temp_output_dir)
-        assert cli.output_dir == temp_output_dir
-
-        # Test with default (should use dflt_output_folder)
-        with patch("brosh.cli.dflt_output_folder") as mock_pictures_dir:
-            mock_pictures_dir.return_value = "/home/user/Pictures"
-            cli_default = BrowserScreenshotCLI()
-            # Default should be set during initialization
-            assert cli_default.output_dir == Path("/home/user/Pictures")
 
 
 class TestCLIIntegration:

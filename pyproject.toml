@@ -115,7 +115,6 @@ brosh-mcp = "brosh.mcp:main"
 [build-system]
 requires = [
     'hatchling>=1.27.0',
-    'hatch-vcs>=0.4.0',
 ]
 build-backend = 'hatchling.build'
 
@@ -137,15 +136,8 @@ exclude = ["**/__pycache__", "**/.pytest_cache", "**/.mypy_cache"]
 packages = ["src/brosh"]
 reproducible = true
 
-# [tool.hatch.build.hooks.vcs]
-# version-file = "src/brosh/__version__.py"
-
-# [tool.hatch.version]
-# source = 'vcs'
-
 [tool.hatch.metadata]
 allow-direct-references = true
-
 
 #------------------------------------------------------------------------------
 # DEVELOPMENT ENVIRONMENTS

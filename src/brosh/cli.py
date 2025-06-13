@@ -207,6 +207,8 @@ class BrowserScreenshotCLI:
         # Filter to only valid parameters for capture_webpage
         sig = inspect.signature(capture_webpage)
         valid_params = {k: v for k, v in merged_kwargs.items() if k in sig.parameters}
+        if "app" in merged_kwargs:
+            valid_params["app"] = merged_kwargs["app"]
 
         # Call the API
         try:

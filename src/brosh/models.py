@@ -141,13 +141,19 @@ class CaptureConfig:
             msg = f"Invalid URL: {self.url}"
             raise ValueError(msg)
         if not 10 <= self.zoom <= 500:
-            msg = f"Zoom must be between 10-500%: {self.zoom}"
+            msg = "Zoom must be between 10 and 500"
             raise ValueError(msg)
         if not 10 <= self.scroll_step <= 200:
-            msg = f"Scroll step must be between 10-200%: {self.scroll_step}"
+            msg = "Scroll step must be between 10 and 200"
             raise ValueError(msg)
         if not 10 <= self.scale <= 200:
-            msg = f"Scale must be between 10-200%: {self.scale}"
+            msg = "Scale must be between 10 and 200"
+            raise ValueError(msg)
+        if self.height < -1:
+            msg = "Height must be -1, 0, or positive"
+            raise ValueError(msg)
+        if not 0.1 <= self.anim_spf <= 10.0:
+            msg = "Animation SPF must be between 0.1 and 10.0"
             raise ValueError(msg)
 
 

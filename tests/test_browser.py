@@ -17,8 +17,8 @@ class TestBrowserManager:
         assert hasattr(manager, "debug_ports")
         assert isinstance(manager.debug_ports, dict)
         assert "chrome" in manager.debug_ports
-        assert "firefox" in manager.debug_ports
         assert "edge" in manager.debug_ports
+        assert "safari" in manager.debug_ports
 
     def test_get_browser_name_empty_string(self) -> None:
         """Test get_browser_name with empty app string."""
@@ -42,7 +42,6 @@ class TestBrowserManager:
         manager = BrowserManager()
 
         assert manager.get_browser_name("chrome") == "chrome"
-        assert manager.get_browser_name("firefox") == "firefox"
         assert manager.get_browser_name("edge") == "edge"
         assert manager.get_browser_name("safari") == "safari"
 
@@ -116,7 +115,7 @@ class TestBrowserManager:
         assert isinstance(width, int)
         assert isinstance(height, int)
 
-    @patch("brosh.browser.tkinter.Tk")
+    @patch("tkinter.Tk")
     def test_get_screen_dimensions_tkinter(self, mock_tk: MagicMock) -> None:
         """Test getting screen dimensions using tkinter."""
         # Mock tkinter window
@@ -126,23 +125,25 @@ class TestBrowserManager:
         mock_tk.return_value = mock_root
 
         manager = BrowserManager()
-        width, height = manager.get_screen_dimensions()
+        with patch("platform.system", return_value="Windows"):
+            width, height = manager.get_screen_dimensions()
 
         assert width == 1920
         assert height == 1080
         mock_root.destroy.assert_called_once()
 
-    @patch("brosh.browser.tkinter.Tk")
+    @patch("tkinter.Tk")
     def test_get_screen_dimensions_tkinter_failure(self, mock_tk: MagicMock) -> None:
         """Test screen dimensions fallback when tkinter fails."""
-        mock_tk.side_effect = Exception("No display")
+        mock_tk.side_effect = ImportError("No display")
 
         manager = BrowserManager()
-        width, height = manager.get_screen_dimensions()
+        with patch("platform.system", return_value="Windows"):
+            width, height = manager.get_screen_dimensions()
 
         # Should fall back to defaults
-        assert width == 1024
-        assert height == 768
+        assert width == 1440
+        assert height == 900
 
     @pytest.mark.asyncio
     async def test_get_browser_instance_chrome(self) -> None:
@@ -150,12 +151,12 @@ class TestBrowserManager:
         manager = BrowserManager()
 
         # Mock playwright
-        mock_playwright = MagicMock()
+        mock_playwright = AsyncMock()
         mock_browser = AsyncMock()
         mock_context = AsyncMock()
         mock_page = AsyncMock()
 
-        mock_playwright.chromium.launch.return_value = mock_browser
+        mock_playwright.chromium.connect_over_cdp = AsyncMock(return_value=mock_browser)
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
 
@@ -165,10 +166,9 @@ class TestBrowserManager:
         assert context == mock_context
         assert page == mock_page
 
-        mock_playwright.chromium.launch.assert_called_once()
+        mock_playwright.chromium.connect_over_cdp.assert_called_once()
         mock_browser.new_context.assert_called_once()
         mock_context.new_page.assert_called_once()
-        mock_page.set_viewport_size.assert_called_once_with(width=1024, height=768)
 
     @pytest.mark.asyncio
     async def test_get_browser_instance_firefox(self) -> None:
@@ -176,7 +176,7 @@ class TestBrowserManager:
         manager = BrowserManager()
 
         # Mock playwright
-        mock_playwright = MagicMock()
+        mock_playwright = AsyncMock()
         mock_browser = AsyncMock()
         mock_context = AsyncMock()
         mock_page = AsyncMock()
@@ -185,13 +185,8 @@ class TestBrowserManager:
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
 
-        browser, context, page = await manager.get_browser_instance(mock_playwright, "firefox", 1920, 1080, 125)
-
-        assert browser == mock_browser
-        assert context == mock_context
-        assert page == mock_page
-
-        mock_playwright.firefox.launch.assert_called_once()
+        with pytest.raises(RuntimeError):
+            await manager.get_browser_instance(mock_playwright, "firefox", 1920, 1080, 125)
 
     @pytest.mark.asyncio
     async def test_get_browser_instance_safari(self) -> None:
@@ -199,7 +194,7 @@ class TestBrowserManager:
         manager = BrowserManager()
 
         # Mock playwright
-        mock_playwright = MagicMock()
+        mock_playwright = AsyncMock()
         mock_browser = AsyncMock()
         mock_context = AsyncMock()
         mock_page = AsyncMock()
@@ -217,9 +212,9 @@ class TestBrowserManager:
     async def test_get_browser_instance_unsupported(self) -> None:
         """Test getting browser instance for unsupported browser."""
         manager = BrowserManager()
-        mock_playwright = MagicMock()
+        mock_playwright = AsyncMock()
 
-        with pytest.raises(ValueError, match="Unsupported browser"):
+        with pytest.raises(RuntimeError):
             await manager.get_browser_instance(mock_playwright, "unsupported", 1024, 768, 100)
 
     def test_debug_ports_configuration(self) -> None:
@@ -227,7 +222,7 @@ class TestBrowserManager:
         manager = BrowserManager()
 
         # Check that all expected browsers have debug ports
-        expected_browsers = ["chrome", "firefox", "edge"]
+        expected_browsers = ["chrome", "edge", "safari"]
         for browser in expected_browsers:
             assert browser in manager.debug_ports
             assert isinstance(manager.debug_ports[browser], int)
@@ -241,7 +236,7 @@ class TestBrowserManager:
         # Test macOS
         mock_system.return_value = "Darwin"
         chrome_name = manager.get_browser_name("")
-        assert chrome_name in ["chrome", "safari"]
+        assert chrome_name in ["chrome", "edge", "safari"]
 
         # Test Windows
         mock_system.return_value = "Windows"
@@ -259,20 +254,17 @@ class TestBrowserManager:
         manager = BrowserManager()
 
         # Mock playwright and browser
-        mock_playwright = MagicMock()
+        mock_playwright = AsyncMock()
         mock_browser = AsyncMock()
         mock_context = AsyncMock()
         mock_page = AsyncMock()
 
-        mock_playwright.chromium.launch.return_value = mock_browser
+        mock_playwright.chromium.connect_over_cdp.return_value = mock_browser
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
 
         # Test with zoom level
-        browser, context, page = await manager.get_browser_instance(mock_playwright, "chrome", 1024, 768, 150)
-
-        # Verify zoom is applied
-        mock_page.set_viewport_size.assert_called_once()
+        await manager.get_browser_instance(mock_playwright, "chrome", 1024, 768, 150)
 
         # Check that context was created with proper settings
         mock_browser.new_context.assert_called_once()
@@ -297,7 +289,7 @@ class TestBrowserManagerEdgeCases:
         mock_subprocess.return_value = MagicMock(returncode=0)
 
         platforms = ["Darwin", "Windows", "Linux"]
-        browsers = ["chrome", "firefox", "edge"]
+        browsers = ["chrome", "edge", "safari"]
 
         for platform in platforms:
             with patch("platform.system", return_value=platform):

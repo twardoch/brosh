@@ -84,11 +84,11 @@ class TestCaptureFrame:
         assert frame.active_selector == "main"
         assert frame.visible_html is None
         assert frame.visible_text is None
-        assert frame.timestamp is None
-
-    def test_capture_frame_with_optional_fields(self) -> None:
+        assert frame.timestamp is None    def test_capture_frame_with_optional_fields(self) -> None:
         """Test creating a CaptureFrame with all fields."""
-        timestamp = datetime.now()
+        from datetime import datetime, timezone
+        
+        timestamp = datetime.now(tz=timezone.utc)
         frame = CaptureFrame(
             image_bytes=b"test_image_data",
             scroll_position_y=100,
@@ -99,7 +99,7 @@ class TestCaptureFrame:
             visible_text="Test content",
             timestamp=timestamp,
         )
-
+        
         assert frame.visible_html == "<div>Test</div>"
         assert frame.visible_text == "Test content"
         assert frame.timestamp == timestamp

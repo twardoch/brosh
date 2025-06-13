@@ -245,36 +245,30 @@ class TestCLIUtilities:
     """Test CLI utility functions and methods."""
 
     @patch("brosh.cli.BrowserManager")
-    def test_cli_json_output_flag(
-        self, mock_browser_manager: MagicMock
-    ) -> None:
+    def test_cli_json_output_flag(self, mock_browser_manager: MagicMock) -> None:
         """Test JSON output flag functionality."""
         cli_json = BrowserScreenshotCLI(json=True)
         cli_regular = BrowserScreenshotCLI(json=False)
-        
+
         assert cli_json.json is True
         assert cli_regular.json is False
 
     @patch("brosh.cli.BrowserManager")
-    def test_cli_subdirs_flag(
-        self, mock_browser_manager: MagicMock
-    ) -> None:
+    def test_cli_subdirs_flag(self, mock_browser_manager: MagicMock) -> None:
         """Test subdirectories flag functionality."""
         cli_subdirs = BrowserScreenshotCLI(subdirs=True)
         cli_flat = BrowserScreenshotCLI(subdirs=False)
-        
+
         assert cli_subdirs.subdirs is True
         assert cli_flat.subdirs is False
 
     @patch("brosh.cli.BrowserManager")
-    def test_cli_app_selection(
-        self, mock_browser_manager: MagicMock
-    ) -> None:
+    def test_cli_app_selection(self, mock_browser_manager: MagicMock) -> None:
         """Test browser app selection."""
         # Test auto-detection (empty string)
         cli_auto = BrowserScreenshotCLI(app="")
         assert cli_auto.app == ""
-        
+
         # Test specific browser
         cli_firefox = BrowserScreenshotCLI(app="firefox")
         assert cli_firefox.app == "firefox"

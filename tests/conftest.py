@@ -14,7 +14,12 @@ from brosh.models import CaptureConfig, CaptureFrame, ImageFormat
 
 @pytest.fixture
 def temp_output_dir() -> Generator[Path, None, None]:
-    """Provide a temporary directory for test outputs."""
+    """Provide a temporary directory for test outputs.
+
+    Used in:
+    - tests/test_api.py
+    - tests/test_models.py
+    """
     with tempfile.TemporaryDirectory() as temp_dir:
         yield Path(temp_dir)
 
@@ -26,9 +31,7 @@ def sample_url() -> AnyUrl:
 
 
 @pytest.fixture
-def sample_capture_config(
-    temp_output_dir: Path, sample_url: AnyUrl
-) -> CaptureConfig:
+def sample_capture_config(temp_output_dir: Path, sample_url: AnyUrl) -> CaptureConfig:
     """Provide a sample CaptureConfig for testing."""
     return CaptureConfig(
         url=str(sample_url),

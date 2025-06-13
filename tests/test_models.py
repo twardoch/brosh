@@ -76,7 +76,7 @@ class TestCaptureFrame:
             viewport_height=800,
             active_selector="main",
         )
-        
+
         assert frame.image_bytes == b"test_image_data"
         assert frame.scroll_position_y == 100
         assert frame.page_height == 2000
@@ -99,7 +99,7 @@ class TestCaptureFrame:
             visible_text="Test content",
             timestamp=timestamp,
         )
-        
+
         assert frame.visible_html == "<div>Test</div>"
         assert frame.visible_text == "Test content"
         assert frame.timestamp == timestamp
@@ -111,7 +111,7 @@ class TestCaptureConfig:
     def test_capture_config_creation_minimal(self) -> None:
         """Test creating CaptureConfig with minimal required fields."""
         config = CaptureConfig(url="https://example.com")
-        
+
         assert config.url == "https://example.com"
         assert config.width == 0
         assert config.height == 0
@@ -136,7 +136,7 @@ class TestCaptureConfig:
             max_frames=10,
             from_selector="main",
         )
-        
+
         assert config.url == "https://example.com/test"
         assert config.width == 1920
         assert config.height == 1080
@@ -157,20 +157,16 @@ class TestCaptureConfig:
         # Valid zoom values
         config = CaptureConfig(url="https://example.com", zoom=50)
         config.validate()
-        
+
         config = CaptureConfig(url="https://example.com", zoom=200)
         config.validate()
-        
+
         # Invalid zoom values
-        with pytest.raises(
-            ValueError, match="Zoom must be between 10 and 500"
-        ):
+        with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
             config = CaptureConfig(url="https://example.com", zoom=5)
             config.validate()
-            
-        with pytest.raises(
-            ValueError, match="Zoom must be between 10 and 500"
-        ):
+
+        with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
             config = CaptureConfig(url="https://example.com", zoom=600)
             config.validate()
 
@@ -179,20 +175,16 @@ class TestCaptureConfig:
         # Valid scroll_step values
         config = CaptureConfig(url="https://example.com", scroll_step=50)
         config.validate()
-        
+
         config = CaptureConfig(url="https://example.com", scroll_step=150)
         config.validate()
-        
+
         # Invalid scroll_step values
-        with pytest.raises(
-            ValueError, match="Scroll step must be between 10 and 200"
-        ):
+        with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
             config = CaptureConfig(url="https://example.com", scroll_step=5)
             config.validate()
-            
-        with pytest.raises(
-            ValueError, match="Scroll step must be between 10 and 200"
-        ):
+
+        with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
             config = CaptureConfig(url="https://example.com", scroll_step=250)
             config.validate()
 
@@ -201,20 +193,16 @@ class TestCaptureConfig:
         # Valid scale values
         config = CaptureConfig(url="https://example.com", scale=25)
         config.validate()
-        
+
         config = CaptureConfig(url="https://example.com", scale=150)
         config.validate()
-        
+
         # Invalid scale values
-        with pytest.raises(
-            ValueError, match="Scale must be between 10 and 200"
-        ):
+        with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
             config = CaptureConfig(url="https://example.com", scale=5)
             config.validate()
-            
-        with pytest.raises(
-            ValueError, match="Scale must be between 10 and 200"
-        ):
+
+        with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
             config = CaptureConfig(url="https://example.com", scale=250)
             config.validate()
 
@@ -223,13 +211,13 @@ class TestCaptureConfig:
         # Valid height values
         config = CaptureConfig(url="https://example.com", height=0)
         config.validate()
-        
+
         config = CaptureConfig(url="https://example.com", height=-1)
         config.validate()
-        
+
         config = CaptureConfig(url="https://example.com", height=1080)
         config.validate()
-        
+
         # Invalid height values
         with pytest.raises(ValueError, match="Height must be -1, 0, or positive"):
             config = CaptureConfig(url="https://example.com", height=-5)
@@ -240,15 +228,15 @@ class TestCaptureConfig:
         # Valid anim_spf values
         config = CaptureConfig(url="https://example.com", anim_spf=0.1)
         config.validate()
-        
+
         config = CaptureConfig(url="https://example.com", anim_spf=5.0)
         config.validate()
-        
+
         # Invalid anim_spf values
         with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
             config = CaptureConfig(url="https://example.com", anim_spf=0.05)
             config.validate()
-            
+
         with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
             config = CaptureConfig(url="https://example.com", anim_spf=15.0)
             config.validate()
@@ -260,21 +248,16 @@ class TestCaptureResult:
     def test_capture_result_creation(self, temp_output_dir: Path) -> None:
         """Test creating a CaptureResult."""
         from datetime import datetime, timezone
-        
-        frames = {
-            str(temp_output_dir / "test.png"): {
-                "selector": "main",
-                "text": "Test content"
-            }
-        }
-        
+
+        frames = {str(temp_output_dir / "test.png"): {"selector": "main", "text": "Test content"}}
+
         result = CaptureResult(
             frames=frames,
             format=ImageFormat.PNG,
             total_frames=1,
             capture_time=datetime.now(tz=timezone.utc),
         )
-        
+
         assert result.frames == frames
         assert result.format == ImageFormat.PNG
         assert result.total_frames == 1
@@ -287,17 +270,14 @@ class TestMCPModels:
     def test_mcp_text_content(self) -> None:
         """Test MCPTextContent creation."""
         content = MCPTextContent(text="Test content")
-        
+
         assert content.type == "text"
         assert content.text == "Test content"
 
     def test_mcp_image_content(self) -> None:
         """Test MCPImageContent creation."""
-        content = MCPImageContent(
-            data="base64_encoded_data",
-            mime_type="image/png"
-        )
-        
+        content = MCPImageContent(data="base64_encoded_data", mime_type="image/png")
+
         assert content.type == "image"
         assert content.data == "base64_encoded_data"
         assert content.mime_type == "image/png"
@@ -305,15 +285,10 @@ class TestMCPModels:
     def test_mcp_tool_result(self) -> None:
         """Test MCPToolResult creation."""
         text_content = MCPTextContent(text="Test content")
-        image_content = MCPImageContent(
-            data="base64_data",
-            mime_type="image/png"
-        )
-        
-        result = MCPToolResult(
-            content=[text_content, image_content]
-        )
-        
+        image_content = MCPImageContent(data="base64_data", mime_type="image/png")
+
+        result = MCPToolResult(content=[text_content, image_content])
+
         assert len(result.content) == 2
         assert result.content[0] == text_content
         assert result.content[1] == image_content
@@ -321,5 +296,5 @@ class TestMCPModels:
     def test_mcp_tool_result_empty(self) -> None:
         """Test MCPToolResult creation with empty content."""
         result = MCPToolResult(content=[])
-        
+
         assert len(result.content) == 0

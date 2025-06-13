@@ -16,71 +16,68 @@ class TestCaptureWebpage:
     @patch("brosh.api.BrowserScreenshotTool")
     @patch("brosh.api.asyncio.run")
     def test_capture_webpage_sync_context(
-        self, mock_asyncio_run: MagicMock, mock_tool_class: MagicMock,
-        temp_output_dir: Path
+        self, mock_asyncio_run: MagicMock, mock_tool_class: MagicMock, temp_output_dir: Path
     ) -> None:
         """Test capture_webpage in sync context."""
         # Mock the tool instance
         mock_tool = MagicMock()
         mock_tool.capture.return_value = {"test.png": {"selector": "body"}}
         mock_tool_class.return_value = mock_tool
-        
+
         # Mock asyncio.run to simulate sync context
         mock_asyncio_run.return_value = {"test.png": {"selector": "body"}}
-        
+
         # Test the function
         result = capture_webpage(
             url=AnyUrl("https://example.com"),
             output_dir=temp_output_dir,
         )
-        
+
         # Verify tool was created and called
         mock_tool_class.assert_called_once()
         mock_asyncio_run.assert_called_once()
-        
+
         # Verify result
         assert result == {"test.png": {"selector": "body"}}
 
     @patch("brosh.api.BrowserScreenshotTool")
     @patch("brosh.api.asyncio.get_running_loop")
     def test_capture_webpage_async_context(
-        self, mock_get_loop: MagicMock, mock_tool_class: MagicMock,
-        temp_output_dir: Path
+        self, mock_get_loop: MagicMock, mock_tool_class: MagicMock, temp_output_dir: Path
     ) -> None:
         """Test capture_webpage in async context."""
         # Mock the tool instance
         mock_tool = MagicMock()
         mock_tool.capture.return_value = {"test.png": {"selector": "body"}}
         mock_tool_class.return_value = mock_tool
-        
+
         # Mock get_running_loop to simulate async context
         mock_loop = MagicMock()
         mock_get_loop.return_value = mock_loop
-        
+
         # Test the function
         result = capture_webpage(
             url=AnyUrl("https://example.com"),
             output_dir=temp_output_dir,
         )
-        
+
         # Verify tool was created and called
         mock_tool_class.assert_called_once()
-        
+
         # Verify result is the coroutine (not run)
         assert result == mock_tool.capture.return_value
 
-    def test_capture_webpage_config_creation(
-        self, temp_output_dir: Path
-    ) -> None:
+    def test_capture_webpage_config_creation(self, temp_output_dir: Path) -> None:
         """Test that CaptureConfig is created with correct parameters."""
-        with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class, \
-             patch("brosh.api.asyncio.run") as mock_asyncio_run:
-            
+        with (
+            patch("brosh.api.BrowserScreenshotTool") as mock_tool_class,
+            patch("brosh.api.asyncio.run") as mock_asyncio_run,
+        ):
             # Mock the tool
             mock_tool = MagicMock()
             mock_tool_class.return_value = mock_tool
             mock_asyncio_run.return_value = {}
-            
+
             # Call with specific parameters
             capture_webpage(
                 url=AnyUrl("https://example.com/test"),
@@ -98,11 +95,11 @@ class TestCaptureWebpage:
                 max_frames=5,
                 from_selector="main",
             )
-            
+
             # Verify tool.capture was called with correct config
             mock_tool.capture.assert_called_once()
             config = mock_tool.capture.call_args[0][0]
-            
+
             assert isinstance(config, CaptureConfig)
             assert config.url == "https://example.com/test"
             assert config.zoom == 150
@@ -121,20 +118,21 @@ class TestCaptureWebpage:
 
     def test_capture_webpage_default_output_dir(self) -> None:
         """Test default output directory handling."""
-        with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class, \
-             patch("brosh.api.asyncio.run") as mock_asyncio_run, \
-             patch("brosh.api.user_pictures_dir") as mock_pictures_dir:
-            
+        with (
+            patch("brosh.api.BrowserScreenshotTool") as mock_tool_class,
+            patch("brosh.api.asyncio.run") as mock_asyncio_run,
+            patch("brosh.api.user_pictures_dir") as mock_pictures_dir,
+        ):
             mock_pictures_dir.return_value = "/home/user/Pictures"
-            
+
             # Mock the tool
             mock_tool = MagicMock()
             mock_tool_class.return_value = mock_tool
             mock_asyncio_run.return_value = {}
-            
+
             # Call without output_dir
             capture_webpage(url=AnyUrl("https://example.com"))
-            
+
             # Verify config has correct output_dir
             config = mock_tool.capture.call_args[0][0]
             assert config.output_dir == "/home/user/Pictures"
@@ -149,35 +147,31 @@ class TestCaptureWebpageAsync:
         with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class:
             # Mock the tool instance
             mock_tool = MagicMock()
-            mock_tool.capture = AsyncMock(
-                return_value={"test.png": {"selector": "body"}}
-            )
+            mock_tool.capture = AsyncMock(return_value={"test.png": {"selector": "body"}})
             mock_tool_class.return_value = mock_tool
-            
+
             # Test the function
             result = await capture_webpage_async(
                 url=AnyUrl("https://example.com"),
                 output_dir=temp_output_dir,
             )
-            
+
             # Verify tool was created and called
             mock_tool_class.assert_called_once()
             mock_tool.capture.assert_called_once()
-            
+
             # Verify result
             assert result == {"test.png": {"selector": "body"}}
 
     @pytest.mark.asyncio
-    async def test_capture_webpage_async_config_validation(
-        self, temp_output_dir: Path
-    ) -> None:
+    async def test_capture_webpage_async_config_validation(self, temp_output_dir: Path) -> None:
         """Test that capture_webpage_async validates config."""
         with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class:
             # Mock the tool instance
             mock_tool = MagicMock()
             mock_tool.capture = AsyncMock(return_value={})
             mock_tool_class.return_value = mock_tool
-            
+
             # Test with all parameters
             await capture_webpage_async(
                 url=AnyUrl("https://example.com/test"),
@@ -195,11 +189,11 @@ class TestCaptureWebpageAsync:
                 max_frames=0,
                 from_selector="",
             )
-            
+
             # Verify tool.capture was called
             mock_tool.capture.assert_called_once()
             config = mock_tool.capture.call_args[0][0]
-            
+
             assert isinstance(config, CaptureConfig)
             assert config.url == "https://example.com/test"
             assert config.zoom == 125
@@ -211,9 +205,7 @@ class TestAPIParameterValidation:
 
     def test_capture_webpage_validates_config(self) -> None:
         """Test that invalid config raises ValidationError."""
-        with patch("brosh.api.BrowserScreenshotTool"), \
-             patch("brosh.api.asyncio.run"):
-            
+        with patch("brosh.api.BrowserScreenshotTool"), patch("brosh.api.asyncio.run"):
             # This should raise a validation error due to invalid zoom
             with pytest.raises(ValueError):
                 capture_webpage(
@@ -243,24 +235,22 @@ class TestAPIConvenienceMethods:
             capture_full_page,
             capture_visible_area,
         )
-        
+
         # These should be callable (even if they're just aliases)
         assert callable(capture_full_page)
         assert callable(capture_visible_area)
         assert callable(capture_animation)
 
     @patch("brosh.api.capture_webpage")
-    def test_capture_full_page_calls_main_function(
-        self, mock_capture: MagicMock
-    ) -> None:
+    def test_capture_full_page_calls_main_function(self, mock_capture: MagicMock) -> None:
         """Test capture_full_page calls capture_webpage with correct params."""
         from brosh.api import capture_full_page
-        
+
         mock_capture.return_value = {}
-        
+
         # Test that it's defined and callable
         assert callable(capture_full_page)
-        
+
         # If it's an alias, it should call the main function
         try:
             capture_full_page(url="https://example.com", height=-1)

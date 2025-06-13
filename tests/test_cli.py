@@ -6,7 +6,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from brosh.cli import BrowserScreenshotCLI
-from brosh.models import ImageFormat
 
 
 class TestBrowserScreenshotCLI:

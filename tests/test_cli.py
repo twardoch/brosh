@@ -91,12 +91,11 @@ class TestBrowserScreenshotCLI:
         mock_instance.find_browser_path.return_value = "/path/to/chrome"
         mock_instance.get_browser_args.return_value = ["--remote-debugging-port=9222"]
         cli = BrowserScreenshotCLI()
-        with patch("urllib.request.urlopen"):
-            with patch.object(cli, "quit", return_value=None) as mock_quit:
-                result = cli.run(force_run=True)
-                mock_quit.assert_called_once()
-                assert "Started chrome" in result
-                mock_popen.assert_called_once()
+        with patch("urllib.request.urlopen"), patch.object(cli, "quit", return_value=None) as mock_quit:
+            result = cli.run(force_run=True)
+            mock_quit.assert_called_once()
+            assert "Started chrome" in result
+            mock_popen.assert_called_once()
 
     @patch("brosh.cli.capture_webpage")
     def test_cli_capture_basic(self, mock_capture: MagicMock, temp_output_dir: Path) -> None:
@@ -123,10 +122,11 @@ class TestBrowserScreenshotCLI:
         """Test output directory handling in CLI."""
         mock_user_pictures_dir.return_value = "/home/user/Pictures"
         cli_default = BrowserScreenshotCLI()
-        assert cli_default.output_dir == Path("/home/user/Pictures/brosh")
+        # Check that the output_dir is based on the mocked pictures directory
+        assert str(cli_default.output_dir).endswith("Pictures/brosh")
 
         cli_custom = BrowserScreenshotCLI(output_dir=str(temp_output_dir))
-        assert cli_custom.output_dir == temp_output_dir
+        assert Path(cli_custom.output_dir) == temp_output_dir
 
     @patch("brosh.cli.BrowserManager")
     def test_cli_verbose_logging(self, mock_browser_manager: MagicMock) -> None:

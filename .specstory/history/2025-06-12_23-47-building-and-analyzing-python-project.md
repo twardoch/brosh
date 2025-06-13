@@ -15942,9 +15942,474 @@ Now let me run the tests to verify everything is working correctly:
 
 ---
 
+```bash
+python -m pytest -v
+```
+
+```
+/Users/adam/Developer/vcs/github.twardoch/pub/brosh/.venv/bin/python: No module
+ named pytest
+
+```
+
+---
+
+Let me install pytest and run the tests:
+
+---
+
+```bash
+pip install pytest
+```
+
+```
+Requirement already satisfied: pytest in /usr/local/lib/python3.10/site-package
+s (8.3.4)
+Requirement already satisfied: exceptiongroup>=1.0.0rc8 in /usr/local/lib/pytho
+n3.10/site-packages (from pytest) (1.2.2)
+Requirement already satisfied: iniconfig in /usr/local/lib/python3.10/site-pack
+ages (from pytest) (2.0.0)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/site-pack
+ages (from pytest) (24.2)
+Requirement already satisfied: pluggy<2,>=1.5 in /usr/local/lib/python3.10/site
+-packages (from pytest) (1.5.0)
+Requirement already satisfied: tomli>=1 in /usr/local/lib/python3.10/site-packa
+ges (from pytest) (2.2.1)
+
+[notice] A new release of pip is available: 25.0.1 -> 25.1.1
+[notice] To update, run: python3.10 -m pip install --upgrade pip
+
+```
+
+---
+
+Now let me run the tests:
+
+---
+
+```bash
+python -m pytest -v
+```
+
+```
+/Users/adam/Developer/vcs/github.twardoch/pub/brosh/.venv/bin/python: No module
+ named pytest
+
+```
+
+---
+
+It seems there's a virtual environment issue. Let me check if we need to activate the virtual environment or install pytest in the project's virtual environment:
+
+---
+
+```bash
+source .venv/bin/activate && pip install pytest
+```
+
+```
+Requirement already satisfied: pytest in /usr/local/lib/python3.10/site-package
+s (8.3.4)
+Requirement already satisfied: exceptiongroup>=1.0.0rc8 in /usr/local/lib/pytho
+n3.10/site-packages (from pytest) (1.2.2)
+Requirement already satisfied: iniconfig in /usr/local/lib/python3.10/site-pack
+ages (from pytest) (2.0.0)
+Requirement already satisfied: packaging in /usr/local/lib/python3.10/site-pack
+ages (from pytest) (24.2)
+Requirement already satisfied: pluggy<2,>=1.5 in /usr/local/lib/python3.10/site
+-packages (from pytest) (1.5.0)
+Requirement already satisfied: tomli>=1 in /usr/local/lib/python3.10/site-packa
+ges (from pytest) (2.2.1)
+
+[notice] A new release of pip is available: 25.0.1 -> 25.1.1
+[notice] To update, run: python3.10 -m pip install --upgrade pip
+
+```
+
+---
+
+Let me try running pytest with the virtual environment activated:
+
+---
+
+```bash
+source .venv/bin/activate && python -m pytest -v
+```
+
+```
+/Users/adam/Developer/vcs/github.twardoch/pub/brosh/.venv/bin/python: No module
+ named pytest
+
+```
+
+---
+
+Let me install pytest directly in the virtual environment:
+
+---
+
+```bash
+.venv/bin/pip install pytest
+```
+
+```
+zsh: no such file or directory: .venv/bin/pip
+
+```
+
+---
+
+Let me check what's in the directory and see if there's a different virtual environment setup:
+
+---
+
+```bash
+ls -la
+```
+
+```
+total 1456
+drwxr-xr-x   37 adam  staff    1184 Jun 13 13:42 .
+drwx---r-x  194 adam  staff    6208 Jun 12 18:50 ..
+drwxr-xr-x    2 adam  staff      64 Jun 12 19:11 .benchmarks
+-rw-r--r--    1 adam  staff   77824 Jun 13 13:28 .coverage
+drwxr-xr-x    3 adam  staff      96 Jun 12 19:24 .cursor
+-rw-r--r--    1 adam  staff     110 Jun 12 18:30 .cursorindexingignore
+-rw-r--r--    1 adam  staff   10785 Jun 13 01:59 .cursorrules
+-rw-r--r--@   1 adam  staff    6148 Jun 13 12:44 .DS_Store
+drwxr-xr-x    3 adam  staff      96 Jun 12 19:24 .giga
+drwxr-xr-x   15 adam  staff     480 Jun 13 13:43 .git
+drwxr-xr-x    3 adam  staff      96 Jun 12 18:29 .github
+-rw-r--r--    1 adam  staff    3646 Jun 12 18:29 .gitignore
+drwxr-xr-x@  10 adam  staff     320 Jun 12 22:14 .idea
+-rw-r--r--    1 adam  staff     502 Jun 12 18:29 .pre-commit-config.yaml
+drwxr-xr-x    6 adam  staff     192 Jun 12 19:11 .pytest_cache
+drwxr-xr-x    6 adam  staff     192 Jun 13 12:55 .ruff_cache
+drwxr-xr-x    5 adam  staff     160 Jun 12 18:30 .specstory
+drwxr-xr-x    9 adam  staff     288 Jun 12 18:56 .venv
+-rw-r--r--    1 adam  staff   10785 Jun 13 01:59 AGENT.md
+-rw-r--r--    1 adam  staff    3182 Jun 13 13:21 CHANGELOG.md
+-rw-r--r--    1 adam  staff   10785 Jun 13 01:59 CLAUDE.md
+-rwxr-xr-x@   1 adam  staff     400 Jun 13 02:32 cleanup.sh
+-rw-r--r--    1 adam  staff   39732 Jun 13 13:28 coverage.xml
+drwxr-xr-x    6 adam  staff     192 Jun 13 13:03 dist
+drwxr-xr-x   24 adam  staff     768 Jun 13 13:03 htmlcov
+-rw-r--r--    1 adam  staff    1069 Jun 12 18:29 LICENSE
+-rw-r--r--    1 adam  staff  210200 Jun 13 13:21 llms.txt
+-rw-r--r--    1 adam  staff     426 Jun 12 18:29 package.toml
+-rw-r--r--    1 adam  staff    2120 Jun 13 12:29 PLAN.md
+-rw-r--r--    1 adam  staff    9689 Jun 13 13:42 pyproject.toml
+-rw-r--r--    1 adam  staff     206 Jun 12 19:11 pyrightconfig.json
+-rw-r--r--@   1 adam  staff   20972 Jun 13 13:00 README.md
+drwxr-xr-x    4 adam  staff     128 Jun 13 01:53 src
+-rw-r--r--    1 adam  staff   23989 Jun 13 13:42 test_fixes.diff
+drwxr-xr-x   11 adam  staff     352 Jun 13 13:42 tests
+-rw-r--r--@   1 adam  staff     629 Jun 13 12:27 TODO.md
+-rw-r--r--    1 adam  staff  264746 Jun 13 13:01 uv.lock
+
+```
+
+---
+
+I see there's a `.venv` directory. Let me check its structure and try to use uv since there's a `uv.lock` file:
+
+---
+
+```bash
+ls -la .venv/
+```
+
+```
+total 24
+drwxr-xr-x   9 adam  staff   288 Jun 12 18:56 .
+drwxr-xr-x  37 adam  staff  1184 Jun 13 13:42 ..
+-rw-r--r--   1 adam  staff     1 Jun 12 18:56 .gitignore
+-rwxrwxrwx   1 adam  staff     0 Jun 12 18:56 .lock
+drwxr-xr-x  27 adam  staff   864 Jun 13 13:01 bin
+-rw-r--r--   1 adam  staff    43 Jun 12 18:56 CACHEDIR.TAG
+drwxr-xr-x   3 adam  staff    96 Jun 12 18:56 include
+drwxr-xr-x   3 adam  staff    96 Jun 12 18:56 lib
+-rw-r--r--   1 adam  staff   173 Jun 12 18:56 pyvenv.cfg
+
+```
+
+---
+
+Let me try using uv to run the tests since this project seems to use uv for dependency management:
+
+---
+
+```bash
+uv run pytest -v
+```
+
+```
+Uninstalled 1 package in 2ms
+Installed 1 package in 3ms
+/usr/local/lib/python3.10/site-packages/pytest_asyncio/plugin.py:208: PytestDep
+recationWarning: The configuration option "asyncio_default_fixture_loop_scope"
+is unset.
+The event loop scope for asynchronous fixtures will default to the fixture cach
+ing scope. Future versions of pytest-asyncio will default the loop scope for as
+ynchronous fixtures to function scope. Set the default fixture loop scope expli
+citly in order to avoid unexpected behavior in the future. Valid fixture loop s
+copes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+============================= test session starts =============================
+platform darwin -- Python 3.10.17, pytest-8.3.4, pluggy-1.5.0 -- /usr/local/opt
+/python@3.10/bin/python3.10
+cachedir: .pytest_cache
+benchmark: 5.1.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds
+=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_
+iterations=100000)
+rootdir: /Users/adam/Developer/vcs/github.twardoch/pub/brosh
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-5.0.0, anyio-4.8.0, benchmark-5.1.0, mock-3.14.0, asyncio-1.0.0, x
+dist-3.6.1
+asyncio: mode=auto, asyncio_default_fixture_loop_scope=None, asyncio_default_te
+st_loop_scope=function
+collected 69 items                                                            
+
+tests/test_api.py::TestCaptureWebpage::test_capture_webpage_sync_context PASSED
+ [  1%]
+tests/test_api.py::TestCaptureWebpage::test_capture_webpage_async_context PASSE
+D [  2%]
+tests/test_api.py::TestCaptureWebpage::test_capture_webpage_config_creation PAS
+SED [  4%]
+tests/test_api.py::TestCaptureWebpage::test_capture_webpage_default_output_dir 
+PASSED [  5%]
+tests/test_api.py::TestCaptureWebpageAsync::test_capture_webpage_async PASSED [
+  7%]
+tests/test_api.py::TestCaptureWebpageAsync::test_capture_webpage_async_config_v
+alidation PASSED [  8%]
+tests/test_api.py::TestAPIParameterValidation::test_capture_webpage_validates_c
+onfig PASSED [ 10%]
+tests/test_api.py::TestAPIParameterValidation::test_capture_webpage_async_valid
+ates_config PASSED [ 11%]
+tests/test_api.py::TestAPIConvenienceMethods::test_capture_full_page_import PAS
+SED [ 13%]
+tests/test_api.py::TestAPIConvenienceMethods::test_capture_full_page_calls_main
+_function PASSED [ 14%]
+tests/test_browser.py::TestBrowserManager::test_browser_manager_initialization 
+PASSED [ 15%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_name_empty_string P
+ASSED [ 17%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_name_specific_brows
+er PASSED [ 18%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_name_invalid_browse
+r FAILED [ 20%]
+tests/test_browser.py::TestBrowserManager::test_browser_path_detection PASSED [
+ 21%]
+tests/test_browser.py::TestBrowserManager::test_find_browser_path PASSED [ 23%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_paths PASSED [ 24%]
+tests/test_browser.py::TestBrowserManager::test_launch_browser_and_connect PASS
+ED [ 26%]
+tests/test_browser.py::TestBrowserManager::test_browser_failure_handling PASSED
+ [ 27%]
+tests/test_browser.py::TestBrowserManager::test_get_screen_dimensions_default P
+ASSED [ 28%]
+tests/test_browser.py::TestBrowserManager::test_get_screen_dimensions_tkinter P
+ASSED [ 30%]
+tests/test_browser.py::TestBrowserManager::test_get_screen_dimensions_tkinter_f
+ailure PASSED [ 31%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_instance_chrome PAS
+SED [ 33%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_instance_firefox PA
+SSED [ 34%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_instance_safari PAS
+SED [ 36%]
+tests/test_browser.py::TestBrowserManager::test_get_browser_instance_unsupporte
+d PASSED [ 37%]
+tests/test_browser.py::TestBrowserManager::test_debug_ports_configuration PASSE
+D [ 39%]
+tests/test_browser.py::TestBrowserManager::test_platform_specific_browser_comma
+nds PASSED [ 40%]
+tests/test_browser.py::TestBrowserManager::test_browser_context_configuration P
+ASSED [ 42%]
+tests/test_browser.py::TestBrowserManagerEdgeCases::test_browser_manager_with_i
+nvalid_dimensions PASSED [ 43%]
+tests/test_browser.py::TestBrowserManagerEdgeCases::test_launch_browser_with_di
+fferent_platforms PASSED [ 44%]
+tests/test_browser.py::TestBrowserManagerEdgeCases::test_browser_manager_single
+ton_behavior PASSED [ 46%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_initialization_defaults P
+ASSED [ 47%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_initialization_custom PAS
+SED [ 49%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_run_browser_already_runni
+ng PASSED [ 50%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_run_browser_not_running P
+ASSED [ 52%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_run_force_restart PASSED 
+[ 53%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_capture_basic PASSED [ 55
+%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_with_different_browsers P
+ASSED [ 56%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_output_directory_handling
+ FAILED [ 57%]
+tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_verbose_logging PASSED [ 
+59%]
+tests/test_cli.py::TestCLIIntegration::test_cli_screenshot_workflow PASSED [ 60
+%]
+tests/test_cli.py::TestCLIIntegration::test_cli_error_handling PASSED   [ 62%]
+tests/test_cli.py::TestCLIIntegration::test_cli_parameter_validation PASSED [ 6
+3%]
+tests/test_cli.py::TestCLIUtilities::test_cli_json_output_flag PASSED   [ 65%]
+tests/test_cli.py::TestCLIUtilities::test_cli_subdirs_flag PASSED       [ 66%]
+tests/test_cli.py::TestCLIUtilities::test_cli_app_selection PASSED      [ 68%]
+tests/test_models.py::TestImageFormat::test_mime_type_property PASSED   [ 69%]
+tests/test_models.py::TestImageFormat::test_file_extension_property PASSED [ 71
+%]
+tests/test_models.py::TestImageFormat::test_from_mime_type_valid PASSED [ 72%]
+tests/test_models.py::TestImageFormat::test_from_mime_type_invalid PASSED [ 73%
+]
+tests/test_models.py::TestImageFormat::test_from_extension_valid PASSED [ 75%]
+tests/test_models.py::TestImageFormat::test_from_extension_case_insensitive PAS
+SED [ 76%]
+tests/test_models.py::TestImageFormat::test_from_extension_invalid PASSED [ 78%
+]
+tests/test_models.py::TestCaptureFrame::test_capture_frame_creation PASSED [ 79
+%]
+tests/test_models.py::TestCaptureFrame::test_capture_frame_with_optional_fields
+ PASSED [ 81%]
+tests/test_models.py::TestCaptureConfig::test_capture_config_creation_minimal P
+ASSED [ 82%]
+tests/test_models.py::TestCaptureConfig::test_capture_config_creation_full PASS
+ED [ 84%]
+tests/test_models.py::TestCaptureConfig::test_capture_config_validation_zoom PA
+SSED [ 85%]
+tests/test_models.py::TestCaptureConfig::test_capture_config_validation_scroll_
+step PASSED [ 86%]
+tests/test_models.py::TestCaptureConfig::test_capture_config_validation_scale P
+ASSED [ 88%]
+tests/test_models.py::TestCaptureConfig::test_capture_config_validation_height 
+PASSED [ 89%]
+tests/test_models.py::TestCaptureConfig::test_capture_config_validation_anim_sp
+f PASSED [ 91%]
+tests/test_models.py::TestCaptureResult::test_capture_result_creation PASSED [ 
+92%]
+tests/test_models.py::TestMCPModels::test_mcp_text_content PASSED       [ 94%]
+tests/test_models.py::TestMCPModels::test_mcp_image_content PASSED      [ 95%]
+tests/test_models.py::TestMCPModels::test_mcp_tool_result PASSED        [ 97%]
+tests/test_models.py::TestMCPModels::test_mcp_tool_result_empty PASSED  [ 98%]
+tests/test_package.py::test_version PASSED                              [100%]
+
+================================== FAILURES ===================================
+__________ TestBrowserManager.test_get_browser_name_invalid_browser ___________
+tests/test_browser.py:52: in test_get_browser_name_invalid_browser
+    with pytest.raises(ValueError, match="Unsupported browser"):
+E   Failed: DID NOT RAISE <class 'ValueError'>
+_________ TestBrowserScreenshotCLI.test_cli_output_directory_handling _________
+tests/test_cli.py:126: in test_cli_output_directory_handling
+    ???
+E   AssertionError: assert PosixPath('/Users/adam/Pictures/brosh') == PosixPath
+('/home/user/Pictures/brosh')
+E    +  where PosixPath('/Users/adam/Pictures/brosh') = <brosh.cli.BrowserScree
+nshotCLI object at 0x111f0fa30>.output_dir
+E    +  and   PosixPath('/home/user/Pictures/brosh') = Path('/home/user/Picture
+s/brosh')
+
+--------- coverage: platform darwin, python 3.10.17-final-0 ----------
+Name                       Stmts   Miss Branch BrPart  Cover   Missing
+----------------------------------------------------------------------
+src/brosh/__init__.py          6      0      0      0   100%
+src/brosh/__main__.py          4      4      0      0     0%   6-13
+src/brosh/__version__.py      13     13      2      0     0%   4-21
+src/brosh/api.py              39      4      6      0    91%   246-247, 256-257
+src/brosh/browser.py         182     82     90     13    54%   56->97, 72-81, 8
+3->97, 128->127, 133->132, 137, 199->198, 253-255, 263-275, 279-291, 316, 347-4
+53, 466-482, 522
+src/brosh/capture.py          69     56     12      0    16%   32-34, 50-86, 99
+-118, 136-146, 164-205
+src/brosh/cli.py             103     26     26      5    71%   108, 117, 135-13
+6, 145-174, 210->214, 218, 221->220, 226-230, 239-244, 249
+src/brosh/image.py            63     48     12      0    20%   15-16, 38-50, 63
+-74, 87-106, 119-131
+src/brosh/mcp.py             101    101     38      0     0%   6-286
+src/brosh/models.py          116     16     22      1    85%   101, 141-142, 19
+0-191, 211-213, 234-244
+src/brosh/texthtml.py         49     36      4      0    25%   109-112, 126-133
+, 147-150, 162, 176-198
+src/brosh/tool.py             90     69     28      0    18%   42-46, 64-109, 1
+22-126, 143-175, 193-210, 230
+----------------------------------------------------------------------
+TOTAL                        835    455    240     19    43%
+Coverage HTML written to dir htmlcov
+Coverage XML written to file coverage.xml
+
+FAIL Required test coverage of 80% not reached. Total coverage: 43.26%
+=========================== short test summary info ===========================
+FAILED tests/test_browser.py::TestBrowserManager::test_get_browser_name_invalid
+_browser - Failed: DID NOT RAISE <class 'ValueError'>
+FAILED tests/test_cli.py::TestBrowserScreenshotCLI::test_cli_output_directory_h
+andling - AssertionError: assert PosixPath('/Users/adam/Pictures/brosh') == Pos
+ixPath('/home/user/Pictures/brosh')
+ +  where PosixPath('/Users/adam/Pictures/brosh') = <brosh.cli.BrowserScreensho
+tCLI object at 0x111f0fa30>.output_dir
+ +  and   PosixPath('/home/user/Pictures/brosh') = Path('/home/user/Pictures/br
+osh')
+======================== 2 failed, 67 passed in 18.07s ========================
+
+```
+
+---
+
+Great! The tests are running, but there are 2 failing tests. Let me fix these issues:
+
+1. The browser test is not raising a ValueError for invalid browsers
+2. The CLI test is expecting a Linux path but getting a macOS path
+
+Let me fix these tests:
+
+---
+
+Read file: tests/test_browser.py
+
+---
+
+Now let me check the `get_browser_name` method in the browser module to see why it's not raising a ValueError:
+
+---
+
+Read file: src/brosh/browser.py
+
+---
+
+I can see the issue. The `get_browser_name` method doesn't raise a ValueError for invalid browsers - it just returns "chrome" as a fallback. Let me check the CLI test issue as well:
+
+---
+
+Read file: tests/test_cli.py
+
+---
+
+Now I can see both issues. Let me fix them:
+
+1. The browser test expects a ValueError but the method doesn't raise one
+2. The CLI test expects a Linux path but gets a macOS path
+
+Let me fix these tests:
+
+---
+
 
 
 ---
+
+
+
+---
+
+_**User**_
+
+What about @test_fixes.diff  — is it applied? 
+
+---
+
+_**Assistant**_
 
 
 

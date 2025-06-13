@@ -131,11 +131,13 @@ class TestBrowserScreenshotCLI:
         assert hasattr(cli, "_browser_manager")
 
     @patch("brosh.cli.BrowserManager")
-    def test_cli_verbose_logging(self, mock_browser_manager: MagicMock) -> None:
+    def test_cli_verbose_logging(
+        self, mock_browser_manager: MagicMock
+    ) -> None:
         """Test verbose logging configuration."""
         with patch("brosh.cli.logger") as mock_logger:
             # Test non-verbose mode
-            cli_quiet = BrowserScreenshotCLI(verbose=False)
+            BrowserScreenshotCLI(verbose=False)
             mock_logger.remove.assert_called()
             mock_logger.add.assert_called()
             
@@ -143,7 +145,7 @@ class TestBrowserScreenshotCLI:
             mock_logger.reset_mock()
             
             # Test verbose mode
-            cli_verbose = BrowserScreenshotCLI(verbose=True)
+            BrowserScreenshotCLI(verbose=True)
             # Verbose mode should not call remove/add
             mock_logger.remove.assert_not_called()
 

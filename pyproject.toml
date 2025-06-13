@@ -245,114 +245,97 @@ test = "pytest --cov=src/brosh --cov-report=xml"
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
-# COVERAGE CONFIGURATION
-# Settings for test coverage measurement and reporting.
-#------------------------------------------------------------------------------
-
-# Path mapping for coverage in different environments
-[tool.coverage.paths]
-brosh = ["src/brosh", "*/brosh/src/brosh"]
-tests = ["tests", "*/brosh/tests"]
-
-# Coverage report configuration
-[tool.coverage.report]
-# Lines to exclude from coverage reporting
-exclude_lines = [
-    'no cov', # Custom marker to skip coverage
-    'if __name__ == .__main__.:', # Script execution guard
-    'if TYPE_CHECKING:', # Type checking imports and code
-    'pass', # Empty pass statements
-    'raise NotImplementedError', # Unimplemented method placeholders
-    'raise ImportError', # Import error handling
-    'except ImportError', # Import error handling
-    'except KeyError', # Common error handling
-    'except AttributeError', # Common error handling
-    'except NotImplementedError', # Common error handling
-]
-
-[tool.coverage.run]
-source_pkgs = ["brosh", "tests"]
-branch = true # Measure branch coverage (if/else statements)
-parallel = true # Support parallel test execution
-omit = [
-    "src/brosh/__about__.py",
-]
-
-#------------------------------------------------------------------------------
-# MYPY CONFIGURATION
-# Configuration for type checking with mypy.
-#------------------------------------------------------------------------------
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-
-#------------------------------------------------------------------------------
 # PYTEST CONFIGURATION
-# Configuration for pytest, including markers, options, and benchmark settings.
+# Settings for the pytest testing framework.
 #------------------------------------------------------------------------------
-
 [tool.pytest.ini_options]
-addopts = "-v --durations=10 -p no:briefcase"
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-console_output_style = "progress"
-filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
-log_cli = true
-log_cli_level = "INFO"
-markers = [
-    "benchmark: marks tests as benchmarks (select with '-m benchmark')",
-    "unit: mark a test as a unit test",
-    "integration: mark a test as an integration test",
-    "permutation: tests for permutation functionality", 
-    "parameter: tests for parameter parsing",
-    "prompt: tests for prompt parsing",
-]
-norecursedirs = [
-    ".*",
-    "build",
-    "dist", 
-    "venv",
-    "__pycache__",
-    "*.egg-info",
-    "_private",
-]
-python_classes = ["Test*"]
-python_files = ["test_*.py"]
-python_functions = ["test_*"]
-testpaths = ["tests"]
+# Test discovery
+testpaths = ["tests"] # Directory containing tests
+python_files = ["test_*.py", "*_test.py"] # Test file patterns
+python_classes = ["Test*"] # Test class patterns
+python_functions = ["test_*"] # Test function patterns
 
-[tool.pytest-benchmark]
-min_rounds = 100
-min_time = 0.1
-histogram = true
-storage = "file"
-save-data = true
-compare = [
-    "min",    # Minimum time
-    "max",    # Maximum time
-    "mean",   # Mean time
-    "stddev", # Standard deviation
-    "median", # Median time
-    "iqr",    # Inter-quartile range
-    "ops",    # Operations per second
-    "rounds", # Number of rounds
+# Output and reporting
+addopts = [
+    "--strict-markers", # Treat unregistered markers as errors
+    "--strict-config", # Treat invalid config as errors
+    "--verbose", # Verbose output
+    "--tb=short", # Short traceback format
+    "--cov=src/brosh", # Coverage for brosh package
+    "--cov-report=term-missing", # Show missing lines in terminal
+    "--cov-report=html:htmlcov", # Generate HTML coverage report
+    "--cov-report=xml", # Generate XML coverage report for CI
+    "--cov-fail-under=80", # Fail if coverage is below 80%
 ]
+
+# Test markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "asyncio: marks tests as async tests",
+]
+
+# Async test configuration
+asyncio_mode = "auto" # Automatically detect and run async tests
+
+# Minimum Python version for tests
+minversion = "8.0"
+
+# Filter warnings
+filterwarnings = [
+    "error", # Treat warnings as errors
+    "ignore::UserWarning", # Ignore user warnings
+    "ignore::DeprecationWarning", # Ignore deprecation warnings from dependencies
+    "ignore::PendingDeprecationWarning", # Ignore pending deprecation warnings
+]
+
+#------------------------------------------------------------------------------
+# COVERAGE CONFIGURATION
+# Settings for code coverage reporting.
+#------------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src"] # Source code directory
+branch = true # Enable branch coverage
+parallel = true # Allow parallel test execution
+omit = [
+    "*/tests/*", # Exclude test files
+    "*/test_*", # Exclude test files
+    "*/__pycache__/*", # Exclude Python cache
+    "*/site-packages/*", # Exclude installed packages
+    "*/.venv/*", # Exclude virtual environment
+]
+
+[tool.coverage.paths]
+# Map coverage paths for different environments
+source = [
+    "src/",
+    "*/site-packages/", # For tox/CI environments
+]
+
+[tool.coverage.report]
+# Coverage reporting options
+exclude_lines = [
+    "pragma: no cover", # Explicitly excluded lines
+    "def __repr__", # String representations
+    "if self.debug:", # Debug code
+    "if settings.DEBUG", # Django-style debug code
+    "raise AssertionError", # Should not happen in normal execution
+    "raise NotImplementedError", # Abstract methods
+    "if 0:", # Dead code
+    "if __name__ == .__main__.:", # Main blocks
+    "class .*\\bProtocol\\):", # Protocol classes
+    "@(abc\\.)?abstractmethod", # Abstract methods
+]
+ignore_errors = true # Ignore coverage errors
+show_missing = true # Show line numbers of missing coverage
+skip_covered = false # Don't skip files with 100% coverage
+
+[tool.coverage.html]
+directory = "htmlcov" # HTML report directory
+
+[tool.coverage.xml]
+output = "coverage.xml" # XML report file
 
 #------------------------------------------------------------------------------
 # RUFF CONFIGURATION

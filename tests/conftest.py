@@ -18,6 +18,7 @@ def temp_output_dir() -> Generator[Path, None, None]:
 
     Used in:
     - tests/test_api.py
+    - tests/test_cli.py
     - tests/test_models.py
     """
     with tempfile.TemporaryDirectory() as temp_dir:

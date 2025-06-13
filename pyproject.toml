@@ -14,7 +14,7 @@ name = 'brosh'
 description = 'Browser screenshot tool using Playwright async API'
 readme = 'README.md'
 requires-python = '>=3.10'
-version = "1.4.0"
+dynamic = ["version"]
 keywords = [
     'screenshot',
     'browser',
@@ -115,6 +115,7 @@ brosh-mcp = "brosh.mcp:main"
 [build-system]
 requires = [
     'hatchling>=1.27.0',
+    'hatch-vcs>=0.4.0',
 ]
 build-backend = 'hatchling.build'
 
@@ -138,6 +139,15 @@ reproducible = true
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+# Version control system hook configuration
+# Automatically updates the version file from git tags
+[tool.hatch.build.hooks.vcs]
+version-file = "src/brosh/__version__.py"
+
+# Version source configuration
+[tool.hatch.version]
+source = 'vcs' # Get version from git tags or other VCS info
 
 #------------------------------------------------------------------------------
 # DEVELOPMENT ENVIRONMENTS
@@ -364,3 +374,8 @@ ban-relative-imports = 'parents'
     'S101',
     'TID252'
 ] 
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+]

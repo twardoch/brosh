@@ -38,12 +38,12 @@ def main() -> int:
     
     # Run the tests
     try:
-        result = subprocess.run(cmd, cwd=project_root)
+        result = subprocess.run(cmd, cwd=project_root, check=False)
         return result.returncode
     except KeyboardInterrupt:
         print("\nTest run interrupted by user")
         return 1
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f"Error running tests: {e}")
         return 1
 

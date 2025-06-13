@@ -2,11 +2,9 @@
 
 A powerful browser screenshot tool that captures scrolling screenshots of webpages using Playwright's async API. Supports intelligent section identification, multiple output formats including animated PNG, and MCP (Model Context Protocol) integration.
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-## Table of Contents
+## 1. Table of Contents
 
 - [Features](#features)
 - [How It Works](#how-it-works)
@@ -39,7 +37,7 @@ A powerful browser screenshot tool that captures scrolling screenshots of webpag
 - [Contributing](#contributing)
 - [License](#license)
 
-## Features
+## 2. Features
 
 - **🚀 Async Playwright Integration**: Fast and reliable browser automation
 - **🔍 Smart Section Detection**: Automatically identifies visible sections for descriptive filenames
@@ -53,7 +51,7 @@ A powerful browser screenshot tool that captures scrolling screenshots of webpag
 - **🎯 Precise Control**: Set viewport size, zoom level, and output scaling
 - **🔄 Automatic Retries**: Robust error handling with configurable retry logic
 
-## How It Works
+## 3. How It Works
 
 **brosh** works by:
 
@@ -65,15 +63,16 @@ A powerful browser screenshot tool that captures scrolling screenshots of webpag
 6. **Output Organization**: Saves screenshots with descriptive names including domain, timestamp, and section
 
 The tool is especially useful for:
+
 - **Documentation**: Capturing long technical documentation or API references
 - **QA Testing**: Visual regression testing and bug reporting
 - **Content Archival**: Preserving web content with full page captures
 - **Design Reviews**: Sharing complete page designs with stakeholders
 - **AI Integration**: Providing visual context to language models via MCP
 
-## Installation
+## 4. Installation
 
-### Using uv/uvx (Recommended)
+### 4.1. Using uv/uvx (Recommended)
 
 [uv](https://github.com/astral-sh/uv) is a fast Python package manager that replaces pip, pip-tools, pipx, poetry, pyenv, and virtualenv.
 
@@ -91,7 +90,7 @@ uv tool install brosh
 uv tool install "brosh[all]"
 ```
 
-### Using pip
+### 4.2. Using pip
 
 ```bash
 # Basic installation
@@ -101,7 +100,7 @@ pip install brosh
 pip install "brosh[all]"
 ```
 
-### Using pipx
+### 4.3. Using pipx
 
 [pipx](https://pipx.pypa.io/) installs Python applications in isolated environments.
 
@@ -114,7 +113,7 @@ python -m pipx ensurepath
 pipx install brosh
 ```
 
-### From Source
+### 4.4. From Source
 
 ```bash
 git clone https://github.com/twardoch/brosh.git
@@ -122,7 +121,7 @@ cd brosh
 pip install -e ".[all]"
 ```
 
-### Install Playwright Browsers
+### 4.5. Install Playwright Browsers
 
 After installation, you need to install the browser drivers:
 
@@ -130,7 +129,7 @@ After installation, you need to install the browser drivers:
 playwright install
 ```
 
-## Quick Start
+## 5. Quick Start
 
 ```bash
 # Capture a single webpage
@@ -150,13 +149,13 @@ brosh --width 1920 --height 1080 shot "https://example.com"
 brosh shot "https://example.com" --html --json > content.json
 ```
 
-## Usage
+## 6. Usage
 
-### Command Line Interface
+### 6.1. Command Line Interface
 
 brosh provides a Fire-based CLI with intuitive commands and options.
 
-#### Basic Screenshot Capture
+#### 6.1.1. Basic Screenshot Capture
 
 ```bash
 # Simple capture
@@ -175,7 +174,7 @@ brosh --output_dir ~/Screenshots shot "https://example.com"
 brosh --subdirs shot "https://example.com"
 ```
 
-#### Advanced Capture Options
+#### 6.1.2. Advanced Capture Options
 
 ```bash
 # Start from specific element
@@ -197,7 +196,7 @@ brosh shot "https://example.com" --format apng --anim_spf 1.0
 brosh shot "https://example.com" --html --json > page_content.json
 ```
 
-### MCP Server Mode
+### 6.2. MCP Server Mode
 
 Run as an MCP server for AI tool integration:
 
@@ -209,7 +208,7 @@ brosh-mcp
 brosh mcp
 ```
 
-### Python API
+### 6.3. Python API
 
 ```python
 import asyncio
@@ -225,7 +224,7 @@ def capture_sync():
         scroll_step=100,
         format="png"
     )
-    
+
     print(f"Captured {len(result)} screenshots")
     for path, data in result.items():
         print(f"  - {path}")
@@ -240,7 +239,7 @@ async def capture_async():
         max_frames=3,
         from_selector="#main-content"
     )
-    
+
     # Result is a dict with paths as keys and metadata as values
     for path, data in result.items():
         print(f"\nScreenshot: {path}")
@@ -266,14 +265,14 @@ visible = capture_visible_area("https://example.com")
 animation = capture_animation("https://example.com")
 ```
 
-## Command Reference
+## 7. Command Reference
 
-### Global Options
+### 7.1. Global Options
 
 These options can be used with any command:
 
 | Option | Type | Default | Description |
-|--------|------|---------|-------------|
+| --- | --- | --- | --- |
 | `--app` | str | auto-detect | Browser to use: `chrome`, `edge`, `safari` |
 | `--width` | int | screen width | Viewport width in pixels |
 | `--height` | int | screen height | Viewport height in pixels (-1 for full page) |
@@ -282,9 +281,9 @@ These options can be used with any command:
 | `--subdirs` | bool | False | Create subdirectories for each domain |
 | `--verbose` | bool | False | Enable debug logging |
 
-### Commands
+### 7.2. Commands
 
-#### `run` - Start Browser in Debug Mode
+#### 7.2.1. `run` - Start Browser in Debug Mode
 
 ```bash
 brosh [--app BROWSER] run [--force_run]
@@ -293,9 +292,10 @@ brosh [--app BROWSER] run [--force_run]
 Starts the browser in remote debugging mode for better performance with multiple captures.
 
 **Options:**
+
 - `--force_run`: Force restart even if already running
 
-#### `quit` - Quit Browser
+#### 7.2.2. `quit` - Quit Browser
 
 ```bash
 brosh [--app BROWSER] quit
@@ -303,28 +303,19 @@ brosh [--app BROWSER] quit
 
 Closes the browser started in debug mode.
 
-#### `shot` - Capture Screenshots
+#### 7.2.3. `shot` - Capture Screenshots
 
 ```bash
 brosh [OPTIONS] shot URL [SHOT_OPTIONS]
 ```
 
 **Required:**
+
 - `URL`: The webpage URL to capture
 
-**Shot Options:**
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) |
-| `--scale` | int | 100 | Scale output images by % (10-200) |
-| `--format` | str | png | Output format: `png`, `jpg`, `apng` |
-| `--anim_spf` | float | 0.5 | Seconds per frame for APNG |
-| `--html` | bool | False | Extract HTML content of visible elements |
-| `--json` | bool | False | Output results as JSON |
-| `--max_frames` | int | 0 | Maximum screenshots (0 = all) |
-| `--from_selector` | str | "" | CSS selector to start capture from |
+**Shot Options:** | Option | Type | Default | Description | |--------|------|---------|-------------| | `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) | | `--scale` | int | 100 | Scale output images by % (10-200) | | `--format` | str | png | Output format: `png`, `jpg`, `apng` | | `--anim_spf` | float | 0.5 | Seconds per frame for APNG | | `--html` | bool | False | Extract HTML content of visible elements | | `--json` | bool | False | Output results as JSON | | `--max_frames` | int | 0 | Maximum screenshots (0 = all) | | `--from_selector` | str | "" | CSS selector to start capture from |
 
-#### `mcp` - Run MCP Server
+#### 7.2.4. `mcp` - Run MCP Server
 
 ```bash
 brosh mcp
@@ -332,9 +323,9 @@ brosh mcp
 
 Starts the MCP server for AI tool integration.
 
-## Output
+## 8. Output
 
-### File Naming Convention
+### 8.1. File Naming Convention
 
 Screenshots are saved with descriptive filenames:
 
@@ -343,6 +334,7 @@ Screenshots are saved with descriptive filenames:
 ```
 
 **Example:**
+
 ```
 github_com-250612-185234-00500-readme.png
 │         │              │     │
@@ -352,17 +344,18 @@ github_com-250612-185234-00500-readme.png
 └───────────────────────────────── Domain name
 ```
 
-### Output Formats
+### 8.2. Output Formats
 
 - **PNG**: Lossless compression, best quality (default)
 - **JPG**: Smaller file size, good for photos
 - **APNG**: Animated PNG showing the scroll sequence
 
-### JSON Output
+### 8.3. JSON Output
 
 The tool now always extracts text content from visible elements. When using `--json`:
 
 **Default output (without --html):**
+
 ```json
 {
   "/path/to/screenshot1.png": {
@@ -373,6 +366,7 @@ The tool now always extracts text content from visible elements. When using `--j
 ```
 
 **With --html flag:**
+
 ```json
 {
   "/path/to/screenshot1.png": {
@@ -385,9 +379,9 @@ The tool now always extracts text content from visible elements. When using `--j
 
 The `text` field contains the visible content converted to Markdown format using html2text, making it easy to process the content programmatically.
 
-## Advanced Usage
+## 9. Advanced Usage
 
-### Browser Management
+### 9.1. Browser Management
 
 brosh can connect to your existing browser session, preserving cookies, authentication, and extensions:
 
@@ -405,7 +399,7 @@ brosh shot "https://github.com/notifications"
 brosh --app chrome quit
 ```
 
-### Custom Viewports
+### 9.2. Custom Viewports
 
 Simulate different devices by setting viewport dimensions:
 
@@ -423,7 +417,7 @@ brosh --width 1024 --height 768 shot "https://example.com"
 brosh --width 375 --height 812 shot "https://example.com"
 ```
 
-### HTML Extraction
+### 9.3. HTML Extraction
 
 Extract the HTML content of visible elements for each screenshot:
 
@@ -438,7 +432,7 @@ cat content.json | jq 'to_entries | .[] | {
 }'
 ```
 
-### Animation Creation
+### 9.4. Animation Creation
 
 Create smooth animations showing page scroll:
 
@@ -453,15 +447,15 @@ brosh shot "https://example.com" --format apng --anim_spf 0.2
 brosh shot "https://example.com" --format apng --anim_spf 1.0 --scroll_step 50
 ```
 
-## MCP Integration
+## 10. MCP Integration
 
-### What is MCP?
+### 10.1. What is MCP?
 
 The Model Context Protocol (MCP) is an open standard that enables seamless integration between AI applications and external data sources or tools. brosh implements an MCP server that allows AI assistants like Claude to capture and analyze web content.
 
-### Setting Up MCP Server
+### 10.2. Setting Up MCP Server
 
-#### 1. Using uvx (Recommended)
+#### 10.2.1. Using uvx (Recommended)
 
 ```bash
 # Run directly without installation
@@ -472,12 +466,11 @@ uv tool install brosh
 uvx brosh-mcp
 ```
 
-#### 2. Configure Claude Desktop
+#### 10.2.2. Configure Claude Desktop
 
 Add brosh to your Claude Desktop configuration:
 
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json` **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -508,6 +501,7 @@ Add brosh to your Claude Desktop configuration:
 ```
 
 To find the full path:
+
 ```bash
 # On Unix-like systems
 which brosh-mcp
@@ -516,9 +510,10 @@ which brosh-mcp
 python -c "import shutil; print(shutil.which('brosh-mcp'))"
 ```
 
-#### 3. Alternative Configurations
+#### 10.2.3. Alternative Configurations
 
 **Using Python directly:**
+
 ```json
 {
   "mcpServers": {
@@ -531,6 +526,7 @@ python -c "import shutil; print(shutil.which('brosh-mcp'))"
 ```
 
 **Using specific Python path:**
+
 ```json
 {
   "mcpServers": {
@@ -542,7 +538,7 @@ python -c "import shutil; print(shutil.which('brosh-mcp'))"
 }
 ```
 
-### Using with Claude
+### 10.3. Using with Claude
 
 Once configured, you can ask Claude to:
 
@@ -553,7 +549,7 @@ Once configured, you can ask Claude to:
 
 Claude will use brosh to capture the screenshots and can analyze the visual content or extracted HTML.
 
-## Architecture
+## 11. Architecture
 
 The project is organized into modular components:
 
@@ -572,7 +568,7 @@ src/brosh/
 └── texthtml.py      # HTML/text processing
 ```
 
-### Key Components
+### 11.1. Key Components
 
 - **API Layer**: Provides both sync (`capture_webpage`) and async (`capture_webpage_async`) interfaces
 - **BrowserManager**: Handles browser detection, launching, and connection
@@ -582,9 +578,9 @@ src/brosh/
 - **BrowserScreenshotCLI**: Provides the command-line interface
 - **MCP Server**: FastMCP-based server for AI tool integration
 
-## Development
+## 12. Development
 
-### Setup Development Environment
+### 12.1. Setup Development Environment
 
 ```bash
 # Clone the repository
@@ -598,7 +594,7 @@ pip install -e ".[dev,test,all]"
 pre-commit install
 ```
 
-### Running Tests
+### 12.2. Running Tests
 
 ```bash
 # Run all tests
@@ -611,7 +607,7 @@ pytest --cov=src/brosh --cov-report=term-missing
 pytest tests/test_capture.py -v
 ```
 
-### Code Quality
+### 12.3. Code Quality
 
 ```bash
 # Format code
@@ -624,7 +620,7 @@ ruff check src/brosh tests
 mypy src/brosh
 ```
 
-### Building Documentation
+### 12.4. Building Documentation
 
 ```bash
 # Install docs dependencies
@@ -634,35 +630,38 @@ pip install -e ".[docs]"
 sphinx-build -b html docs/source docs/build
 ```
 
-## Troubleshooting
+## 13. Troubleshooting
 
-### Common Issues
+### 13.1. Common Issues
 
-#### Browser Not Found
+#### 13.1.1. Browser Not Found
 
 **Error:** "Could not find chrome installation"
 
 **Solution:** Ensure Chrome/Edge/Safari is installed in the default location, or specify the browser explicitly:
+
 ```bash
 brosh --app edge shot "https://example.com"
 ```
 
-#### Connection Timeout
+#### 13.1.2. Connection Timeout
 
 **Error:** "Failed to connect to browser"
 
 **Solution:** Start the browser in debug mode first:
+
 ```bash
 brosh run
 # Then in another terminal:
 brosh shot "https://example.com"
 ```
 
-#### Screenshot Timeout
+#### 13.1.3. Screenshot Timeout
 
 **Error:** "Screenshot timeout for position X"
 
 **Solution:** Increase the timeout or reduce the page complexity:
+
 ```bash
 # Simpler format
 brosh shot "https://example.com" --format jpg
@@ -671,16 +670,17 @@ brosh shot "https://example.com" --format jpg
 brosh shot "https://example.com" --scroll_step 200
 ```
 
-#### Permission Denied
+#### 13.1.4. Permission Denied
 
 **Error:** "Permission denied" when saving screenshots
 
 **Solution:** Check the output directory permissions or use a different directory:
+
 ```bash
 brosh --output_dir /tmp/screenshots shot "https://example.com"
 ```
 
-### Debug Mode
+### 13.2. Debug Mode
 
 Enable verbose logging to troubleshoot issues:
 
@@ -688,25 +688,28 @@ Enable verbose logging to troubleshoot issues:
 brosh --verbose shot "https://example.com"
 ```
 
-### Platform-Specific Notes
+### 13.3. Platform-Specific Notes
 
-#### macOS
+#### 13.3.1. macOS
+
 - Safari requires enabling "Allow Remote Automation" in Develop menu
 - Retina displays are automatically detected and handled
 
-#### Windows
+#### 13.3.2. Windows
+
 - Run as administrator if you encounter permission issues
 - Chrome/Edge must be installed in default Program Files location
 
-#### Linux
+#### 13.3.3. Linux
+
 - Install additional dependencies: `sudo apt-get install libnss3 libxss1`
 - Headless mode may be required on servers without display
 
-## Contributing
+## 14. Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
 
-### Development Process
+### 14.1. Development Process
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
@@ -714,7 +717,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### Code Style
+### 14.2. Code Style
 
 - Follow PEP 8 guidelines
 - Use type hints for all functions
@@ -722,17 +725,12 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 - Keep functions focused and modular
 - Write tests for new features
 
-## License
+## 15. License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Credits
-
-Created by [Adam Twardoch](https://github.com/twardoch)
-
-## Acknowledgments
-
-- Built with [Playwright](https://playwright.dev/) for reliable browser automation
+- Created by [Adam Twardoch](https://github.com/twardoch)
+- Created with [Anthropic](https://www.anthropic.com/claude-code) software
+- Uses [Playwright](https://playwright.dev/) for reliable browser automation
 - Uses [Fire](https://github.com/google/python-fire) for the CLI interface
 - Implements [FastMCP](https://github.com/jlowin/fastmcp) for Model Context Protocol support
-- Inspired by various web scraping and screenshot tools

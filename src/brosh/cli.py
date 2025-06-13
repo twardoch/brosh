@@ -3,7 +3,6 @@
 
 """CLI interface for brosh."""
 
-import asyncio
 import inspect
 import json
 import platform
@@ -11,7 +10,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any
 
 import fire
 from loguru import logger

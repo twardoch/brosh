@@ -5,7 +5,6 @@
 
 import asyncio
 from datetime import datetime
-from typing import List, Optional
 
 from loguru import logger
 from playwright.async_api import Page

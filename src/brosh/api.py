@@ -5,7 +5,7 @@
 
 import asyncio
 from pathlib import Path
-from typing import Annotated, Any, Dict, Union
+from typing import Annotated, Any
 
 from platformdirs import user_pictures_dir
 from pydantic import Field

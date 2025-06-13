@@ -5,7 +5,6 @@
 
 import io
 from pathlib import Path
-from typing import List
 
 from loguru import logger
 from PIL import Image

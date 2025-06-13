@@ -4,7 +4,6 @@
 """HTML and text processing utilities for brosh."""
 
 import re
-from typing import Optional, Tuple
 
 import html2text
 from loguru import logger

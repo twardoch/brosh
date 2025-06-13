@@ -3,7 +3,6 @@
 
 """MCP server implementation for brosh."""
 
-import asyncio
 import base64
 import json
 from pathlib import Path

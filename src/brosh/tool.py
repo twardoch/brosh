@@ -3,10 +3,9 @@
 
 """Main screenshot tool orchestration for brosh."""
 
-import asyncio
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from urllib.parse import urlparse
 
 from loguru import logger

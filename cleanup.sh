@@ -4,7 +4,7 @@ rm -rf dist/brosh*.*
 uv build
 
 python -m uzpy run -e src
-fd -e py -x autoflake {}
+fd -e py -x autoflake -i {}
 fd -e py -x pyupgrade --py311-plus {}
 fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}
 fd -e py -x ruff format --respect-gitignore --target-version py311 {}

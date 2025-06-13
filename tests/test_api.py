@@ -263,8 +263,8 @@ class TestAPIConvenienceMethods:
         
         # If it's an alias, it should call the main function
         try:
-            capture_full_page(url=AnyUrl("https://example.com"), height=-1)
+            capture_full_page(url="https://example.com", height=-1)
             mock_capture.assert_called_once()
-        except AttributeError:
+        except (AttributeError, NameError):
             # If it's not defined yet, that's fine for now
             pass

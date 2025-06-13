@@ -1,33 +1,29 @@
 ---
-description: Technical specification for browser screenshot capture algorithms including viewport scrolling, section detection, and image merging
-globs: src/brosh/capture.py,src/brosh/image.py,src/brosh/browser.py,src/brosh/models.py
+description: Technical documentation for core screenshot capture algorithms including scrolling logic, section detection, and image merging.
+globs: src/brosh/capture.py,src/brosh/image.py,src/brosh/texthtml.py
 alwaysApply: false
 ---
 
-
-# screenshot-algorithms
-
+# === USER INSTRUCTIONS ===
+description: Technical specification for browser screenshot capture algorithms including viewport scrolling, section detection, and image merging
+globs: src/brosh/capture.py,src/brosh/image.py,src/brosh/browser.py,src/brosh/models.py
 ### Core Screenshot Capture Logic
-
 **Viewport Scrolling Algorithm**
 - Progressive viewport scrolling with overlap detection
 - Scroll positions calculated using viewport height and configurable overlap (10-200%)
 - Dynamic content detection between scroll operations 
 - Scroll state maintenance across sequential captures
 - Support for starting capture from specific DOM selectors
-
 **Section Detection Engine**
 - Semantic section identification using visible headers and ID elements 
 - Viewport intersection mapping against content hierarchy
 - Generation of contextual section identifiers from visible elements
 - Real-time detection of expanding/collapsing content
-
 **Image Processing Pipeline**
 - Frame assembly with intelligent overlap removal
 - APNG creation with configurable animation timing (0.1-10s per frame)
 - Alpha channel preservation across format conversions
 - Frame downsampling and optimization for size constraints
-
 **Browser Integration**  
 - Browser priority system (Chrome > Edge > Safari)
 - Debug port assignments per browser type:
@@ -36,23 +32,75 @@ alwaysApply: false
   - WebKit: 9225
 - Platform-specific resolution detection with Retina support
 - Dynamic content loading detection and wait states
-
 ### Key Components
-
 `src/brosh/capture.py`:
 - CaptureManager class implementing scrolling and section detection
 - Viewport state management and scroll position calculation
 - Dynamic content detection mechanisms
-
 `src/brosh/image.py`:
 - ImageProcessor class for frame assembly and optimization
 - APNG creation and animation control
 - Overlap detection and removal algorithms
-
 `src/brosh/browser.py`:
 - BrowserManager handling browser detection and connection
 - Debug port management and platform-specific optimizations
 - Screen resolution and DPI scaling logic
+# === END USER INSTRUCTIONS ===
+
+# screenshot-algorithms
+
+## Screenshot Capture Core (Importance: 95)
+
+### Semantic Section Detection
+Located in `src/brosh/capture.py`:
+- Analyzes DOM structure to identify meaningful content blocks
+- Maps viewport intersections to semantic sections
+- Generates contextual identifiers from visible elements 
+- Maintains section hierarchy during scrolling
+
+### Viewport Management
+Located in `src/brosh/capture.py`:
+- Progressive scrolling with overlap constraints (10-200%)
+- Dynamic height adjustment for expanding content 
+- Section boundary detection during viewport movement
+- Content-aware scroll step calculation
+
+### Image Processing Pipeline 
+Located in `src/brosh/image.py`:
+- Merges overlapping screenshots into seamless output
+- Handles animated PNG creation for scrolling animations 
+- Section-aware naming for captured frames
+- Viewport masking for clean section boundaries
+
+## Content Processing Engine (Importance: 85)
+
+### HTML Analysis
+Located in `src/brosh/texthtml.py`:
+- Extracts visible DOM content per viewport
+- Maps elements to semantic sections
+- Generates Markdown from visible text
+- Detects dynamic content changes
+
+### Scroll Behavior
+Located in `src/brosh/capture.py`:
+- Smart scroll step calculation based on content
+- Section-aware viewport positioning
+- Overlap detection between captures
+- Dynamic content stabilization delays
+
+### Viewport Processing
+Located in `src/brosh/capture.py`:
+- Content-based viewport height adjustment
+- Semantic section boundary detection
+- Progressive capture state tracking
+- Overlap validation between frames
+
+Core Business Rules:
+- Viewport overlap must be between 10-200%
+- Dynamic content requires stabilization delay
+- Section boundaries determine frame splits
+- Seamless merging requires pixel-perfect alignment
+- Content changes invalidate previous captures
 
 $END$
 

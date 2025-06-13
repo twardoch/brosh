@@ -213,13 +213,12 @@ brosh mcp
 
 ```python
 import asyncio
-from brosh import BrowserScreenshotTool
+from brosh import capture_webpage, capture_webpage_async
 
-async def capture_screenshots():
-    tool = BrowserScreenshotTool(verbose=True)
-    
+# Synchronous usage (automatically handles async for you)
+def capture_sync():
     # Basic capture
-    screenshots = await tool.capture(
+    result = capture_webpage(
         url="https://example.com",
         width=1920,
         height=1080,
@@ -227,26 +226,44 @@ async def capture_screenshots():
         format="png"
     )
     
-    print(f"Captured {len(screenshots)} screenshots")
-    for path in screenshots:
+    print(f"Captured {len(result)} screenshots")
+    for path, data in result.items():
         print(f"  - {path}")
-    
+        print(f"    Text: {data['text'][:100]}...")
+
+# Asynchronous usage (for integration with async applications)
+async def capture_async():
     # Capture with HTML extraction
-    result = await tool.capture(
+    result = await capture_webpage_async(
         url="https://example.com",
         html=True,
         max_frames=3,
         from_selector="#main-content"
     )
     
-    # Result is a dict with paths as keys and HTML/selectors as values
+    # Result is a dict with paths as keys and metadata as values
     for path, data in result.items():
         print(f"\nScreenshot: {path}")
         print(f"Selector: {data['selector']}")
-        print(f"HTML preview: {data['html'][:200]}...")
+        print(f"Text preview: {data['text'][:200]}...")
+        if 'html' in data:
+            print(f"HTML preview: {data['html'][:200]}...")
 
-# Run the async function
-asyncio.run(capture_screenshots())
+# Run the examples
+capture_sync()
+asyncio.run(capture_async())
+
+# Convenience functions
+from brosh import capture_full_page, capture_visible_area, capture_animation
+
+# Capture entire page in one screenshot
+full_page = capture_full_page("https://example.com")
+
+# Capture only visible viewport
+visible = capture_visible_area("https://example.com")
+
+# Create animated PNG
+animation = capture_animation("https://example.com")
 ```
 
 ## Command Reference
@@ -544,22 +561,26 @@ The project is organized into modular components:
 src/brosh/
 ├── __init__.py      # Package exports
 ├── __main__.py      # CLI entry point
+├── api.py           # Public API functions
 ├── cli.py           # Command-line interface
 ├── tool.py          # Main screenshot tool
 ├── browser.py       # Browser management
 ├── capture.py       # Screenshot capture logic
 ├── image.py         # Image processing
 ├── models.py        # Data models
-└── mcp.py           # MCP server implementation
+├── mcp.py           # MCP server implementation
+└── texthtml.py      # HTML/text processing
 ```
 
 ### Key Components
 
+- **API Layer**: Provides both sync (`capture_webpage`) and async (`capture_webpage_async`) interfaces
 - **BrowserManager**: Handles browser detection, launching, and connection
 - **CaptureManager**: Manages scrolling and screenshot capture
 - **ImageProcessor**: Handles image scaling, conversion, and animation
 - **BrowserScreenshotTool**: Orchestrates the capture process
 - **BrowserScreenshotCLI**: Provides the command-line interface
+- **MCP Server**: FastMCP-based server for AI tool integration
 
 ## Development
 

@@ -1,20 +1,18 @@
 ---
-description: Specifications for data models including ImageFormat enum, capture configurations, and browser management structures
-globs: src/brosh/models.py,src/brosh/capture.py,src/brosh/browser.py
+description: Data models governing screenshot capture configurations, browser setups, and image formats for webpage captures
+globs: src/brosh/models.py,src/brosh/mcp.py,src/brosh/browser.py
 alwaysApply: false
 ---
 
-
-# data-models
-
+# === USER INSTRUCTIONS ===
+description: Specifications for data models including ImageFormat enum, capture configurations, and browser management structures
+globs: src/brosh/models.py,src/brosh/capture.py,src/brosh/browser.py
 ### Core Data Models
-
 #### ImageFormat Enum
 - Defines supported output formats (PNG, JPG, APNG) with associated MIME types and extensions
 - Maps format strings to appropriate MIME types and file extensions
 - Business logic for format validation and file extension mapping
 - File: `src/brosh/models.py`
-
 #### CaptureConfig Model
 - Encapsulates webpage capture parameters including:
   - Viewport dimensions (width/height) with constraints
@@ -25,7 +23,6 @@ alwaysApply: false
   - Output format preferences
 - Includes validation rules for parameter ranges and combinations
 - File: `src/brosh/models.py`
-
 #### Browser Management Models
 - BrowserInstance tracks:
   - Browser type (Chrome/Edge/Safari)
@@ -33,7 +30,6 @@ alwaysApply: false
   - Platform-specific paths and constraints
 - Priority system for browser selection
 - File: `src/brosh/browser.py`
-
 #### Content Processing Models
 - MCPContentItem:
   - Represents screenshot content with metadata
@@ -44,27 +40,75 @@ alwaysApply: false
   - Associates frames with page sections
   - Manages selector hierarchies
 - File: `src/brosh/models.py`
-
 ### Core Business Logic
-
 1. Browser Priority System (Importance: 95)
 - Chrome > Edge > Safari (macOS only)
 - Firefox explicitly unsupported
 - Dedicated debug ports per browser type
 - File: `src/brosh/browser.py`
-
 2. Capture Parameter Validation (Importance: 90)
 - Zoom level constraints: 10-500%
 - Scroll step: 10-200% viewport 
 - Scale constraints: 10-200%
 - Format validation: PNG/JPG/APNG
 - File: `src/brosh/models.py`
-
 3. Content Metadata Management (Importance: 85)
 - Maps selectors to captured frames
 - Associates text/HTML with visual elements
 - Maintains section hierarchy
 - File: `src/brosh/models.py`
+# === END USER INSTRUCTIONS ===
+
+# data-models 
+
+## Core Data Models
+
+### ImageFormat Enum
+Location: `src/brosh/models.py`
+Importance: 95
+
+- Defines supported output formats with business rules:
+  - PNG: Default lossless format for accuracy
+  - JPG: For size-optimized captures
+  - APNG: For scroll animations with configurable frame rate
+
+### CaptureConfig 
+Location: `src/brosh/models.py`
+Importance: 90
+
+Defines business constraints for captures:
+- Viewport dimensions (width/height)
+- Scroll step (10-200% of viewport)
+- Scale factor (10-100%)
+- Format selection
+- Section identifiers for semantic naming
+
+### Browser Management Models
+Location: `src/brosh/browser.py`
+Importance: 85
+
+Browser prioritization rules:
+- Chrome (Primary): Port 9222
+- Edge (Secondary): Port 9223 
+- Safari (macOS only): Port 9225
+- Firefox: Explicitly unsupported
+
+## MCP Integration Models
+Location: `src/brosh/mcp.py`
+Importance: 80
+
+Models for AI tool integration:
+- MCPResource: Image/text resource wrapper
+- MCPContentItem: Standardized format for visual context
+- MCPScreenshotResult: Capture result with metadata
+
+Core constraints:
+- Progressive downsampling for size limits
+- Interleaved image/text content
+- Mandatory metadata fields:
+  - Selector paths
+  - Visible text
+  - Content type
 
 $END$
 

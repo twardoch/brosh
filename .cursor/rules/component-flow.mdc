@@ -1,68 +1,133 @@
 ---
-description: Specifies data and control flow between BrowserManager, CaptureManager, and ImageProcessor components including error handling and async operations.
-globs: src/brosh/**/browser.py,src/brosh/**/capture.py,src/brosh/**/image.py,src/brosh/**/mcp.py
+description: Analyze data and control flow between core components BrowserManager, CaptureManager, and ImageProcessor including async operations and error handling
+globs: src/brosh/browser.py,src/brosh/capture.py,src/brosh/image.py,src/brosh/mcp.py
 alwaysApply: false
 ---
 
-
-# component-flow
-
+# === USER INSTRUCTIONS ===
+description: Specifies data and control flow between BrowserManager, CaptureManager, and ImageProcessor components including error handling and async operations.
+globs: src/brosh/**/browser.py,src/brosh/**/capture.py,src/brosh/**/image.py,src/brosh/**/mcp.py
 ### Core Component Flow
-
 The component flow between BrowserManager, CaptureManager and ImageProcessor follows a specific sequence to handle webpage capture:
-
 #### Primary Flow
 1. BrowserManager detects and initializes browser (Chrome > Edge > Safari)
 2. CaptureManager receives capture request with parameters
 3. CaptureManager coordinates with BrowserManager for viewport management and scrolling
 4. ImageProcessor receives raw captures for optimization and assembly
 5. Results flow back through CaptureManager to BrowserManager
-
 #### Async Flow Management
 - BrowserManager maintains browser lifecycle asynchronously
 - CaptureManager coordinates multiple async capture operations
 - ImageProcessor handles frame processing in parallel
 - Events coordinate state between components
-
 #### Error Flow
 - Browser connection failures trigger retries in BrowserManager
 - Capture synchronization errors handled by CaptureManager
 - Image processing failures bubble up through ImageProcessor
 - Each component implements domain-specific recovery logic
-
 ### Key Integration Points
-
 1. BrowserManager → CaptureManager
 - Browser instance handoff
 - Viewport dimension updates 
 - Scroll position coordination
-
 2. CaptureManager → ImageProcessor
 - Raw frame delivery
 - Capture metadata
 - Processing instructions
-
 3. ImageProcessor → CaptureManager
 - Processed frames
 - Assembly status
 - Optimization results
-
 ### State Coordination
-
 1. Browser State
 - Debug mode status
 - Connection health
 - Viewport position
-
 2. Capture State  
 - Active selectors
 - Scroll progress
 - Frame sequence
-
 3. Processing State
 - Frame assembly progress
 - Format conversions
 - Optimization status
+# === END USER INSTRUCTIONS ===
+
+# component-flow
+
+The core components interact through a series of data flows and control transfers:
+
+## BrowserManager → CaptureManager Flow (Importance: 95)
+
+- Browser instance creation and configuration passed to CaptureManager
+- Viewport setup and resolution detection information flow
+- Debug port management and browser state synchronization
+- Error propagation for browser launch/connection failures
+
+## CaptureManager → ImageProcessor Flow (Importance: 90)
+
+- Frame capture data streaming for processing
+- Viewport overlap detection and scroll position tracking  
+- Content visibility detection signals
+- Frame buffering for APNG animation creation
+
+## ImageProcessor → CaptureManager Flow (Importance: 85)
+
+- Processed frame delivery with scaling/format metadata
+- Frame processing status and error reporting
+- Image optimization completion signals
+- Animation frame assembly status
+
+## Error Handling Chain (Importance: 90)
+
+1. BrowserManager Error Types:
+- Browser launch failures
+- Debug port conflicts 
+- Connection timeouts
+- Platform compatibility issues
+
+2. CaptureManager Error Types:  
+- Page load failures
+- JavaScript execution errors
+- DOM manipulation errors
+- Scroll position tracking errors
+
+3. ImageProcessor Error Types:
+- Format conversion failures
+- Memory allocation errors
+- Animation assembly errors
+- File I/O errors
+
+Error propagation flows up the chain with specific error types and recovery strategies at each level.
+
+## Async Operation Flow (Importance: 85)
+
+- Browser operations execute asynchronously with connection status monitoring
+- Frame capture operates in configurable async batches
+- Image processing runs in parallel worker threads
+- Results aggregation with ordered delivery guarantees
+
+## Request/Response Chain
+
+1. MCP Server → BrowserManager
+- URL and viewport configuration
+- Browser selection parameters 
+- Debug mode settings
+
+2. BrowserManager → CaptureManager  
+- Browser instance handle
+- Page navigation status
+- Viewport metrics
+
+3. CaptureManager → ImageProcessor
+- Raw frame buffer
+- Format specifications
+- Processing parameters
+
+4. ImageProcessor → Client
+- Processed frame data
+- Status metadata
+- Error reports
 
 $END$
 

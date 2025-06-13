@@ -30,14 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browser connection issues with improved retry logic
 - MCP response format now properly excludes null fields and uses camelCase for field names (e.g., `mimeType` instead of `mime_type`)
 - MCP server results now handle size limits properly with progressive compression
+- Screenshot timeout handling
+- Image scaling and format conversion edge cases
+- MCP async execution error where Task object was returned instead of actual results
 
 ### Added
 - PNG optimization using pyoxipng for all captured screenshots
 - HTML content compression that removes SVG elements while preserving dimensions
 - Progressive compression strategy for MCP results exceeding 1MB size limit
 - Automatic downsampling and content reduction for oversized MCP responses
-- Screenshot timeout handling
-- Image scaling and format conversion edge cases
+- Separate `capture_webpage_async` API function for async contexts
 
 ## [0.1.0] - 2025-06-12
 

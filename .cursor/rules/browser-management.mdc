@@ -1,59 +1,104 @@
 ---
-description: Handles browser lifecycle, connection management, and debugging for web page capture operations including cross-platform browser detection and cleanup
-globs: src/brosh/browser.py,src/brosh/capture.py,src/brosh/mcp.py
+description: Specifications for browser detection, connection management and platform-specific handling including debug mode operations and cleanup procedures.
+globs: src/brosh/browser.py,src/brosh/tool.py,src/brosh/mcp.py
 alwaysApply: false
 ---
 
-
-# browser-management
-
+# === USER INSTRUCTIONS ===
+description: Handles browser lifecycle, connection management, and debugging for web page capture operations including cross-platform browser detection and cleanup
+globs: src/brosh/browser.py,src/brosh/capture.py,src/brosh/mcp.py
 ### Browser Priority and Debug Management
-
 The browser management implements a hierarchical priority system for browser selection and debugging:
-
 1. **Browser Priority Chain**
 - Chrome (Priority 1)
 - Edge (Priority 2) 
 - Safari (Priority 3, macOS only)
 - Firefox explicitly unsupported
-
 2. **Debug Port Allocation**
 - Chromium: 9222
 - Edge: 9223 
 - WebKit: 9225
-
 ### Connection Management
-
 The BrowserManager handles browser lifecycle with platform-specific implementations:
-
 1. **Session Initialization**
 - Aggressive process cleanup before debug launches
 - Platform-specific browser detection and path resolution
 - Debug mode connection verification with retry logic
-
 2. **State Management** 
-- Session persistence for authenticated captures
-- Automatic recovery from disconnections
 - Platform-aware screen dimension detection including Retina support
-
 ### Cleanup Procedures
-
 Implements robust cleanup for browser processes:
-
 1. **Pre-Launch Cleanup**
 - Force termination of existing debug instances
 - Port availability verification
 - Platform-specific process enumeration and termination
-
 2. **Post-Capture Cleanup**
 - Graceful session termination
 - Debug port release
 - Orphaned process cleanup
-
 File paths:
 - `src/brosh/browser.py`: Core browser management implementation
 - `src/brosh/capture.py`: Browser state handling during capture
 - `src/brosh/mcp.py`: Debug mode coordination for MCP server
+# === END USER INSTRUCTIONS ===
+
+# browser-management
+
+## Core Browser Management Logic (Importance: 95)
+
+### Browser Priority System
+- Strictly enforced browser hierarchy: Chrome > Edge > Safari
+- Safari restricted to macOS platform only 
+- Firefox explicitly unsupported
+- Each browser type gets dedicated debug ports:
+  - Chromium: 9222
+  - Edge: 9223
+  - WebKit: 9225
+
+### Platform-Specific Detection
+Located in `src/brosh/browser.py`:
+- OS-specific resolution detection with Retina support
+- Browser executable path discovery per platform
+- Debug port allocation and validation
+- Process cleanup and resource management
+
+## Debug Mode Operations (Importance: 90)
+
+### Connection Management
+- Maintains separate debug ports per browser type
+- Supports connecting to existing browser sessions
+- Debug mode orchestration with state tracking
+- Process cleanup on abnormal termination
+
+### Browser Launch Protocol
+- Custom launch arguments per browser type
+- Remote debugging protocol initialization
+- Connection validation and retry logic
+- Resource cleanup on launch failures
+
+## Context Controls (Importance: 85)
+
+### Session Management 
+- Maintains authentication state across captures
+- Preserves cookies and extensions
+- Handles viewport dimension settings
+- Manages browser lifecycle states
+
+### Cleanup Procedures
+- Graceful shutdown of browser instances
+- Debug port release and validation
+- Process termination confirmation
+- Resource cleanup verification
+
+### API Interface
+Located in `src/brosh/browser.py`:
+```python
+def launch_browser_and_connect(browser_type: str) -> BrowserContext:
+    """Launch browser in debug mode and establish connection"""
+
+def quit_browser(browser_type: str) -> None:
+    """Gracefully terminate browser instance"""
+```
 
 $END$
 

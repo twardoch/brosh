@@ -88,8 +88,8 @@ class TestCaptureFrame:
 
     def test_capture_frame_with_optional_fields(self) -> None:
         """Test creating a CaptureFrame with all fields."""
-        from datetime import datetime, timezone
-        
+        from datetime import timezone
+
         timestamp = datetime.now(tz=timezone.utc)
         frame = CaptureFrame(
             image_bytes=b"test_image_data",
@@ -101,7 +101,7 @@ class TestCaptureFrame:
             visible_text="Test content",
             timestamp=timestamp,
         )
-        
+
         assert frame.visible_html == "<div>Test</div>"
         assert frame.visible_text == "Test content"
         assert frame.timestamp == timestamp
@@ -249,7 +249,7 @@ class TestCaptureResult:
 
     def test_capture_result_creation(self, temp_output_dir: Path) -> None:
         """Test creating a CaptureResult."""
-        from datetime import datetime, timezone
+        from datetime import timezone
 
         frames = {str(temp_output_dir / "test.png"): {"selector": "main", "text": "Test content"}}
 

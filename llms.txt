@@ -70,7 +70,9 @@ src/
     tool.py
 tests/
   conftest.py
+  README.md
   test_api.py
+  test_browser.py
   test_cli.py
   test_models.py
   test_package.py
@@ -84,6 +86,7 @@ package.toml
 pyproject.toml
 pyrightconfig.json
 README.md
+run_tests.py
 </directory_structure>
 
 <files>
@@ -527,6 +530,211 @@ class DOMProcessor:
         html = re.sub(r'href="data:[^"]{100,}"', 'href=""', html)
 
         return html.strip()
+</file>
+
+<file path="tests/README.md">
+# Brosh Tests
+
+This directory contains comprehensive tests for the brosh package.
+
+## Test Structure
+
+### Test Files
+
+- `conftest.py` - Pytest configuration and shared fixtures
+- `test_package.py` - Basic package tests (version, imports)
+- `test_models.py` - Tests for data models and enums
+- `test_api.py` - Tests for the public API functions
+- `test_cli.py` - Tests for the CLI interface
+- `test_browser.py` - Tests for browser management utilities
+
+### Test Categories
+
+- **Unit Tests**: Test individual functions and classes in isolation
+- **Integration Tests**: Test interactions between components
+- **API Tests**: Test the public API interface
+- **CLI Tests**: Test command-line interface functionality
+
+## Running Tests
+
+### Prerequisites
+
+Install test dependencies:
+
+```bash
+pip install -e ".[test]"
+```
+
+### Running All Tests
+
+```bash
+# Using pytest directly
+pytest
+
+# Using the test runner script
+python run_tests.py
+
+# Using pytest with coverage
+pytest --cov=src/brosh --cov-report=html
+```
+
+### Running Specific Tests
+
+```bash
+# Run tests for a specific module
+pytest tests/test_models.py
+
+# Run tests for a specific class
+pytest tests/test_models.py::TestImageFormat
+
+# Run tests for a specific function
+pytest tests/test_models.py::TestImageFormat::test_mime_type_property
+
+# Run tests matching a pattern
+pytest -k "test_capture"
+
+# Run only unit tests (if marked)
+pytest -m "unit"
+
+# Run only async tests
+pytest -m "asyncio"
+```
+
+### Test Options
+
+```bash
+# Verbose output
+pytest -v
+
+# Stop on first failure
+pytest -x
+
+# Run in parallel (if pytest-xdist is installed)
+pytest -n auto
+
+# Show coverage report
+pytest --cov=src/brosh --cov-report=term-missing
+
+# Generate HTML coverage report
+pytest --cov=src/brosh --cov-report=html
+```
+
+## Test Coverage
+
+The tests aim for high coverage of the brosh codebase:
+
+- **Models**: Complete coverage of data models, validation, and enums
+- **API**: Coverage of all public API functions and error handling
+- **CLI**: Coverage of command-line interface and option parsing
+- **Browser Management**: Coverage of browser detection and management
+- **Error Handling**: Tests for various error conditions and edge cases
+
+## Test Configuration
+
+Test configuration is defined in `pyproject.toml`:
+
+- Test discovery patterns
+- Coverage settings
+- Async test configuration
+- Warning filters
+- Markers for test categorization
+
+## Fixtures
+
+Common test fixtures are defined in `conftest.py`:
+
+- `temp_output_dir`: Temporary directory for test outputs
+- `sample_url`: Sample URL for testing
+- `sample_capture_config`: Sample configuration objects
+- Mock objects for Playwright browser components
+
+## Mocking Strategy
+
+Tests use mocking to isolate units under test:
+
+- **Browser interactions**: Mock Playwright browser, context, and page objects
+- **File system operations**: Mock file I/O where appropriate
+- **External processes**: Mock subprocess calls for browser launching
+- **Network requests**: Mock HTTP requests and responses
+
+## CI/CD Integration
+
+Tests are configured for continuous integration:
+
+- Coverage reports in XML format for CI systems
+- Proper exit codes for build success/failure
+- Parallel test execution support
+- Configurable warning filters
+
+## Adding New Tests
+
+When adding new tests:
+
+1. Follow the existing naming conventions (`test_*.py`)
+2. Use appropriate fixtures from `conftest.py`
+3. Mock external dependencies
+4. Test both success and error cases
+5. Add docstrings explaining what each test validates
+6. Use appropriate test markers if needed
+
+### Test Naming
+
+- Test files: `test_<module_name>.py`
+- Test classes: `Test<ClassName>`
+- Test methods: `test_<functionality>_<condition>`
+
+### Example Test Structure
+
+```python
+class TestFeature:
+    """Test the Feature class."""
+
+    def test_feature_creation_success(self) -> None:
+        """Test successful feature creation."""
+        # Arrange
+        # Act
+        # Assert
+
+    def test_feature_creation_invalid_input(self) -> None:
+        """Test feature creation with invalid input."""
+        # Test error conditions
+        with pytest.raises(ValueError):
+            # Test code that should raise ValueError
+
+    @pytest.mark.asyncio
+    async def test_feature_async_operation(self) -> None:
+        """Test async feature operation."""
+        # Test async functionality
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Import Errors**: Ensure the package is installed in development mode
+2. **Async Test Failures**: Make sure pytest-asyncio is installed
+3. **Coverage Issues**: Check that the source paths are correct
+4. **Mock Failures**: Verify mock patches target the correct module paths
+
+### Debug Mode
+
+Run tests with debug output:
+
+```bash
+pytest -v -s --tb=long
+```
+
+Add debugging breakpoints in tests:
+
+```python
+import pdb; pdb.set_trace()
+```
+
+Or use pytest's built-in debugging:
+
+```bash
+pytest --pdb
+```
 </file>
 
 <file path=".cursorindexingignore">
@@ -1773,428 +1981,326 @@ class MCPToolResult(BaseModel):
         return data
 </file>
 
-<file path="tests/conftest.py">
-"""Pytest configuration and fixtures for brosh tests."""
+<file path="tests/test_browser.py">
+"""Tests for brosh.browser module."""
 
-import asyncio
-import tempfile
-from collections.abc import Generator
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
-
-import pytest
-from pydantic.networks import AnyUrl
-
-from brosh.models import CaptureConfig, CaptureFrame, ImageFormat
-
-
-@pytest.fixture
-def temp_output_dir() -> Generator[Path, None, None]:
-    """Provide a temporary directory for test outputs.
-
-    Used in:
-    - tests/test_api.py
-    - tests/test_cli.py
-    - tests/test_models.py
-    """
-    with tempfile.TemporaryDirectory() as temp_dir:
-        yield Path(temp_dir)
-
-
-@pytest.fixture
-def sample_url() -> AnyUrl:
-    """Provide a sample URL for testing."""
-    return AnyUrl("https://example.com")
-
-
-@pytest.fixture
-def sample_capture_config(temp_output_dir: Path, sample_url: AnyUrl) -> CaptureConfig:
-    """Provide a sample CaptureConfig for testing."""
-    return CaptureConfig(
-        url=str(sample_url),
-        width=1024,
-        height=768,
-        zoom=100,
-        scroll_step=100,
-        scale=100,
-        format=ImageFormat.PNG,
-        app="chrome",
-        output_dir=str(temp_output_dir),
-        subdirs=False,
-        anim_spf=0.5,
-        html=False,
-        max_frames=0,
-        from_selector="",
-    )
-
-
-@pytest.fixture
-def sample_capture_frame() -> CaptureFrame:
-    """Provide a sample CaptureFrame for testing."""
-    return CaptureFrame(
-        image_bytes=b"fake_image_data",
-        scroll_position_y=0,
-        page_height=2000,
-        viewport_height=800,
-        active_selector="body",
-        visible_html="<html><body>Test content</body></html>",
-        visible_text="Test content",
-    )
-
-
-@pytest.fixture
-def mock_playwright_page() -> MagicMock:
-    """Provide a mock Playwright page object."""
-    page = AsyncMock()
-    page.goto = AsyncMock()
-    page.set_viewport_size = AsyncMock()
-    page.screenshot = AsyncMock(return_value=b"fake_screenshot_data")
-    page.evaluate = AsyncMock(return_value={"height": 2000, "width": 1024})
-    page.query_selector = AsyncMock()
-    page.content = AsyncMock(return_value="<html><body>Test</body></html>")
-    return page
-
-
-@pytest.fixture
-def mock_playwright_context() -> MagicMock:
-    """Provide a mock Playwright context object."""
-    context = AsyncMock()
-    context.new_page = AsyncMock()
-    context.close = AsyncMock()
-    return context
-
-
-@pytest.fixture
-def mock_playwright_browser() -> MagicMock:
-    """Provide a mock Playwright browser object."""
-    browser = AsyncMock()
-    browser.new_context = AsyncMock()
-    browser.close = AsyncMock()
-    return browser
-
-
-@pytest.fixture
-def mock_playwright() -> MagicMock:
-    """Provide a mock Playwright instance."""
-    p = MagicMock()
-    p.chromium = AsyncMock()
-    p.firefox = AsyncMock()
-    p.webkit = AsyncMock()
-    return p
-
-
-@pytest.fixture(scope="session")
-def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
-    """Create an event loop for async tests."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        yield loop
-    finally:
-        loop.close()
-</file>
-
-<file path="tests/test_models.py">
-"""Tests for brosh.models module."""
-
-from datetime import datetime
-from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from brosh.models import (
-    CaptureConfig,
-    CaptureFrame,
-    CaptureResult,
-    ImageFormat,
-    MCPImageContent,
-    MCPTextContent,
-    MCPToolResult,
-)
+from brosh.browser import BrowserManager
 
 
-class TestImageFormat:
-    """Test the ImageFormat enum."""
+class TestBrowserManager:
+    """Test the BrowserManager class."""
 
-    def test_mime_type_property(self) -> None:
-        """Test that mime_type property returns correct MIME types."""
-        assert ImageFormat.PNG.mime_type == "image/png"
-        assert ImageFormat.JPG.mime_type == "image/jpeg"
-        assert ImageFormat.APNG.mime_type == "image/apng"
+    def test_browser_manager_initialization(self) -> None:
+        """Test BrowserManager initialization."""
+        manager = BrowserManager()
 
-    def test_file_extension_property(self) -> None:
-        """Test that file_extension property returns correct extensions."""
-        assert ImageFormat.PNG.file_extension == ".png"
-        assert ImageFormat.JPG.file_extension == ".jpg"
-        assert ImageFormat.APNG.file_extension == ".apng"
+        assert hasattr(manager, "debug_ports")
+        assert isinstance(manager.debug_ports, dict)
+        assert "chrome" in manager.debug_ports
+        assert "firefox" in manager.debug_ports
+        assert "edge" in manager.debug_ports
 
-    def test_from_mime_type_valid(self) -> None:
-        """Test creating ImageFormat from valid MIME types."""
-        assert ImageFormat.from_mime_type("image/png") == ImageFormat.PNG
-        assert ImageFormat.from_mime_type("image/jpeg") == ImageFormat.JPG
-        assert ImageFormat.from_mime_type("image/jpg") == ImageFormat.JPG
-        assert ImageFormat.from_mime_type("image/apng") == ImageFormat.APNG
+    def test_get_browser_name_empty_string(self) -> None:
+        """Test get_browser_name with empty app string."""
+        manager = BrowserManager()
 
-    def test_from_mime_type_invalid(self) -> None:
-        """Test error handling for invalid MIME types."""
-        with pytest.raises(ValueError, match="Unsupported MIME type"):
-            ImageFormat.from_mime_type("image/gif")
+        with patch("platform.system") as mock_system:
+            # Test macOS
+            mock_system.return_value = "Darwin"
+            assert manager.get_browser_name("") == "chrome"
 
-    def test_from_extension_valid(self) -> None:
-        """Test creating ImageFormat from valid file extensions."""
-        assert ImageFormat.from_extension(".png") == ImageFormat.PNG
-        assert ImageFormat.from_extension("png") == ImageFormat.PNG
-        assert ImageFormat.from_extension(".jpg") == ImageFormat.JPG
-        assert ImageFormat.from_extension("jpg") == ImageFormat.JPG
-        assert ImageFormat.from_extension(".jpeg") == ImageFormat.JPG
-        assert ImageFormat.from_extension("jpeg") == ImageFormat.JPG
-        assert ImageFormat.from_extension(".apng") == ImageFormat.APNG
+            # Test Windows
+            mock_system.return_value = "Windows"
+            assert manager.get_browser_name("") == "chrome"
 
-    def test_from_extension_case_insensitive(self) -> None:
-        """Test that extension parsing is case-insensitive."""
-        assert ImageFormat.from_extension(".PNG") == ImageFormat.PNG
-        assert ImageFormat.from_extension(".JPG") == ImageFormat.JPG
+            # Test Linux
+            mock_system.return_value = "Linux"
+            assert manager.get_browser_name("") == "chrome"
 
-    def test_from_extension_invalid(self) -> None:
-        """Test error handling for invalid file extensions."""
-        with pytest.raises(ValueError, match="Unsupported file extension"):
-            ImageFormat.from_extension(".gif")
+    def test_get_browser_name_specific_browser(self) -> None:
+        """Test get_browser_name with specific browser names."""
+        manager = BrowserManager()
+
+        assert manager.get_browser_name("chrome") == "chrome"
+        assert manager.get_browser_name("firefox") == "firefox"
+        assert manager.get_browser_name("edge") == "edge"
+        assert manager.get_browser_name("safari") == "safari"
+
+    def test_get_browser_name_invalid_browser(self) -> None:
+        """Test get_browser_name with invalid browser name."""
+        manager = BrowserManager()
+
+        with pytest.raises(ValueError, match="Unsupported browser"):
+            manager.get_browser_name("invalid_browser")
+
+    @patch("brosh.browser.subprocess.run")
+    def test_browser_path_detection(self, mock_subprocess: MagicMock) -> None:
+        """Test browser path detection."""
+        manager = BrowserManager()
+
+        # Test that browser detection methods exist
+        assert hasattr(manager, "is_browser_available")
+        assert hasattr(manager, "find_browser_path")
+        assert hasattr(manager, "get_browser_paths")
+
+        # Test browser availability check
+        with patch("os.path.exists", return_value=True):
+            assert manager.is_browser_available("chrome") in [True, False]
+
+    def test_find_browser_path(self) -> None:
+        """Test finding browser executable path."""
+        manager = BrowserManager()
+
+        # This should return a path or None
+        path = manager.find_browser_path("chrome")
+        assert path is None or isinstance(path, str)
+
+    def test_get_browser_paths(self) -> None:
+        """Test getting possible browser paths."""
+        manager = BrowserManager()
+
+        paths = manager.get_browser_paths("chrome")
+        assert isinstance(paths, list)
+
+    @pytest.mark.asyncio
+    async def test_launch_browser_and_connect(self) -> None:
+        """Test launching browser and connecting."""
+        manager = BrowserManager()
+
+        # Mock subprocess for browser launch
+        with patch("subprocess.Popen") as mock_popen:
+            mock_process = MagicMock()
+            mock_process.poll.return_value = None  # Still running
+            mock_popen.return_value = mock_process
+
+            # This method should exist
+            assert hasattr(manager, "launch_browser_and_connect")
+
+    def test_browser_failure_handling(self) -> None:
+        """Test browser failure handling."""
+        manager = BrowserManager()
+
+        # Test with invalid browser path
+        path = manager.find_browser_path("nonexistent_browser")
+        assert path is None
+
+    def test_get_screen_dimensions_default(self) -> None:
+        """Test getting screen dimensions with defaults."""
+        manager = BrowserManager()
+
+        width, height = manager.get_screen_dimensions()
+
+        # Should return reasonable default values
+        assert width > 0
+        assert height > 0
+        assert isinstance(width, int)
+        assert isinstance(height, int)
+
+    @patch("brosh.browser.tkinter.Tk")
+    def test_get_screen_dimensions_tkinter(self, mock_tk: MagicMock) -> None:
+        """Test getting screen dimensions using tkinter."""
+        # Mock tkinter window
+        mock_root = MagicMock()
+        mock_root.winfo_screenwidth.return_value = 1920
+        mock_root.winfo_screenheight.return_value = 1080
+        mock_tk.return_value = mock_root
+
+        manager = BrowserManager()
+        width, height = manager.get_screen_dimensions()
+
+        assert width == 1920
+        assert height == 1080
+        mock_root.destroy.assert_called_once()
+
+    @patch("brosh.browser.tkinter.Tk")
+    def test_get_screen_dimensions_tkinter_failure(self, mock_tk: MagicMock) -> None:
+        """Test screen dimensions fallback when tkinter fails."""
+        mock_tk.side_effect = Exception("No display")
+
+        manager = BrowserManager()
+        width, height = manager.get_screen_dimensions()
+
+        # Should fall back to defaults
+        assert width == 1024
+        assert height == 768
+
+    @pytest.mark.asyncio
+    async def test_get_browser_instance_chrome(self) -> None:
+        """Test getting browser instance for Chrome."""
+        manager = BrowserManager()
+
+        # Mock playwright
+        mock_playwright = MagicMock()
+        mock_browser = AsyncMock()
+        mock_context = AsyncMock()
+        mock_page = AsyncMock()
+
+        mock_playwright.chromium.launch.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        browser, context, page = await manager.get_browser_instance(mock_playwright, "chrome", 1024, 768, 100)
+
+        assert browser == mock_browser
+        assert context == mock_context
+        assert page == mock_page
+
+        mock_playwright.chromium.launch.assert_called_once()
+        mock_browser.new_context.assert_called_once()
+        mock_context.new_page.assert_called_once()
+        mock_page.set_viewport_size.assert_called_once_with(width=1024, height=768)
+
+    @pytest.mark.asyncio
+    async def test_get_browser_instance_firefox(self) -> None:
+        """Test getting browser instance for Firefox."""
+        manager = BrowserManager()
+
+        # Mock playwright
+        mock_playwright = MagicMock()
+        mock_browser = AsyncMock()
+        mock_context = AsyncMock()
+        mock_page = AsyncMock()
+
+        mock_playwright.firefox.launch.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        browser, context, page = await manager.get_browser_instance(mock_playwright, "firefox", 1920, 1080, 125)
+
+        assert browser == mock_browser
+        assert context == mock_context
+        assert page == mock_page
+
+        mock_playwright.firefox.launch.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_browser_instance_safari(self) -> None:
+        """Test getting browser instance for Safari."""
+        manager = BrowserManager()
+
+        # Mock playwright
+        mock_playwright = MagicMock()
+        mock_browser = AsyncMock()
+        mock_context = AsyncMock()
+        mock_page = AsyncMock()
+
+        mock_playwright.webkit.launch.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        browser, context, page = await manager.get_browser_instance(mock_playwright, "safari", 1024, 768, 100)
+
+        assert browser == mock_browser
+        mock_playwright.webkit.launch.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_get_browser_instance_unsupported(self) -> None:
+        """Test getting browser instance for unsupported browser."""
+        manager = BrowserManager()
+        mock_playwright = MagicMock()
+
+        with pytest.raises(ValueError, match="Unsupported browser"):
+            await manager.get_browser_instance(mock_playwright, "unsupported", 1024, 768, 100)
+
+    def test_debug_ports_configuration(self) -> None:
+        """Test that debug ports are properly configured."""
+        manager = BrowserManager()
+
+        # Check that all expected browsers have debug ports
+        expected_browsers = ["chrome", "firefox", "edge"]
+        for browser in expected_browsers:
+            assert browser in manager.debug_ports
+            assert isinstance(manager.debug_ports[browser], int)
+            assert manager.debug_ports[browser] > 0
+
+    @patch("platform.system")
+    def test_platform_specific_browser_commands(self, mock_system: MagicMock) -> None:
+        """Test platform-specific browser command generation."""
+        manager = BrowserManager()
+
+        # Test macOS
+        mock_system.return_value = "Darwin"
+        chrome_name = manager.get_browser_name("")
+        assert chrome_name in ["chrome", "safari"]
+
+        # Test Windows
+        mock_system.return_value = "Windows"
+        chrome_name = manager.get_browser_name("")
+        assert chrome_name in ["chrome", "edge"]
+
+        # Test Linux
+        mock_system.return_value = "Linux"
+        chrome_name = manager.get_browser_name("")
+        assert chrome_name == "chrome"
+
+    @pytest.mark.asyncio
+    async def test_browser_context_configuration(self) -> None:
+        """Test browser context configuration with custom settings."""
+        manager = BrowserManager()
+
+        # Mock playwright and browser
+        mock_playwright = MagicMock()
+        mock_browser = AsyncMock()
+        mock_context = AsyncMock()
+        mock_page = AsyncMock()
+
+        mock_playwright.chromium.launch.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        # Test with zoom level
+        browser, context, page = await manager.get_browser_instance(mock_playwright, "chrome", 1024, 768, 150)
+
+        # Verify zoom is applied
+        mock_page.set_viewport_size.assert_called_once()
+
+        # Check that context was created with proper settings
+        mock_browser.new_context.assert_called_once()
 
 
-class TestCaptureFrame:
-    """Test the CaptureFrame dataclass."""
+class TestBrowserManagerEdgeCases:
+    """Test edge cases and error conditions for BrowserManager."""
 
-    def test_capture_frame_creation(self) -> None:
-        """Test creating a CaptureFrame with required fields."""
-        frame = CaptureFrame(
-            image_bytes=b"test_image_data",
-            scroll_position_y=100,
-            page_height=2000,
-            viewport_height=800,
-            active_selector="main",
-        )
+    def test_browser_manager_with_invalid_dimensions(self) -> None:
+        """Test browser manager with invalid screen dimensions."""
+        manager = BrowserManager()
 
-        assert frame.image_bytes == b"test_image_data"
-        assert frame.scroll_position_y == 100
-        assert frame.page_height == 2000
-        assert frame.viewport_height == 800
-        assert frame.active_selector == "main"
-        assert frame.visible_html is None
-        assert frame.visible_text is None
-        assert frame.timestamp is None
+        # Dimensions should be positive integers
+        width, height = manager.get_screen_dimensions()
+        assert width > 0
+        assert height > 0
 
-    def test_capture_frame_with_optional_fields(self) -> None:
-        """Test creating a CaptureFrame with all fields."""
-        timestamp = datetime.now()
-        frame = CaptureFrame(
-            image_bytes=b"test_image_data",
-            scroll_position_y=100,
-            page_height=2000,
-            viewport_height=800,
-            active_selector="main",
-            visible_html="<div>Test</div>",
-            visible_text="Test content",
-            timestamp=timestamp,
-        )
+    @patch("brosh.browser.subprocess.run")
+    def test_launch_browser_with_different_platforms(self, mock_subprocess: MagicMock) -> None:
+        """Test launching browsers on different platforms."""
+        manager = BrowserManager()
+        mock_subprocess.return_value = MagicMock(returncode=0)
 
-        assert frame.visible_html == "<div>Test</div>"
-        assert frame.visible_text == "Test content"
-        assert frame.timestamp == timestamp
+        platforms = ["Darwin", "Windows", "Linux"]
+        browsers = ["chrome", "firefox", "edge"]
 
+        for platform in platforms:
+            with patch("platform.system", return_value=platform):
+                for browser in browsers:
+                    # Test that browser methods work
+                    available = manager.is_browser_available(browser)
+                    assert isinstance(available, bool)
 
-class TestCaptureConfig:
-    """Test the CaptureConfig class."""
+                    path = manager.find_browser_path(browser)
+                    assert path is None or isinstance(path, str)
 
-    def test_capture_config_creation_minimal(self) -> None:
-        """Test creating CaptureConfig with minimal required fields."""
-        config = CaptureConfig(url="https://example.com")
+    def test_browser_manager_singleton_behavior(self) -> None:
+        """Test that BrowserManager can be instantiated multiple times."""
+        manager1 = BrowserManager()
+        manager2 = BrowserManager()
 
-        assert config.url == "https://example.com"
-        assert config.width == 0
-        assert config.height == 0
-        assert config.zoom == 100
-        assert config.format == ImageFormat.PNG
-
-    def test_capture_config_creation_full(self, temp_output_dir: Path) -> None:
-        """Test creating CaptureConfig with all fields."""
-        config = CaptureConfig(
-            url="https://example.com/test",
-            width=1920,
-            height=1080,
-            zoom=125,
-            scroll_step=75,
-            scale=150,
-            format=ImageFormat.JPG,
-            app="firefox",
-            output_dir=str(temp_output_dir),
-            subdirs=True,
-            anim_spf=0.8,
-            html=True,
-            max_frames=10,
-            from_selector="main",
-        )
-
-        assert config.url == "https://example.com/test"
-        assert config.width == 1920
-        assert config.height == 1080
-        assert config.zoom == 125
-        assert config.scroll_step == 75
-        assert config.scale == 150
-        assert config.format == ImageFormat.JPG
-        assert config.app == "firefox"
-        assert config.output_dir == str(temp_output_dir)
-        assert config.subdirs is True
-        assert config.anim_spf == 0.8
-        assert config.html is True
-        assert config.max_frames == 10
-        assert config.from_selector == "main"
-
-    def test_capture_config_validation_zoom(self) -> None:
-        """Test CaptureConfig zoom validation."""
-        # Valid zoom values
-        config = CaptureConfig(url="https://example.com", zoom=50)
-        config.validate()
-
-        config = CaptureConfig(url="https://example.com", zoom=200)
-        config.validate()
-
-        # Invalid zoom values
-        with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
-            config = CaptureConfig(url="https://example.com", zoom=5)
-            config.validate()
-
-        with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
-            config = CaptureConfig(url="https://example.com", zoom=600)
-            config.validate()
-
-    def test_capture_config_validation_scroll_step(self) -> None:
-        """Test CaptureConfig scroll_step validation."""
-        # Valid scroll_step values
-        config = CaptureConfig(url="https://example.com", scroll_step=50)
-        config.validate()
-
-        config = CaptureConfig(url="https://example.com", scroll_step=150)
-        config.validate()
-
-        # Invalid scroll_step values
-        with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scroll_step=5)
-            config.validate()
-
-        with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scroll_step=250)
-            config.validate()
-
-    def test_capture_config_validation_scale(self) -> None:
-        """Test CaptureConfig scale validation."""
-        # Valid scale values
-        config = CaptureConfig(url="https://example.com", scale=25)
-        config.validate()
-
-        config = CaptureConfig(url="https://example.com", scale=150)
-        config.validate()
-
-        # Invalid scale values
-        with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scale=5)
-            config.validate()
-
-        with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scale=250)
-            config.validate()
-
-    def test_capture_config_validation_height(self) -> None:
-        """Test CaptureConfig height validation."""
-        # Valid height values
-        config = CaptureConfig(url="https://example.com", height=0)
-        config.validate()
-
-        config = CaptureConfig(url="https://example.com", height=-1)
-        config.validate()
-
-        config = CaptureConfig(url="https://example.com", height=1080)
-        config.validate()
-
-        # Invalid height values
-        with pytest.raises(ValueError, match="Height must be -1, 0, or positive"):
-            config = CaptureConfig(url="https://example.com", height=-5)
-            config.validate()
-
-    def test_capture_config_validation_anim_spf(self) -> None:
-        """Test CaptureConfig anim_spf validation."""
-        # Valid anim_spf values
-        config = CaptureConfig(url="https://example.com", anim_spf=0.1)
-        config.validate()
-
-        config = CaptureConfig(url="https://example.com", anim_spf=5.0)
-        config.validate()
-
-        # Invalid anim_spf values
-        with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
-            config = CaptureConfig(url="https://example.com", anim_spf=0.05)
-            config.validate()
-
-        with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
-            config = CaptureConfig(url="https://example.com", anim_spf=15.0)
-            config.validate()
-
-
-class TestCaptureResult:
-    """Test the CaptureResult class."""
-
-    def test_capture_result_creation(self, temp_output_dir: Path) -> None:
-        """Test creating a CaptureResult."""
-        from datetime import datetime, timezone
-
-        frames = {str(temp_output_dir / "test.png"): {"selector": "main", "text": "Test content"}}
-
-        result = CaptureResult(
-            frames=frames,
-            format=ImageFormat.PNG,
-            total_frames=1,
-            capture_time=datetime.now(tz=timezone.utc),
-        )
-
-        assert result.frames == frames
-        assert result.format == ImageFormat.PNG
-        assert result.total_frames == 1
-        assert isinstance(result.capture_time, datetime)
-
-
-class TestMCPModels:
-    """Test MCP-related model classes."""
-
-    def test_mcp_text_content(self) -> None:
-        """Test MCPTextContent creation."""
-        content = MCPTextContent(text="Test content")
-
-        assert content.type == "text"
-        assert content.text == "Test content"
-
-    def test_mcp_image_content(self) -> None:
-        """Test MCPImageContent creation."""
-        content = MCPImageContent(data="base64_encoded_data", mime_type="image/png")
-
-        assert content.type == "image"
-        assert content.data == "base64_encoded_data"
-        assert content.mime_type == "image/png"
-
-    def test_mcp_tool_result(self) -> None:
-        """Test MCPToolResult creation."""
-        text_content = MCPTextContent(text="Test content")
-        image_content = MCPImageContent(data="base64_data", mime_type="image/png")
-
-        result = MCPToolResult(content=[text_content, image_content])
-
-        assert len(result.content) == 2
-        assert result.content[0] == text_content
-        assert result.content[1] == image_content
-
-    def test_mcp_tool_result_empty(self) -> None:
-        """Test MCPToolResult creation with empty content."""
-        result = MCPToolResult(content=[])
-
-        assert len(result.content) == 0
+        # They should be separate instances but with same configuration
+        assert id(manager1) != id(manager2)
+        assert manager1.debug_ports == manager2.debug_ports
 </file>
 
 <file path="cleanup.sh">
@@ -3903,6 +4009,127 @@ class BrowserScreenshotTool:
         return "section"
 </file>
 
+<file path="tests/conftest.py">
+"""Pytest configuration and fixtures for brosh tests."""
+
+import asyncio
+import tempfile
+from collections.abc import Generator
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from pydantic.networks import AnyUrl
+
+from brosh.models import CaptureConfig, CaptureFrame, ImageFormat
+
+
+@pytest.fixture
+def temp_output_dir() -> Generator[Path, None, None]:
+    """Provide a temporary directory for test outputs.
+
+    Used in:
+    - tests/test_api.py
+    - tests/test_cli.py
+    - tests/test_models.py
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir)
+
+
+@pytest.fixture
+def sample_url() -> AnyUrl:
+    """Provide a sample URL for testing."""
+    return AnyUrl("https://example.com")
+
+
+@pytest.fixture
+def sample_capture_config(temp_output_dir: Path, sample_url: AnyUrl) -> CaptureConfig:
+    """Provide a sample CaptureConfig for testing."""
+    return CaptureConfig(
+        url=str(sample_url),
+        width=1024,
+        height=768,
+        zoom=100,
+        scroll_step=100,
+        scale=100,
+        format=ImageFormat.PNG,
+        app="chrome",
+        output_dir=str(temp_output_dir),
+        subdirs=False,
+        anim_spf=0.5,
+        html=False,
+        max_frames=0,
+        from_selector="",
+    )
+
+
+@pytest.fixture
+def sample_capture_frame() -> CaptureFrame:
+    """Provide a sample CaptureFrame for testing."""
+    return CaptureFrame(
+        image_bytes=b"fake_image_data",
+        scroll_position_y=0,
+        page_height=2000,
+        viewport_height=800,
+        active_selector="body",
+        visible_html="<html><body>Test content</body></html>",
+        visible_text="Test content",
+    )
+
+
+@pytest.fixture
+def mock_playwright_page() -> MagicMock:
+    """Provide a mock Playwright page object."""
+    page = AsyncMock()
+    page.goto = AsyncMock()
+    page.set_viewport_size = AsyncMock()
+    page.screenshot = AsyncMock(return_value=b"fake_screenshot_data")
+    page.evaluate = AsyncMock(return_value={"height": 2000, "width": 1024})
+    page.query_selector = AsyncMock()
+    page.content = AsyncMock(return_value="<html><body>Test</body></html>")
+    return page
+
+
+@pytest.fixture
+def mock_playwright_context() -> MagicMock:
+    """Provide a mock Playwright context object."""
+    context = AsyncMock()
+    context.new_page = AsyncMock()
+    context.close = AsyncMock()
+    return context
+
+
+@pytest.fixture
+def mock_playwright_browser() -> MagicMock:
+    """Provide a mock Playwright browser object."""
+    browser = AsyncMock()
+    browser.new_context = AsyncMock()
+    browser.close = AsyncMock()
+    return browser
+
+
+@pytest.fixture
+def mock_playwright() -> MagicMock:
+    """Provide a mock Playwright instance."""
+    p = MagicMock()
+    p.chromium = AsyncMock()
+    p.firefox = AsyncMock()
+    p.webkit = AsyncMock()
+    return p
+
+
+@pytest.fixture(scope="session")
+def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
+    """Create an event loop for async tests."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        yield loop
+    finally:
+        loop.close()
+</file>
+
 <file path="tests/test_api.py">
 """Tests for brosh.api module."""
 
@@ -4164,6 +4391,937 @@ class TestAPIConvenienceMethods:
         except (AttributeError, NameError):
             # If it's not defined yet, that's fine for now
             pass
+</file>
+
+<file path="tests/test_package.py">
+"""Test suite for brosh."""
+
+
+def test_version():
+    """Verify package exposes version."""
+    import brosh
+
+    assert brosh.__version__
+</file>
+
+<file path="CHANGELOG.md">
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Initial public release of brosh (Browser Screenshot Tool)
+- Playwright-based async implementation for capturing scrolling screenshots
+- Support for Chrome, Edge, and Safari browsers
+- Smart section detection for descriptive filenames
+- Multiple output formats: PNG, JPG, and animated PNG (APNG)
+- Remote debugging mode to connect to existing browser sessions
+- MCP (Model Context Protocol) server integration
+- HTML extraction feature to capture visible element content
+- Automatic text extraction: converts visible HTML to Markdown format
+- Configurable scroll steps and starting positions
+- Automatic browser detection and fallback logic
+- Comprehensive error handling and retry mechanisms
+
+### Changed
+- Refactored monolithic script into modular Python package structure
+- Migrated from script-based to package-based distribution
+- Updated to use modern Python packaging with pyproject.toml
+
+### Fixed
+- Browser connection issues with improved retry logic
+- MCP response format now properly excludes null fields and uses camelCase for field names (e.g., `mimeType` instead of `mime_type`)
+- MCP server results now handle size limits properly with progressive compression
+- Screenshot timeout handling
+- Image scaling and format conversion edge cases
+- MCP async execution error where Task object was returned instead of actual results
+
+### Added
+- PNG optimization using pyoxipng for all captured screenshots
+- HTML content compression that removes SVG elements while preserving dimensions
+- Progressive compression strategy for MCP results exceeding 1MB size limit
+- Automatic downsampling and content reduction for oversized MCP responses
+- Separate `capture_webpage_async` API function for async contexts
+
+## [0.1.0] - 2025-06-12
+
+### Added
+- Initial implementation as a monolithic script
+- Basic screenshot capture functionality
+- Browser management commands (run, quit)
+- Fire-based CLI interface
+
+[Unreleased]: https://github.com/twardoch/brosh/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/twardoch/brosh/releases/tag/v0.1.0
+</file>
+
+<file path="run_tests.py">
+#!/usr/bin/env python3
+"""Simple test runner for brosh package."""
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+def main() -> int:
+    """Run tests with appropriate options."""
+    # Get the project root directory
+    project_root = Path(__file__).parent
+
+    # Basic test command
+    cmd = [
+        sys.executable,
+        "-m",
+        "pytest",
+        str(project_root / "tests"),
+        "--verbose",
+        "--tb=short",
+    ]
+
+    # Add coverage if pytest-cov is available
+    try:
+        import pytest_cov
+
+        del pytest_cov  # We just need to check if it's importable
+        cmd.extend(
+            [
+                "--cov=src/brosh",
+                "--cov-report=term-missing",
+                "--cov-report=html:htmlcov",
+            ]
+        )
+    except ImportError:
+        pass
+
+    # Run the tests
+    try:
+        result = subprocess.run(cmd, cwd=project_root, check=False)
+        return result.returncode
+    except KeyboardInterrupt:
+        return 1
+    except (OSError, subprocess.SubprocessError):
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+</file>
+
+<file path="src/brosh/brosh.py">
+#!/usr/bin/env python3
+"""brosh:
+
+Created by Adam Twardoch
+"""
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
+
+from loguru import logger
+
+
+@dataclass
+class Config:
+    """Configuration settings for brosh."""
+
+    name: str
+    value: str | int | float
+    options: dict[str, Any] | None = None
+
+
+def process_data(data: list[Any], config: Config | None = None, *, debug: bool = False) -> dict[str, Any]:
+    """Process the input data according to configuration.
+
+    Args:
+        data: Input data to process
+        config: Optional configuration settings
+        debug: Enable debug mode
+
+    Returns:
+        Processed data as a dictionary
+
+    Raises:
+        ValueError: If input data is invalid
+
+    """
+    if debug:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("Debug mode enabled")
+
+    if not data:
+        msg = "Input data cannot be empty"
+        raise ValueError(msg)
+
+    # TODO: Implement data processing logic
+    result: dict[str, Any] = {}
+    return result
+
+
+def main() -> None:
+    """Main entry point for brosh."""
+    try:
+        # Example usage
+        config = Config(name="default", value="test", options={"key": "value"})
+        result = process_data([], config=config)
+        logger.info("Processing completed: %s", result)
+
+    except Exception as e:
+        logger.error("An error occurred: %s", str(e))
+        raise
+
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="tests/test_models.py">
+"""Tests for brosh.models module."""
+
+from datetime import datetime
+from pathlib import Path
+
+import pytest
+
+from brosh.models import (
+    CaptureConfig,
+    CaptureFrame,
+    CaptureResult,
+    ImageFormat,
+    MCPImageContent,
+    MCPTextContent,
+    MCPToolResult,
+)
+
+
+class TestImageFormat:
+    """Test the ImageFormat enum."""
+
+    def test_mime_type_property(self) -> None:
+        """Test that mime_type property returns correct MIME types."""
+        assert ImageFormat.PNG.mime_type == "image/png"
+        assert ImageFormat.JPG.mime_type == "image/jpeg"
+        assert ImageFormat.APNG.mime_type == "image/apng"
+
+    def test_file_extension_property(self) -> None:
+        """Test that file_extension property returns correct extensions."""
+        assert ImageFormat.PNG.file_extension == ".png"
+        assert ImageFormat.JPG.file_extension == ".jpg"
+        assert ImageFormat.APNG.file_extension == ".apng"
+
+    def test_from_mime_type_valid(self) -> None:
+        """Test creating ImageFormat from valid MIME types."""
+        assert ImageFormat.from_mime_type("image/png") == ImageFormat.PNG
+        assert ImageFormat.from_mime_type("image/jpeg") == ImageFormat.JPG
+        assert ImageFormat.from_mime_type("image/jpg") == ImageFormat.JPG
+        assert ImageFormat.from_mime_type("image/apng") == ImageFormat.APNG
+
+    def test_from_mime_type_invalid(self) -> None:
+        """Test error handling for invalid MIME types."""
+        with pytest.raises(ValueError, match="Unsupported MIME type"):
+            ImageFormat.from_mime_type("image/gif")
+
+    def test_from_extension_valid(self) -> None:
+        """Test creating ImageFormat from valid file extensions."""
+        assert ImageFormat.from_extension(".png") == ImageFormat.PNG
+        assert ImageFormat.from_extension("png") == ImageFormat.PNG
+        assert ImageFormat.from_extension(".jpg") == ImageFormat.JPG
+        assert ImageFormat.from_extension("jpg") == ImageFormat.JPG
+        assert ImageFormat.from_extension(".jpeg") == ImageFormat.JPG
+        assert ImageFormat.from_extension("jpeg") == ImageFormat.JPG
+        assert ImageFormat.from_extension(".apng") == ImageFormat.APNG
+
+    def test_from_extension_case_insensitive(self) -> None:
+        """Test that extension parsing is case-insensitive."""
+        assert ImageFormat.from_extension(".PNG") == ImageFormat.PNG
+        assert ImageFormat.from_extension(".JPG") == ImageFormat.JPG
+
+    def test_from_extension_invalid(self) -> None:
+        """Test error handling for invalid file extensions."""
+        with pytest.raises(ValueError, match="Unsupported file extension"):
+            ImageFormat.from_extension(".gif")
+
+
+class TestCaptureFrame:
+    """Test the CaptureFrame dataclass."""
+
+    def test_capture_frame_creation(self) -> None:
+        """Test creating a CaptureFrame with required fields."""
+        frame = CaptureFrame(
+            image_bytes=b"test_image_data",
+            scroll_position_y=100,
+            page_height=2000,
+            viewport_height=800,
+            active_selector="main",
+        )
+
+        assert frame.image_bytes == b"test_image_data"
+        assert frame.scroll_position_y == 100
+        assert frame.page_height == 2000
+        assert frame.viewport_height == 800
+        assert frame.active_selector == "main"
+        assert frame.visible_html is None
+        assert frame.visible_text is None
+        assert frame.timestamp is None
+
+    def test_capture_frame_with_optional_fields(self) -> None:
+        """Test creating a CaptureFrame with all fields."""
+        from datetime import timezone
+
+        timestamp = datetime.now(tz=timezone.utc)
+        frame = CaptureFrame(
+            image_bytes=b"test_image_data",
+            scroll_position_y=100,
+            page_height=2000,
+            viewport_height=800,
+            active_selector="main",
+            visible_html="<div>Test</div>",
+            visible_text="Test content",
+            timestamp=timestamp,
+        )
+
+        assert frame.visible_html == "<div>Test</div>"
+        assert frame.visible_text == "Test content"
+        assert frame.timestamp == timestamp
+
+
+class TestCaptureConfig:
+    """Test the CaptureConfig class."""
+
+    def test_capture_config_creation_minimal(self) -> None:
+        """Test creating CaptureConfig with minimal required fields."""
+        config = CaptureConfig(url="https://example.com")
+
+        assert config.url == "https://example.com"
+        assert config.width == 0
+        assert config.height == 0
+        assert config.zoom == 100
+        assert config.format == ImageFormat.PNG
+
+    def test_capture_config_creation_full(self, temp_output_dir: Path) -> None:
+        """Test creating CaptureConfig with all fields."""
+        config = CaptureConfig(
+            url="https://example.com/test",
+            width=1920,
+            height=1080,
+            zoom=125,
+            scroll_step=75,
+            scale=150,
+            format=ImageFormat.JPG,
+            app="firefox",
+            output_dir=str(temp_output_dir),
+            subdirs=True,
+            anim_spf=0.8,
+            html=True,
+            max_frames=10,
+            from_selector="main",
+        )
+
+        assert config.url == "https://example.com/test"
+        assert config.width == 1920
+        assert config.height == 1080
+        assert config.zoom == 125
+        assert config.scroll_step == 75
+        assert config.scale == 150
+        assert config.format == ImageFormat.JPG
+        assert config.app == "firefox"
+        assert config.output_dir == str(temp_output_dir)
+        assert config.subdirs is True
+        assert config.anim_spf == 0.8
+        assert config.html is True
+        assert config.max_frames == 10
+        assert config.from_selector == "main"
+
+    def test_capture_config_validation_zoom(self) -> None:
+        """Test CaptureConfig zoom validation."""
+        # Valid zoom values
+        config = CaptureConfig(url="https://example.com", zoom=50)
+        config.validate()
+
+        config = CaptureConfig(url="https://example.com", zoom=200)
+        config.validate()
+
+        # Invalid zoom values
+        with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
+            config = CaptureConfig(url="https://example.com", zoom=5)
+            config.validate()
+
+        with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
+            config = CaptureConfig(url="https://example.com", zoom=600)
+            config.validate()
+
+    def test_capture_config_validation_scroll_step(self) -> None:
+        """Test CaptureConfig scroll_step validation."""
+        # Valid scroll_step values
+        config = CaptureConfig(url="https://example.com", scroll_step=50)
+        config.validate()
+
+        config = CaptureConfig(url="https://example.com", scroll_step=150)
+        config.validate()
+
+        # Invalid scroll_step values
+        with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
+            config = CaptureConfig(url="https://example.com", scroll_step=5)
+            config.validate()
+
+        with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
+            config = CaptureConfig(url="https://example.com", scroll_step=250)
+            config.validate()
+
+    def test_capture_config_validation_scale(self) -> None:
+        """Test CaptureConfig scale validation."""
+        # Valid scale values
+        config = CaptureConfig(url="https://example.com", scale=25)
+        config.validate()
+
+        config = CaptureConfig(url="https://example.com", scale=150)
+        config.validate()
+
+        # Invalid scale values
+        with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
+            config = CaptureConfig(url="https://example.com", scale=5)
+            config.validate()
+
+        with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
+            config = CaptureConfig(url="https://example.com", scale=250)
+            config.validate()
+
+    def test_capture_config_validation_height(self) -> None:
+        """Test CaptureConfig height validation."""
+        # Valid height values
+        config = CaptureConfig(url="https://example.com", height=0)
+        config.validate()
+
+        config = CaptureConfig(url="https://example.com", height=-1)
+        config.validate()
+
+        config = CaptureConfig(url="https://example.com", height=1080)
+        config.validate()
+
+        # Invalid height values
+        with pytest.raises(ValueError, match="Height must be -1, 0, or positive"):
+            config = CaptureConfig(url="https://example.com", height=-5)
+            config.validate()
+
+    def test_capture_config_validation_anim_spf(self) -> None:
+        """Test CaptureConfig anim_spf validation."""
+        # Valid anim_spf values
+        config = CaptureConfig(url="https://example.com", anim_spf=0.1)
+        config.validate()
+
+        config = CaptureConfig(url="https://example.com", anim_spf=5.0)
+        config.validate()
+
+        # Invalid anim_spf values
+        with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
+            config = CaptureConfig(url="https://example.com", anim_spf=0.05)
+            config.validate()
+
+        with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
+            config = CaptureConfig(url="https://example.com", anim_spf=15.0)
+            config.validate()
+
+
+class TestCaptureResult:
+    """Test the CaptureResult class."""
+
+    def test_capture_result_creation(self, temp_output_dir: Path) -> None:
+        """Test creating a CaptureResult."""
+        from datetime import timezone
+
+        frames = {str(temp_output_dir / "test.png"): {"selector": "main", "text": "Test content"}}
+
+        result = CaptureResult(
+            frames=frames,
+            format=ImageFormat.PNG,
+            total_frames=1,
+            capture_time=datetime.now(tz=timezone.utc),
+        )
+
+        assert result.frames == frames
+        assert result.format == ImageFormat.PNG
+        assert result.total_frames == 1
+        assert isinstance(result.capture_time, datetime)
+
+
+class TestMCPModels:
+    """Test MCP-related model classes."""
+
+    def test_mcp_text_content(self) -> None:
+        """Test MCPTextContent creation."""
+        content = MCPTextContent(text="Test content")
+
+        assert content.type == "text"
+        assert content.text == "Test content"
+
+    def test_mcp_image_content(self) -> None:
+        """Test MCPImageContent creation."""
+        content = MCPImageContent(data="base64_encoded_data", mime_type="image/png")
+
+        assert content.type == "image"
+        assert content.data == "base64_encoded_data"
+        assert content.mime_type == "image/png"
+
+    def test_mcp_tool_result(self) -> None:
+        """Test MCPToolResult creation."""
+        text_content = MCPTextContent(text="Test content")
+        image_content = MCPImageContent(data="base64_data", mime_type="image/png")
+
+        result = MCPToolResult(content=[text_content, image_content])
+
+        assert len(result.content) == 2
+        assert result.content[0] == text_content
+        assert result.content[1] == image_content
+
+    def test_mcp_tool_result_empty(self) -> None:
+        """Test MCPToolResult creation with empty content."""
+        result = MCPToolResult(content=[])
+
+        assert len(result.content) == 0
+</file>
+
+<file path="pyproject.toml">
+# this_file: pyproject.toml
+#==============================================================================
+# BROSH PACKAGE CONFIGURATION
+# This pyproject.toml defines the package metadata, dependencies, build system,
+# and development environment for the brosh package.
+#==============================================================================
+
+#------------------------------------------------------------------------------
+# PROJECT METADATA
+# Core package information used by PyPI and package managers.
+#------------------------------------------------------------------------------
+[project]
+name = 'brosh' # Package name on PyPI
+description = 'Browser screenshot tool using Playwright async API' # Short description
+readme = 'README.md' # Path to README file
+requires-python = '>=3.10' # Minimum Python version
+keywords = [
+    'screenshot',
+    'browser',
+    'playwright',
+    'web',
+    'capture',
+    'automation',
+    'mcp',
+] # Keywords for PyPI search
+dynamic = ["version"] # Fields set dynamically at build time
+
+# PyPI classifiers for package categorization
+classifiers = [
+    'Development Status :: 4 - Beta', # Package maturity level
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Programming Language :: Python :: Implementation :: PyPy',
+    'Operating System :: OS Independent',
+    'License :: OSI Approved :: MIT License',
+    'Intended Audience :: Developers',
+]
+
+dependencies = [
+    'fire>=0.5.0',
+    'playwright>=1.40.0',
+    'pillow>=11.2.1',
+    'fastmcp>=2.8.0',
+    'platformdirs>=4.0.0',
+    'loguru>=0.7.0',
+    'html2text>=2025.4.15',
+    'pyoxipng>=9.1.1',
+]
+
+# Author information
+[[project.authors]]
+name = 'Adam Twardoch'
+email = 'adam+github@twardoch.com'
+
+# License information
+[project.license]
+text = 'MIT'
+
+# Project URLs
+[project.urls]
+Documentation = 'https://github.com/twardoch/brosh#readme'
+Issues = 'https://github.com/twardoch/brosh/issues'
+Source = 'https://github.com/twardoch/brosh'
+
+#------------------------------------------------------------------------------
+# OPTIONAL DEPENDENCIES
+# Additional dependencies for optional features, development, and testing.
+#------------------------------------------------------------------------------
+[project.optional-dependencies]
+
+# Development tools
+dev = [
+    'pre-commit>=4.1.0', # Pre-commit hook manager - Keep pre-commit as is, update if newer pre-commit version is required
+    'ruff>=0.9.7', # Linting and formatting - Keep ruff as is, update if newer ruff version is required
+    'mypy>=1.15.0', # Type checking - Keep mypy as is, update if newer mypy version is required
+    'absolufy-imports>=0.3.1', # Convert relative imports to absolute - Keep absolufy-imports as is, update if newer absolufy-imports version is required
+    'pyupgrade>=3.19.1', # Upgrade Python syntax - Keep pyupgrade as is, update if newer pyupgrade version is required
+    'isort>=6.0.1', # Sort imports - Keep isort as is, update if newer isort version is required
+    'uzpy>=1.0.0', 
+]
+
+# Testing tools and frameworks
+test = [
+    'pytest>=8.3.4', # Testing framework - Keep pytest as is, update if newer pytest version is required
+    'pytest-cov>=6.0.0', # Coverage plugin for pytest - Keep pytest-cov as is, update if newer pytest-cov version is required
+    'pytest-xdist>=3.6.1', # Parallel test execution - Keep pytest-xdist as is, update if newer pytest-xdist version is required
+    'pytest-benchmark[histogram]>=5.1.0', # Benchmarking plugin - Keep pytest-benchmark as is, update if newer pytest-benchmark version is required
+    'pytest-asyncio>=1.0.0', # Async test support - Keep pytest-asyncio as is, update if newer pytest-asyncio version is required
+    'coverage[toml]>=7.6.12',
+]
+
+docs = [
+    "sphinx>=8.2.3",
+    "sphinx-rtd-theme>=3.0.2",
+    "sphinx-autodoc-typehints>=3.2.0",
+    "myst-parser>=4.0.1", # Markdown support in Sphinx
+]
+
+# All optional dependencies combined
+all = [
+]
+
+#------------------------------------------------------------------------------
+# COMMAND-LINE SCRIPTS
+# Entry points for command-line executables installed with the package.
+#------------------------------------------------------------------------------
+[project.scripts]
+brosh = "brosh.__main__:main"
+brosh-mcp = "brosh.mcp:main"
+
+#------------------------------------------------------------------------------
+# BUILD SYSTEM CONFIGURATION
+# Defines the tools required to build the package and the build backend.
+#------------------------------------------------------------------------------
+[build-system]
+# Hatchling is a modern build backend for Python packaging
+# hatch-vcs integrates with version control systems for versioning
+requires = [
+    'hatchling>=1.27.0', # Keep hatchling as is, update if newer hatchling version is required
+    'hatch-vcs>=0.4.0', # Keep hatch-vcs as is, update if newer hatch-vcs version is required
+]
+build-backend = 'hatchling.build' # Specifies Hatchling as the build backend
+
+
+#------------------------------------------------------------------------------
+# HATCH BUILD CONFIGURATION
+# Configures the build process, specifying which packages to include and
+# how to handle versioning.
+#------------------------------------------------------------------------------
+[tool.hatch.build]
+# Include package data files
+include = [
+    "src/brosh/py.typed", # For better type checking support
+    "src/brosh/data/**/*", # Include data files if any
+
+]
+exclude = ["**/__pycache__", "**/.pytest_cache", "**/.mypy_cache"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/brosh"]
+reproducible = true
+
+
+# Version control system hook configuration
+# Automatically updates the version file from git tags
+[tool.hatch.build.hooks.vcs]
+version-file = "src/brosh/__version__.py"
+
+# Version source configuration
+[tool.hatch.version]
+source = 'vcs' # Get version from git tags or other VCS info
+
+# Metadata handling configuration
+[tool.hatch.metadata]
+allow-direct-references = true # Allow direct references in metadata (useful for local dependencies)
+
+
+#------------------------------------------------------------------------------
+# DEVELOPMENT ENVIRONMENTS
+
+[tool.hatch.envs.default]
+features = ['dev', 'test', 'all']
+dependencies = [
+]
+
+# Commands available in the default environment
+[tool.hatch.envs.default.scripts]
+# Run tests with optional arguments
+test = 'pytest {args:tests}'
+# Run tests with coverage reporting
+test-cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/brosh --cov=tests {args:tests}"
+# Run type checking
+type-check = "mypy src/brosh tests"
+# Run linting and formatting
+lint = ["ruff check src/brosh tests", "ruff format --respect-gitignore src/brosh tests"]
+# Format and fix style issues
+fmt = ["ruff format --respect-gitignore src/brosh tests", "ruff check --fix src/brosh tests"]
+fix = ["ruff check --fix --unsafe-fixes src/brosh tests", "ruff format --respect-gitignore src/brosh tests"]
+
+# Matrix configuration to test across multiple Python versions
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.10", "3.11", "3.12"]
+
+#------------------------------------------------------------------------------
+# SPECIALIZED ENVIRONMENTS
+# Additional environments for specific development tasks.
+#------------------------------------------------------------------------------
+
+# Dedicated environment for linting and code quality checks
+[tool.hatch.envs.lint]
+detached = true # Create a separate, isolated environment
+features = ['dev'] # Use dev extras  dependencies 
+
+# Linting environment commands
+[tool.hatch.envs.lint.scripts]
+# Type checking with automatic type installation
+typing = "mypy --install-types --non-interactive {args:src/brosh tests}"
+# Check style and format code
+style = ["ruff check {args:.}", "ruff format --respect-gitignore {args:.}"]
+# Format and fix style issues
+fmt = ["ruff format --respect-gitignore {args:.}", "ruff check --fix {args:.}"]
+fix = ["ruff check --fix --unsafe-fixes {args:.}", "ruff format --respect-gitignore {args:.}"]
+# Run all ops
+all = ["style", "typing", "fix"]
+
+# Dedicated environment for testing
+[tool.hatch.envs.test]
+features = ['test'] # Use test extras as dependencies
+
+# Testing environment commands
+[tool.hatch.envs.test.scripts]
+# Run tests in parallel
+test = "python -m pytest -n auto {args:tests}"
+# Run tests with coverage in parallel
+test-cov = "python -m pytest -n auto --cov-report=term-missing --cov-config=pyproject.toml --cov=src/brosh --cov=tests {args:tests}"
+# Run benchmarks
+bench = "python -m pytest -v -p no:briefcase tests/test_benchmark.py --benchmark-only"
+# Run benchmarks and save results
+bench-save = "python -m pytest -v -p no:briefcase tests/test_benchmark.py --benchmark-only --benchmark-json=benchmark/results.json"
+
+# Documentation environment
+[tool.hatch.envs.docs]
+features = ['docs']
+
+# Documentation environment commands
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build -b html docs/source docs/build"
+
+# GitHub Actions workflow configuration
+[tool.hatch.envs.ci]
+features = ['test']
+
+
+[tool.hatch.envs.ci.scripts]
+test = "pytest --cov=src/brosh --cov-report=xml"
+
+
+#------------------------------------------------------------------------------
+# CODE QUALITY TOOLS
+# Configuration for linting, formatting, and code quality enforcement.
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+# PYTEST CONFIGURATION
+# Settings for the pytest testing framework.
+#------------------------------------------------------------------------------
+[tool.pytest.ini_options]
+# Test discovery
+testpaths = ["tests"] # Directory containing tests
+python_files = ["test_*.py", "*_test.py"] # Test file patterns
+python_classes = ["Test*"] # Test class patterns
+python_functions = ["test_*"] # Test function patterns
+
+# Output and reporting
+addopts = [
+    "--strict-markers", # Treat unregistered markers as errors
+    "--strict-config", # Treat invalid config as errors
+    "--verbose", # Verbose output
+    "--tb=short", # Short traceback format
+    "--cov=src/brosh", # Coverage for brosh package
+    "--cov-report=term-missing", # Show missing lines in terminal
+    "--cov-report=html:htmlcov", # Generate HTML coverage report
+    "--cov-report=xml", # Generate XML coverage report for CI
+    "--cov-fail-under=80", # Fail if coverage is below 80%
+]
+
+# Test markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "asyncio: marks tests as async tests",
+]
+
+# Async test configuration
+asyncio_mode = "auto" # Automatically detect and run async tests
+
+# Minimum Python version for tests
+minversion = "8.0"
+
+# Filter warnings
+filterwarnings = [
+    "error", # Treat warnings as errors
+    "ignore::UserWarning", # Ignore user warnings
+    "ignore::DeprecationWarning", # Ignore deprecation warnings from dependencies
+    "ignore::PendingDeprecationWarning", # Ignore pending deprecation warnings
+]
+
+#------------------------------------------------------------------------------
+# COVERAGE CONFIGURATION
+# Settings for code coverage reporting.
+#------------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src"] # Source code directory
+branch = true # Enable branch coverage
+parallel = true # Allow parallel test execution
+omit = [
+    "*/tests/*", # Exclude test files
+    "*/test_*", # Exclude test files
+    "*/__pycache__/*", # Exclude Python cache
+    "*/site-packages/*", # Exclude installed packages
+    "*/.venv/*", # Exclude virtual environment
+]
+
+[tool.coverage.paths]
+# Map coverage paths for different environments
+source = [
+    "src/",
+    "*/site-packages/", # For tox/CI environments
+]
+
+[tool.coverage.report]
+# Coverage reporting options
+exclude_lines = [
+    "pragma: no cover", # Explicitly excluded lines
+    "def __repr__", # String representations
+    "if self.debug:", # Debug code
+    "if settings.DEBUG", # Django-style debug code
+    "raise AssertionError", # Should not happen in normal execution
+    "raise NotImplementedError", # Abstract methods
+    "if 0:", # Dead code
+    "if __name__ == .__main__.:", # Main blocks
+    "class .*\\bProtocol\\):", # Protocol classes
+    "@(abc\\.)?abstractmethod", # Abstract methods
+]
+ignore_errors = true # Ignore coverage errors
+show_missing = true # Show line numbers of missing coverage
+skip_covered = false # Don't skip files with 100% coverage
+
+[tool.coverage.html]
+directory = "htmlcov" # HTML report directory
+
+[tool.coverage.xml]
+output = "coverage.xml" # XML report file
+
+#------------------------------------------------------------------------------
+# RUFF CONFIGURATION
+# Configuration for Ruff, including linter and formatter settings.
+#------------------------------------------------------------------------------ 
+
+# Ruff linter and formatter configuration
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+exclude = [".git", ".venv", "venv", "dist", "build", "_private"]
+
+# Linting rules configuration
+[tool.ruff.lint]
+# Rule sets to enable, organized by category
+select = [
+    # flake8 plugins and extensions
+    'A', # flake8-builtins: checks for shadowed builtins
+    'ARG', # flake8-unused-arguments: checks for unused function arguments
+    'ASYNC', # flake8-async: checks for async/await issues
+    'B', # flake8-bugbear: finds likely bugs and design problems
+    'C', # flake8-comprehensions: helps write better list/dict comprehensions
+    'DTZ', # flake8-datetimez: checks for datetime timezone issues
+    'E', # pycodestyle errors: PEP 8 style guide errors
+    'EM', # flake8-errmsg: checks for better error messages
+    'F', # pyflakes: detects various errors
+    'FBT', # flake8-boolean-trap: checks for boolean traps in function signatures
+    'I', # isort: sorts imports
+    'ICN', # flake8-import-conventions: checks for import conventions
+    'ISC', # flake8-implicit-str-concat: checks for implicit string concatenation
+    'LOG', # flake8-logging: checks for logging issues
+    'N', # pep8-naming: checks naming conventions
+    'PLC', # pylint convention: checks for convention issues
+    'PLE', # pylint error: checks for errors
+    'PLR', # pylint refactor: suggests refactors
+    'PLW', # pylint warning: checks for suspicious code
+    'PT', # flake8-pytest-style: checks pytest-specific style
+    'PTH', # flake8-use-pathlib: checks for stdlib path usage vs pathlib
+    'PYI', # flake8-pyi: checks stub files
+    'RET', # flake8-return: checks return statement consistency
+    'RSE', # flake8-raise: checks raise statements
+    'RUF', # Ruff-specific rules
+    'S', # flake8-bandit: checks for security issues
+    'SIM', # flake8-simplify: checks for code simplification opportunities
+    'T', # flake8-print: checks for print statements
+    'TCH', # flake8-type-checking: helps with type-checking
+    'TID', # flake8-tidy-imports: checks for tidy import statements
+    'UP', # pyupgrade: checks for opportunities to use newer Python features
+    'W', # pycodestyle warnings: PEP 8 style guide warnings
+    'YTT', # flake8-2020: checks for misuse of sys.version or sys.version_info
+
+]
+# Rules to ignore (with reasons)
+ignore = [
+    'B027', # Empty method in abstract base class - sometimes needed for interfaces
+    'C901', # Function is too complex - sometimes complexity is necessary
+    'FBT003', # Boolean positional argument in function definition - sometimes unavoidable
+    'PLR0911', # Too many return statements - sometimes needed for readability
+    'PLR0912', # Too many branches - sometimes needed for complex logic
+    'PLR0913', # Too many arguments - sometimes needed in APIs
+    'PLR0915', # Too many statements - sometimes needed for comprehensive functions
+    'PLR1714', # Consider merging multiple comparisons - sometimes less readable
+    'PLW0603', # Using the global statement - sometimes necessary
+    'PT013', # Pytest explicit test parameter - sometimes clearer
+    'PTH123', # Path traversal - sometimes needed
+    'PYI056', # Calling open() in pyi file - sometimes needed in type stubs
+    'S105', # Possible hardcoded password - often false positives
+    'S106', # Possible hardcoded password - often false positives
+    'S107', # Possible hardcoded password - often false positives
+    'S110', # try-except-pass - sometimes valid for suppressing exceptions
+    'SIM102'
+    # Nested if statements - sometimes more readable than combined conditions
+]
+# Rules that should not be automatically fixed
+unfixable = [
+    'F401', # Don't automatically remove unused imports - may be needed later
+
+]
+# Exclude patterns are handled in the main [tool.ruff] section
+
+# isort configuration within Ruff
+[tool.ruff.lint.isort]
+known-first-party = ['brosh'] # Treat as first-party imports for sorting
+
+# flake8-tidy-imports configuration within Ruff
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = 'parents' # Allow relative imports within packages
+
+# Per-file rule exceptions
+[tool.ruff.lint.per-file-ignores]
+# Tests can use magic values, assertions, and relative imports
+'tests/**/*' = [
+    'PLR2004', # Allow magic values in tests for readability
+    'S101', # Allow assertions in tests
+    'TID252'
+    # Allow relative imports in tests for convenience
+]
 </file>
 
 <file path="tests/test_cli.py">
@@ -4441,596 +5599,6 @@ class TestCLIUtilities:
         # Test specific browser
         cli_firefox = BrowserScreenshotCLI(app="firefox")
         assert cli_firefox.app == "firefox"
-</file>
-
-<file path="tests/test_package.py">
-"""Test suite for brosh."""
-
-
-def test_version():
-    """Verify package exposes version."""
-    import brosh
-
-    assert brosh.__version__
-</file>
-
-<file path="CHANGELOG.md">
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [Unreleased]
-
-### Added
-- Initial public release of brosh (Browser Screenshot Tool)
-- Playwright-based async implementation for capturing scrolling screenshots
-- Support for Chrome, Edge, and Safari browsers
-- Smart section detection for descriptive filenames
-- Multiple output formats: PNG, JPG, and animated PNG (APNG)
-- Remote debugging mode to connect to existing browser sessions
-- MCP (Model Context Protocol) server integration
-- HTML extraction feature to capture visible element content
-- Automatic text extraction: converts visible HTML to Markdown format
-- Configurable scroll steps and starting positions
-- Automatic browser detection and fallback logic
-- Comprehensive error handling and retry mechanisms
-
-### Changed
-- Refactored monolithic script into modular Python package structure
-- Migrated from script-based to package-based distribution
-- Updated to use modern Python packaging with pyproject.toml
-
-### Fixed
-- Browser connection issues with improved retry logic
-- MCP response format now properly excludes null fields and uses camelCase for field names (e.g., `mimeType` instead of `mime_type`)
-- MCP server results now handle size limits properly with progressive compression
-- Screenshot timeout handling
-- Image scaling and format conversion edge cases
-- MCP async execution error where Task object was returned instead of actual results
-
-### Added
-- PNG optimization using pyoxipng for all captured screenshots
-- HTML content compression that removes SVG elements while preserving dimensions
-- Progressive compression strategy for MCP results exceeding 1MB size limit
-- Automatic downsampling and content reduction for oversized MCP responses
-- Separate `capture_webpage_async` API function for async contexts
-
-## [0.1.0] - 2025-06-12
-
-### Added
-- Initial implementation as a monolithic script
-- Basic screenshot capture functionality
-- Browser management commands (run, quit)
-- Fire-based CLI interface
-
-[Unreleased]: https://github.com/twardoch/brosh/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/twardoch/brosh/releases/tag/v0.1.0
-</file>
-
-<file path="pyproject.toml">
-# this_file: pyproject.toml
-#==============================================================================
-# BROSH PACKAGE CONFIGURATION
-# This pyproject.toml defines the package metadata, dependencies, build system,
-# and development environment for the brosh package.
-#==============================================================================
-
-#------------------------------------------------------------------------------
-# PROJECT METADATA
-# Core package information used by PyPI and package managers.
-#------------------------------------------------------------------------------
-[project]
-name = 'brosh' # Package name on PyPI
-description = 'Browser screenshot tool using Playwright async API' # Short description
-readme = 'README.md' # Path to README file
-requires-python = '>=3.10' # Minimum Python version
-keywords = [
-    'screenshot',
-    'browser',
-    'playwright',
-    'web',
-    'capture',
-    'automation',
-    'mcp',
-] # Keywords for PyPI search
-dynamic = ["version"] # Fields set dynamically at build time
-
-# PyPI classifiers for package categorization
-classifiers = [
-    'Development Status :: 4 - Beta', # Package maturity level
-    'Programming Language :: Python',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
-    'Programming Language :: Python :: 3.12',
-    'Programming Language :: Python :: Implementation :: CPython',
-    'Programming Language :: Python :: Implementation :: PyPy',
-    'Operating System :: OS Independent',
-    'License :: OSI Approved :: MIT License',
-    'Intended Audience :: Developers',
-]
-
-dependencies = [
-    'fire>=0.5.0',
-    'playwright>=1.40.0',
-    'pillow>=11.2.1',
-    'fastmcp>=2.8.0',
-    'platformdirs>=4.0.0',
-    'loguru>=0.7.0',
-    'html2text>=2025.4.15',
-    'pyoxipng>=9.1.1',
-]
-
-# Author information
-[[project.authors]]
-name = 'Adam Twardoch'
-email = 'adam+github@twardoch.com'
-
-# License information
-[project.license]
-text = 'MIT'
-
-# Project URLs
-[project.urls]
-Documentation = 'https://github.com/twardoch/brosh#readme'
-Issues = 'https://github.com/twardoch/brosh/issues'
-Source = 'https://github.com/twardoch/brosh'
-
-#------------------------------------------------------------------------------
-# OPTIONAL DEPENDENCIES
-# Additional dependencies for optional features, development, and testing.
-#------------------------------------------------------------------------------
-[project.optional-dependencies]
-
-# Development tools
-dev = [
-    'pre-commit>=4.1.0', # Pre-commit hook manager - Keep pre-commit as is, update if newer pre-commit version is required
-    'ruff>=0.9.7', # Linting and formatting - Keep ruff as is, update if newer ruff version is required
-    'mypy>=1.15.0', # Type checking - Keep mypy as is, update if newer mypy version is required
-    'absolufy-imports>=0.3.1', # Convert relative imports to absolute - Keep absolufy-imports as is, update if newer absolufy-imports version is required
-    'pyupgrade>=3.19.1', # Upgrade Python syntax - Keep pyupgrade as is, update if newer pyupgrade version is required
-    'isort>=6.0.1', # Sort imports - Keep isort as is, update if newer isort version is required
-    'uzpy>=1.0.0', 
-]
-
-# Testing tools and frameworks
-test = [
-    'pytest>=8.3.4', # Testing framework - Keep pytest as is, update if newer pytest version is required
-    'pytest-cov>=6.0.0', # Coverage plugin for pytest - Keep pytest-cov as is, update if newer pytest-cov version is required
-    'pytest-xdist>=3.6.1', # Parallel test execution - Keep pytest-xdist as is, update if newer pytest-xdist version is required
-    'pytest-benchmark[histogram]>=5.1.0', # Benchmarking plugin - Keep pytest-benchmark as is, update if newer pytest-benchmark version is required
-    'pytest-asyncio>=1.0.0', # Async test support - Keep pytest-asyncio as is, update if newer pytest-asyncio version is required
-    'coverage[toml]>=7.6.12',
-]
-
-docs = [
-    "sphinx>=8.2.3",
-    "sphinx-rtd-theme>=3.0.2",
-    "sphinx-autodoc-typehints>=3.2.0",
-    "myst-parser>=4.0.1", # Markdown support in Sphinx
-]
-
-# All optional dependencies combined
-all = [
-]
-
-#------------------------------------------------------------------------------
-# COMMAND-LINE SCRIPTS
-# Entry points for command-line executables installed with the package.
-#------------------------------------------------------------------------------
-[project.scripts]
-brosh = "brosh.__main__:main"
-brosh-mcp = "brosh.mcp:main"
-
-#------------------------------------------------------------------------------
-# BUILD SYSTEM CONFIGURATION
-# Defines the tools required to build the package and the build backend.
-#------------------------------------------------------------------------------
-[build-system]
-# Hatchling is a modern build backend for Python packaging
-# hatch-vcs integrates with version control systems for versioning
-requires = [
-    'hatchling>=1.27.0', # Keep hatchling as is, update if newer hatchling version is required
-    'hatch-vcs>=0.4.0', # Keep hatch-vcs as is, update if newer hatch-vcs version is required
-]
-build-backend = 'hatchling.build' # Specifies Hatchling as the build backend
-
-
-#------------------------------------------------------------------------------
-# HATCH BUILD CONFIGURATION
-# Configures the build process, specifying which packages to include and
-# how to handle versioning.
-#------------------------------------------------------------------------------
-[tool.hatch.build]
-# Include package data files
-include = [
-    "src/brosh/py.typed", # For better type checking support
-    "src/brosh/data/**/*", # Include data files if any
-
-]
-exclude = ["**/__pycache__", "**/.pytest_cache", "**/.mypy_cache"]
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/brosh"]
-reproducible = true
-
-
-# Version control system hook configuration
-# Automatically updates the version file from git tags
-[tool.hatch.build.hooks.vcs]
-version-file = "src/brosh/__version__.py"
-
-# Version source configuration
-[tool.hatch.version]
-source = 'vcs' # Get version from git tags or other VCS info
-
-# Metadata handling configuration
-[tool.hatch.metadata]
-allow-direct-references = true # Allow direct references in metadata (useful for local dependencies)
-
-
-#------------------------------------------------------------------------------
-# DEVELOPMENT ENVIRONMENTS
-
-[tool.hatch.envs.default]
-features = ['dev', 'test', 'all']
-dependencies = [
-]
-
-# Commands available in the default environment
-[tool.hatch.envs.default.scripts]
-# Run tests with optional arguments
-test = 'pytest {args:tests}'
-# Run tests with coverage reporting
-test-cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/brosh --cov=tests {args:tests}"
-# Run type checking
-type-check = "mypy src/brosh tests"
-# Run linting and formatting
-lint = ["ruff check src/brosh tests", "ruff format --respect-gitignore src/brosh tests"]
-# Format and fix style issues
-fmt = ["ruff format --respect-gitignore src/brosh tests", "ruff check --fix src/brosh tests"]
-fix = ["ruff check --fix --unsafe-fixes src/brosh tests", "ruff format --respect-gitignore src/brosh tests"]
-
-# Matrix configuration to test across multiple Python versions
-
-[[tool.hatch.envs.all.matrix]]
-python = ["3.10", "3.11", "3.12"]
-
-#------------------------------------------------------------------------------
-# SPECIALIZED ENVIRONMENTS
-# Additional environments for specific development tasks.
-#------------------------------------------------------------------------------
-
-# Dedicated environment for linting and code quality checks
-[tool.hatch.envs.lint]
-detached = true # Create a separate, isolated environment
-features = ['dev'] # Use dev extras  dependencies 
-
-# Linting environment commands
-[tool.hatch.envs.lint.scripts]
-# Type checking with automatic type installation
-typing = "mypy --install-types --non-interactive {args:src/brosh tests}"
-# Check style and format code
-style = ["ruff check {args:.}", "ruff format --respect-gitignore {args:.}"]
-# Format and fix style issues
-fmt = ["ruff format --respect-gitignore {args:.}", "ruff check --fix {args:.}"]
-fix = ["ruff check --fix --unsafe-fixes {args:.}", "ruff format --respect-gitignore {args:.}"]
-# Run all ops
-all = ["style", "typing", "fix"]
-
-# Dedicated environment for testing
-[tool.hatch.envs.test]
-features = ['test'] # Use test extras as dependencies
-
-# Testing environment commands
-[tool.hatch.envs.test.scripts]
-# Run tests in parallel
-test = "python -m pytest -n auto {args:tests}"
-# Run tests with coverage in parallel
-test-cov = "python -m pytest -n auto --cov-report=term-missing --cov-config=pyproject.toml --cov=src/brosh --cov=tests {args:tests}"
-# Run benchmarks
-bench = "python -m pytest -v -p no:briefcase tests/test_benchmark.py --benchmark-only"
-# Run benchmarks and save results
-bench-save = "python -m pytest -v -p no:briefcase tests/test_benchmark.py --benchmark-only --benchmark-json=benchmark/results.json"
-
-# Documentation environment
-[tool.hatch.envs.docs]
-features = ['docs']
-
-# Documentation environment commands
-[tool.hatch.envs.docs.scripts]
-build = "sphinx-build -b html docs/source docs/build"
-
-# GitHub Actions workflow configuration
-[tool.hatch.envs.ci]
-features = ['test']
-
-
-[tool.hatch.envs.ci.scripts]
-test = "pytest --cov=src/brosh --cov-report=xml"
-
-
-#------------------------------------------------------------------------------
-# CODE QUALITY TOOLS
-# Configuration for linting, formatting, and code quality enforcement.
-#------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------
-# COVERAGE CONFIGURATION
-# Settings for test coverage measurement and reporting.
-#------------------------------------------------------------------------------
-
-# Path mapping for coverage in different environments
-[tool.coverage.paths]
-brosh = ["src/brosh", "*/brosh/src/brosh"]
-tests = ["tests", "*/brosh/tests"]
-
-# Coverage report configuration
-[tool.coverage.report]
-# Lines to exclude from coverage reporting
-exclude_lines = [
-    'no cov', # Custom marker to skip coverage
-    'if __name__ == .__main__.:', # Script execution guard
-    'if TYPE_CHECKING:', # Type checking imports and code
-    'pass', # Empty pass statements
-    'raise NotImplementedError', # Unimplemented method placeholders
-    'raise ImportError', # Import error handling
-    'except ImportError', # Import error handling
-    'except KeyError', # Common error handling
-    'except AttributeError', # Common error handling
-    'except NotImplementedError', # Common error handling
-]
-
-[tool.coverage.run]
-source_pkgs = ["brosh", "tests"]
-branch = true # Measure branch coverage (if/else statements)
-parallel = true # Support parallel test execution
-omit = [
-    "src/brosh/__about__.py",
-]
-
-#------------------------------------------------------------------------------
-# MYPY CONFIGURATION
-# Configuration for type checking with mypy.
-#------------------------------------------------------------------------------
-
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
-
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
-
-#------------------------------------------------------------------------------
-# PYTEST CONFIGURATION
-# Configuration for pytest, including markers, options, and benchmark settings.
-#------------------------------------------------------------------------------
-
-[tool.pytest.ini_options]
-addopts = "-v --durations=10 -p no:briefcase"
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
-console_output_style = "progress"
-filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
-log_cli = true
-log_cli_level = "INFO"
-markers = [
-    "benchmark: marks tests as benchmarks (select with '-m benchmark')",
-    "unit: mark a test as a unit test",
-    "integration: mark a test as an integration test",
-    "permutation: tests for permutation functionality", 
-    "parameter: tests for parameter parsing",
-    "prompt: tests for prompt parsing",
-]
-norecursedirs = [
-    ".*",
-    "build",
-    "dist", 
-    "venv",
-    "__pycache__",
-    "*.egg-info",
-    "_private",
-]
-python_classes = ["Test*"]
-python_files = ["test_*.py"]
-python_functions = ["test_*"]
-testpaths = ["tests"]
-
-[tool.pytest-benchmark]
-min_rounds = 100
-min_time = 0.1
-histogram = true
-storage = "file"
-save-data = true
-compare = [
-    "min",    # Minimum time
-    "max",    # Maximum time
-    "mean",   # Mean time
-    "stddev", # Standard deviation
-    "median", # Median time
-    "iqr",    # Inter-quartile range
-    "ops",    # Operations per second
-    "rounds", # Number of rounds
-]
-
-#------------------------------------------------------------------------------
-# RUFF CONFIGURATION
-# Configuration for Ruff, including linter and formatter settings.
-#------------------------------------------------------------------------------ 
-
-# Ruff linter and formatter configuration
-[tool.ruff]
-target-version = "py310"
-line-length = 120
-exclude = [".git", ".venv", "venv", "dist", "build", "_private"]
-
-# Linting rules configuration
-[tool.ruff.lint]
-# Rule sets to enable, organized by category
-select = [
-    # flake8 plugins and extensions
-    'A', # flake8-builtins: checks for shadowed builtins
-    'ARG', # flake8-unused-arguments: checks for unused function arguments
-    'ASYNC', # flake8-async: checks for async/await issues
-    'B', # flake8-bugbear: finds likely bugs and design problems
-    'C', # flake8-comprehensions: helps write better list/dict comprehensions
-    'DTZ', # flake8-datetimez: checks for datetime timezone issues
-    'E', # pycodestyle errors: PEP 8 style guide errors
-    'EM', # flake8-errmsg: checks for better error messages
-    'F', # pyflakes: detects various errors
-    'FBT', # flake8-boolean-trap: checks for boolean traps in function signatures
-    'I', # isort: sorts imports
-    'ICN', # flake8-import-conventions: checks for import conventions
-    'ISC', # flake8-implicit-str-concat: checks for implicit string concatenation
-    'LOG', # flake8-logging: checks for logging issues
-    'N', # pep8-naming: checks naming conventions
-    'PLC', # pylint convention: checks for convention issues
-    'PLE', # pylint error: checks for errors
-    'PLR', # pylint refactor: suggests refactors
-    'PLW', # pylint warning: checks for suspicious code
-    'PT', # flake8-pytest-style: checks pytest-specific style
-    'PTH', # flake8-use-pathlib: checks for stdlib path usage vs pathlib
-    'PYI', # flake8-pyi: checks stub files
-    'RET', # flake8-return: checks return statement consistency
-    'RSE', # flake8-raise: checks raise statements
-    'RUF', # Ruff-specific rules
-    'S', # flake8-bandit: checks for security issues
-    'SIM', # flake8-simplify: checks for code simplification opportunities
-    'T', # flake8-print: checks for print statements
-    'TCH', # flake8-type-checking: helps with type-checking
-    'TID', # flake8-tidy-imports: checks for tidy import statements
-    'UP', # pyupgrade: checks for opportunities to use newer Python features
-    'W', # pycodestyle warnings: PEP 8 style guide warnings
-    'YTT', # flake8-2020: checks for misuse of sys.version or sys.version_info
-
-]
-# Rules to ignore (with reasons)
-ignore = [
-    'B027', # Empty method in abstract base class - sometimes needed for interfaces
-    'C901', # Function is too complex - sometimes complexity is necessary
-    'FBT003', # Boolean positional argument in function definition - sometimes unavoidable
-    'PLR0911', # Too many return statements - sometimes needed for readability
-    'PLR0912', # Too many branches - sometimes needed for complex logic
-    'PLR0913', # Too many arguments - sometimes needed in APIs
-    'PLR0915', # Too many statements - sometimes needed for comprehensive functions
-    'PLR1714', # Consider merging multiple comparisons - sometimes less readable
-    'PLW0603', # Using the global statement - sometimes necessary
-    'PT013', # Pytest explicit test parameter - sometimes clearer
-    'PTH123', # Path traversal - sometimes needed
-    'PYI056', # Calling open() in pyi file - sometimes needed in type stubs
-    'S105', # Possible hardcoded password - often false positives
-    'S106', # Possible hardcoded password - often false positives
-    'S107', # Possible hardcoded password - often false positives
-    'S110', # try-except-pass - sometimes valid for suppressing exceptions
-    'SIM102'
-    # Nested if statements - sometimes more readable than combined conditions
-]
-# Rules that should not be automatically fixed
-unfixable = [
-    'F401', # Don't automatically remove unused imports - may be needed later
-
-]
-# Exclude patterns are handled in the main [tool.ruff] section
-
-# isort configuration within Ruff
-[tool.ruff.lint.isort]
-known-first-party = ['brosh'] # Treat as first-party imports for sorting
-
-# flake8-tidy-imports configuration within Ruff
-[tool.ruff.lint.flake8-tidy-imports]
-ban-relative-imports = 'parents' # Allow relative imports within packages
-
-# Per-file rule exceptions
-[tool.ruff.lint.per-file-ignores]
-# Tests can use magic values, assertions, and relative imports
-'tests/**/*' = [
-    'PLR2004', # Allow magic values in tests for readability
-    'S101', # Allow assertions in tests
-    'TID252'
-    # Allow relative imports in tests for convenience
-]
-</file>
-
-<file path="src/brosh/brosh.py">
-#!/usr/bin/env python3
-"""brosh:
-
-Created by Adam Twardoch
-"""
-
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
-
-from loguru import logger
-
-
-@dataclass
-class Config:
-    """Configuration settings for brosh."""
-
-    name: str
-    value: str | int | float
-    options: dict[str, Any] | None = None
-
-
-def process_data(data: list[Any], config: Config | None = None, *, debug: bool = False) -> dict[str, Any]:
-    """Process the input data according to configuration.
-
-    Args:
-        data: Input data to process
-        config: Optional configuration settings
-        debug: Enable debug mode
-
-    Returns:
-        Processed data as a dictionary
-
-    Raises:
-        ValueError: If input data is invalid
-
-    """
-    if debug:
-        logger.setLevel(logging.DEBUG)
-        logger.debug("Debug mode enabled")
-
-    if not data:
-        msg = "Input data cannot be empty"
-        raise ValueError(msg)
-
-    # TODO: Implement data processing logic
-    result: dict[str, Any] = {}
-    return result
-
-
-def main() -> None:
-    """Main entry point for brosh."""
-    try:
-        # Example usage
-        config = Config(name="default", value="test", options={"key": "value"})
-        result = process_data([], config=config)
-        logger.info("Processing completed: %s", result)
-
-    except Exception as e:
-        logger.error("An error occurred: %s", str(e))
-        raise
-
-
-if __name__ == "__main__":
-    main()
 </file>
 
 <file path="src/brosh/mcp.py">

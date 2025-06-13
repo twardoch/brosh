@@ -33,19 +33,16 @@ def main() -> int:
                 "--cov-report=html:htmlcov",
             ]
         )
-        print("Running tests with coverage...")
     except ImportError:
-        print("Running tests without coverage (install pytest-cov for coverage)...")
+        pass
 
     # Run the tests
     try:
         result = subprocess.run(cmd, cwd=project_root, check=False)
         return result.returncode
     except KeyboardInterrupt:
-        print("\nTest run interrupted by user")
         return 1
-    except (OSError, subprocess.SubprocessError) as e:
-        print(f"Error running tests: {e}")
+    except (OSError, subprocess.SubprocessError):
         return 1
 
 

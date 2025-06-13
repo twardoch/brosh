@@ -4,7 +4,6 @@
 """Image processing utilities for brosh."""
 
 import io
-from pathlib import Path
 
 from loguru import logger
 from PIL import Image

@@ -84,7 +84,9 @@ class TestCaptureFrame:
         assert frame.active_selector == "main"
         assert frame.visible_html is None
         assert frame.visible_text is None
-        assert frame.timestamp is None    def test_capture_frame_with_optional_fields(self) -> None:
+        assert frame.timestamp is None
+
+    def test_capture_frame_with_optional_fields(self) -> None:
         """Test creating a CaptureFrame with all fields."""
         from datetime import datetime, timezone
         

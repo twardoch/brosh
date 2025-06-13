@@ -1,25 +1,28 @@
-# TODO
+✅ COMPLETED: Codebase Cleaning
 
-Analyze the entire codebase (read `llms.txt`)
+## Summary of Changes:
 
-Carefully analyze every single .py file: 
+1. **Deleted `src/brosh/brosh.py`** - Entire file was unrelated to browser screenshot functionality
+   - Contained unused `Config` dataclass and `process_data()` function
+   - Had missing imports and TODO comments
+   - Not referenced anywhere in the codebase
 
-src/brosh/__init__.py
-src/brosh/__main__.py
-src/brosh/__version__.py
-src/brosh/api.py
-src/brosh/brosh.py
-src/brosh/browser.py
-src/brosh/capture.py
-src/brosh/cli.py
-src/brosh/image.py
-src/brosh/mcp.py
-src/brosh/models.py
-src/brosh/texthtml.py
-src/brosh/tool.py
+2. **Cleaned `src/brosh/image.py`** - Removed 4 legacy file-based methods:
+   - `scale_image()` - replaced by `downsample_png_bytes()`
+   - `convert_to_jpg()` - replaced by `convert_png_to_jpg_bytes()`
+   - `optimize_png()` - replaced by `optimize_png_bytes()`
+   - `create_apng()` - replaced by `create_apng_bytes()`
 
-Identify the purpose of each construct (function, class etc.) in the file. Think very hard whether that construct is actually needed. 
+3. **Cleaned `src/brosh/models.py`** - Removed 4 unused model classes:
+   - `BrowserConfig` - not used anywhere
+   - `MCPResource` - not used anywhere
+   - `MCPContentItem` - not used anywhere
+   - `MCPScreenshotResult` - not used anywhere
 
-Into `PLAN.md` write down which constructs are not needed and should be removed. Our goal is to clean the baggage and to just keep functioning code. 
+## Results:
+- ✅ Package still imports successfully
+- ✅ CLI functionality tested and working
+- ✅ No broken imports or dependencies
+- ✅ Codebase is now cleaner and more maintainable
 
-Once you’ve finished making the `PLAN.md`, perform the actual cleaning.
+See `PLAN.md` for the detailed analysis and execution plan.

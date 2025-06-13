@@ -104,17 +104,6 @@ class CaptureFrame:
 
 
 @dataclass
-class BrowserConfig:
-    """Browser-specific configuration."""
-
-    debug_port: int
-    app_name: str
-    platform_support: list[str]
-    launch_args: list[str]
-    executable_paths: list[str]
-
-
-@dataclass
 class CaptureConfig:
     """Screenshot capture configuration - unified parameter set.
 
@@ -174,21 +163,6 @@ class CaptureResult:
     capture_time: datetime
 
 
-class MCPResource(BaseModel):
-    """Model for MCP resource content."""
-
-    uri: str = Field(..., description="Resource URI")
-    mime_type: str = Field(..., description="MIME type of the resource")
-    text: str | None = Field(
-        None,
-        description="Text content if available",
-    )
-    blob: str | None = Field(
-        None,
-        description="Base64-encoded binary data",
-    )
-
-
 class MCPTextContent(BaseModel):
     """Model for MCP text content items.
 
@@ -229,70 +203,6 @@ class MCPImageContent(BaseModel):
         kwargs["exclude_none"] = True
         kwargs["by_alias"] = True
         return super().model_dump(**kwargs)
-
-
-class MCPContentItem(BaseModel):
-    """Model for MCP content items."""
-
-    type: str = Field(
-        ...,
-        description="Content type (text, image, resource)",
-    )
-    text: str | None = Field(
-        None,
-        description="Text content if type is text",
-    )
-    data: str | None = Field(
-        None,
-        description="Base64-encoded data for binary content",
-    )
-    mime_type: str | None = Field(
-        None,
-        description="MIME type for binary content",
-    )
-    resource: MCPResource | None = Field(
-        None,
-        description="Resource content",
-    )
-
-    def to_camel_dict(self) -> dict[str, Any]:
-        """Return a dict with camelCase keys for MCP output."""
-        d = self.dict(exclude_none=True)
-        if "mime_type" in d:
-            d["mimeType"] = d.pop("mime_type")
-        return d
-
-
-class MCPScreenshotResult(BaseModel):
-    """Model for MCP screenshot result metadata."""
-
-    image: MCPImageContent = Field(..., description="Screenshot image data")
-    selector: str = Field(
-        "body",
-        description="CSS selector for visible element",
-    )
-    text: str | None = Field(
-        None,
-        description="Extracted text content",
-    )
-    html: str | None = Field(
-        None,
-        description="Extracted HTML content",
-    )
-
-    def metadata_json(self, path: str) -> str:
-        """Return JSON metadata for the text content item, keyed by file path."""
-        import json
-
-        meta = {
-            path: {
-                "selector": self.selector,
-                "text": self.text,
-            }
-        }
-        if self.html is not None:
-            meta[path]["html"] = self.html
-        return json.dumps(meta, ensure_ascii=False)
 
 
 class MCPToolResult(BaseModel):

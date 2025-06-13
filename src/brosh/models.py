@@ -8,9 +8,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 
-from platformdirs import user_pictures_dir
 from pydantic import BaseModel, Field
-from pydantic.networks import AnyUrl
 
 
 class ImageFormat(str, Enum):
@@ -125,7 +123,11 @@ class CaptureConfig:
     output_dir: str = ""
     subdirs: bool = False
     anim_spf: float = 0.5
-    html: bool = False
+    fetch_html: bool = False
+    fetch_image: bool = False  # Controls if images are included in MCP output
+    fetch_image_path: bool = True  # Controls if image paths are included
+    fetch_text: bool = True  # Controls if text is included
+    trim_text: bool = True  # Controls if text is trimmed to 200 characters
     max_frames: int = 0
     from_selector: str = ""
 

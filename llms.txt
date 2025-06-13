@@ -2145,11 +2145,11 @@ import asyncio
 from pathlib import Path
 from typing import Annotated, Any
 
-from platformdirs import user_pictures_dir
+from platformdirs import dflt_output_folder
 from pydantic import Field
 from pydantic.networks import AnyUrl
 
-from .models import CaptureConfig, CaptureResult, ImageFormat
+from .models import CaptureConfig, ImageFormat
 from .tool import BrowserScreenshotTool
 
 
@@ -2169,7 +2169,7 @@ def capture_webpage(
     ] = "",
     output_dir: Annotated[
         Path | None,
-        Field(default_factory=lambda: Path(user_pictures_dir()), description="Output directory for screenshots"),
+        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
     ] = None,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
     format: Annotated[
@@ -2178,7 +2178,13 @@ def capture_webpage(
     anim_spf: Annotated[
         float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
     ] = 0.5,
-    html: Annotated[bool, Field(default=False, description="Include visible HTML content for each screenshot")] = False,
+    fetch_html: Annotated[
+        bool, Field(default=False, description="Include visible HTML content for each screenshot")
+    ] = False,
+    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
+    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
+    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
+    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
     max_frames: Annotated[
         int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
     ] = 0,
@@ -2203,7 +2209,11 @@ def capture_webpage(
         subdirs: Whether to create domain-based subdirectories
         format: Output image format
         anim_spf: Animation speed for APNG format
-        html: Whether to include HTML content in results
+        fetch_html: Whether to include HTML content in results
+        fetch_image: Whether to include image data in MCP output
+        fetch_image_path: Whether to include image path in MCP output
+        fetch_text: Whether to include extracted text in MCP output
+        trim_text: Whether to trim text to 200 characters
         max_frames: Maximum frames to capture (0 for unlimited)
         from_selector: CSS selector to start capture from
 
@@ -2213,7 +2223,7 @@ def capture_webpage(
             "/path/to/screenshot.png": {
                 "selector": "main",
                 "text": "visible text content",
-                "html": "<div>...</div>"  # if html=True
+                "html": "<div>...</div>"  # if fetch_html=True
             },
             ...
         }
@@ -2229,7 +2239,7 @@ def capture_webpage(
     """
     # Handle default for output_dir
     if output_dir is None:
-        output_dir = Path(user_pictures_dir())
+        output_dir = Path(dflt_output_folder())
 
     # Create configuration object
     config = CaptureConfig(
@@ -2244,7 +2254,11 @@ def capture_webpage(
         output_dir=str(output_dir),
         subdirs=subdirs,
         anim_spf=anim_spf,
-        html=html,
+        fetch_html=fetch_html,
+        fetch_image=fetch_image,
+        fetch_image_path=fetch_image_path,
+        fetch_text=fetch_text,
+        trim_text=trim_text,
         max_frames=max_frames,
         from_selector=from_selector,
     )
@@ -2288,7 +2302,7 @@ async def capture_webpage_async(
     ] = "",
     output_dir: Annotated[
         Path | None,
-        Field(default_factory=lambda: Path(user_pictures_dir()), description="Output directory for screenshots"),
+        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
     ] = None,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
     format: Annotated[
@@ -2297,7 +2311,13 @@ async def capture_webpage_async(
     anim_spf: Annotated[
         float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
     ] = 0.5,
-    html: Annotated[bool, Field(default=False, description="Include visible HTML content for each screenshot")] = False,
+    fetch_html: Annotated[
+        bool, Field(default=False, description="Include visible HTML content for each screenshot")
+    ] = False,
+    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
+    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
+    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
+    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
     max_frames: Annotated[
         int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
     ] = 0,
@@ -2311,7 +2331,7 @@ async def capture_webpage_async(
     """
     # Handle default for output_dir
     if output_dir is None:
-        output_dir = Path(user_pictures_dir())
+        output_dir = Path(dflt_output_folder())
 
     # Create configuration object
     config = CaptureConfig(
@@ -2326,7 +2346,11 @@ async def capture_webpage_async(
         output_dir=str(output_dir),
         subdirs=subdirs,
         anim_spf=anim_spf,
-        html=html,
+        fetch_html=fetch_html,
+        fetch_image=fetch_image,
+        fetch_image_path=fetch_image_path,
+        fetch_text=fetch_text,
+        trim_text=trim_text,
         max_frames=max_frames,
         from_selector=from_selector,
     )
@@ -3112,7 +3136,11 @@ class TestCaptureWebpage:
                 subdirs=True,
                 format=ImageFormat.JPG,
                 anim_spf=1.0,
-                html=True,
+                fetch_html=True,
+                fetch_image=False,
+                fetch_image_path=True,
+                fetch_text=True,
+                trim_text=False,
                 max_frames=5,
                 from_selector="main",
             )
@@ -3133,7 +3161,11 @@ class TestCaptureWebpage:
             assert config.subdirs is True
             assert config.format == ImageFormat.JPG
             assert config.anim_spf == 1.0
-            assert config.html is True
+            assert config.fetch_html is True
+            assert config.fetch_image is False
+            assert config.fetch_image_path is True
+            assert config.fetch_text is True
+            assert config.trim_text is False
             assert config.max_frames == 5
             assert config.from_selector == "main"
 
@@ -3142,7 +3174,7 @@ class TestCaptureWebpage:
         with (
             patch("brosh.api.BrowserScreenshotTool") as mock_tool_class,
             patch("brosh.api.asyncio.run") as mock_asyncio_run,
-            patch("brosh.api.user_pictures_dir") as mock_pictures_dir,
+            patch("brosh.api.dflt_output_folder") as mock_pictures_dir,
         ):
             mock_pictures_dir.return_value = "/home/user/Pictures"
 
@@ -3206,7 +3238,11 @@ class TestCaptureWebpageAsync:
                 subdirs=False,
                 format=ImageFormat.PNG,
                 anim_spf=0.5,
-                html=False,
+                fetch_html=False,
+                fetch_image=False,
+                fetch_image_path=True,
+                fetch_text=True,
+                trim_text=True,
                 max_frames=0,
                 from_selector="",
             )
@@ -3335,6 +3371,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Progressive compression strategy for MCP results exceeding 1MB size limit
 - Automatic downsampling and content reduction for oversized MCP responses
 - Separate `capture_webpage_async` API function for async contexts
+- New MCP configuration flags for granular output control:
+  - `fetch_image`: Controls whether image data is included in MCP output (default: False)
+  - `fetch_image_path`: Controls whether image paths are included (default: True)
+  - `fetch_text`: Controls whether extracted text is included (default: True)
+  - `trim_text`: Controls whether text is trimmed to 200 characters (default: True)
+
+### Changed
+- MCP output structure changed from nested dictionary to flat JSON format
+  - Old: `{"/path/to/file.png": {"selector": "...", "text": "..."}}`
+  - New: `{"image_path": "/path/to/file.png", "selector": "...", "text": "..."}`
+- Renamed `html` parameter to `fetch_html` throughout the codebase for consistency
+- Text extraction now automatically trims to 200 characters by default (configurable)
 
 ## [0.1.0] - 2025-06-12
 
@@ -3445,7 +3493,7 @@ class CaptureManager:
         # Capture frames
         frames = []
         for pos in scroll_positions:
-            frame = await self._capture_single_frame(page, pos, total_height, viewport_height, config.html)
+            frame = await self._capture_single_frame(page, pos, total_height, viewport_height, config.fetch_html)
             if frame:
                 frames.append(frame)
 
@@ -3512,7 +3560,7 @@ class CaptureManager:
         return positions
 
     async def _capture_single_frame(
-        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, capture_html: bool
+        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, fetch_html: bool
     ) -> CaptureFrame | None:
         """Capture a single viewport frame.
 
@@ -3521,7 +3569,7 @@ class CaptureManager:
             scroll_pos: Y position to scroll to
             page_height: Total page height
             viewport_height: Viewport height
-            capture_html: Whether to capture HTML content
+            fetch_html: Whether to capture HTML content
 
         Returns:
             CaptureFrame or None if capture failed
@@ -3546,7 +3594,7 @@ class CaptureManager:
             visible_text = None
             active_selector = "body"
 
-            if capture_html:
+            if fetch_html:
                 visible_html, visible_text, active_selector = await self.dom_processor.extract_visible_content(page)
             else:
                 # Always get text and selector for metadata
@@ -3587,7 +3635,7 @@ from pathlib import Path
 
 import fire
 from loguru import logger
-from platformdirs import user_pictures_dir
+from platformdirs import dflt_output_folder
 
 from .api import capture_webpage
 from .browser import BrowserManager
@@ -3610,7 +3658,7 @@ class BrowserScreenshotCLI:
         width: int = 0,
         height: int = 0,
         zoom: int = 100,
-        output_dir: Path = Path(user_pictures_dir()),
+        output_dir: Path = Path(dflt_output_folder()),
         subdirs: bool = False,
         verbose: bool = False,
         json: bool = False,
@@ -3836,9 +3884,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 
-from platformdirs import user_pictures_dir
 from pydantic import BaseModel, Field
-from pydantic.networks import AnyUrl
 
 
 class ImageFormat(str, Enum):
@@ -3953,7 +3999,11 @@ class CaptureConfig:
     output_dir: str = ""
     subdirs: bool = False
     anim_spf: float = 0.5
-    html: bool = False
+    fetch_html: bool = False
+    fetch_image: bool = False  # Controls if images are included in MCP output
+    fetch_image_path: bool = True  # Controls if image paths are included
+    fetch_text: bool = True  # Controls if text is included
+    trim_text: bool = True  # Controls if text is trimmed to 200 characters
     max_frames: int = 0
     from_selector: str = ""
 
@@ -4228,7 +4278,7 @@ class BrowserScreenshotTool:
 
             # Store metadata
             metadata = {"selector": frame.active_selector, "text": frame.visible_text or ""}
-            if config.html and frame.visible_html:
+            if config.fetch_html and frame.visible_html:
                 metadata["html"] = self.dom_processor.compress_html(frame.visible_html)
 
             results[str(filepath)] = metadata
@@ -5072,8 +5122,8 @@ class TestBrowserScreenshotCLI:
         cli = BrowserScreenshotCLI(output_dir=temp_output_dir)
         assert cli.output_dir == temp_output_dir
 
-        # Test with default (should use user_pictures_dir)
-        with patch("brosh.cli.user_pictures_dir") as mock_pictures_dir:
+        # Test with default (should use dflt_output_folder)
+        with patch("brosh.cli.dflt_output_folder") as mock_pictures_dir:
             mock_pictures_dir.return_value = "/home/user/Pictures"
             cli_default = BrowserScreenshotCLI()
             # Default should be set during initialization
@@ -5315,6 +5365,7 @@ class TestCaptureConfig:
         assert config.height == 0
         assert config.zoom == 100
         assert config.format == ImageFormat.PNG
+        assert config.trim_text is True  # Default value
 
     def test_capture_config_creation_full(self, temp_output_dir: Path) -> None:
         """Test creating CaptureConfig with all fields."""
@@ -5330,7 +5381,11 @@ class TestCaptureConfig:
             output_dir=str(temp_output_dir),
             subdirs=True,
             anim_spf=0.8,
-            html=True,
+            fetch_html=True,
+            fetch_image=False,
+            fetch_image_path=True,
+            fetch_text=True,
+            trim_text=False,
             max_frames=10,
             from_selector="main",
         )
@@ -5346,7 +5401,11 @@ class TestCaptureConfig:
         assert config.output_dir == str(temp_output_dir)
         assert config.subdirs is True
         assert config.anim_spf == 0.8
-        assert config.html is True
+        assert config.fetch_html is True
+        assert config.fetch_image is False
+        assert config.fetch_image_path is True
+        assert config.fetch_text is True
+        assert config.trim_text is False
         assert config.max_frames == 10
         assert config.from_selector == "main"
 
@@ -6250,7 +6309,7 @@ from typing import Any
 
 from fastmcp import FastMCP
 from loguru import logger
-from platformdirs import user_pictures_dir
+from platformdirs import dflt_output_folder
 
 from .api import capture_webpage_async
 from .models import ImageFormat, MCPImageContent, MCPTextContent, MCPToolResult
@@ -6288,7 +6347,11 @@ def run_mcp_server() -> None:
         subdirs: bool = False,
         format: str = "png",
         anim_spf: float = 0.5,
-        html: bool = False,
+        fetch_html: bool = False,
+        fetch_image: bool = False,
+        fetch_image_path: bool = True,
+        fetch_text: bool = True,
+        trim_text: bool = True,
         max_frames: int = 0,
         from_selector: str = "",
     ) -> MCPToolResult:
@@ -6309,7 +6372,11 @@ def run_mcp_server() -> None:
             subdirs: Whether to create domain-based subdirectories
             format: Output image format (png, jpg, apng)
             anim_spf: Animation speed for APNG format
-            html: Whether to include HTML content in results
+            fetch_html: Whether to include HTML content in results
+            fetch_image: Whether to include image data in results (default False)
+            fetch_image_path: Whether to include image path in results (default True)
+            fetch_text: Whether to include extracted text in results (default True)
+            trim_text: Whether to trim text to 200 characters (default True)
             max_frames: Maximum frames to capture (0 for unlimited)
             from_selector: CSS selector to scroll to before starting capture
 
@@ -6320,7 +6387,7 @@ def run_mcp_server() -> None:
         try:
             # Convert string parameters to proper types for the API
             format_enum = ImageFormat(format.lower())
-            output_path = Path(output_dir) if output_dir else Path(user_pictures_dir())
+            output_path = Path(output_dir) if output_dir else Path(dflt_output_folder())
 
             # Build kwargs for the API call
             api_kwargs = {
@@ -6335,7 +6402,11 @@ def run_mcp_server() -> None:
                 "subdirs": subdirs,
                 "format": format_enum,
                 "anim_spf": anim_spf,
-                "html": html,
+                "fetch_html": fetch_html,
+                "fetch_image": fetch_image,
+                "fetch_image_path": fetch_image_path,
+                "fetch_text": fetch_text,
+                "trim_text": trim_text,
                 "max_frames": max_frames,
                 "from_selector": from_selector,
             }
@@ -6344,7 +6415,9 @@ def run_mcp_server() -> None:
             result = await capture_webpage_async(**api_kwargs)
 
             # Process results for MCP format
-            return _convert_to_mcp_result(result, format_enum)
+            return _convert_to_mcp_result(
+                result, format_enum, fetch_image, fetch_image_path, fetch_text, fetch_html, trim_text
+            )
 
         except Exception as e:
             logger.error(f"MCP capture failed: {e}")
@@ -6356,15 +6429,28 @@ def run_mcp_server() -> None:
     mcp.run()
 
 
-def _convert_to_mcp_result(capture_result: dict[str, dict[str, Any]], format: ImageFormat) -> MCPToolResult:
-    """Convert standard capture results to MCP format.
+def _convert_to_mcp_result(
+    capture_result: dict[str, dict[str, Any]],
+    format: ImageFormat,
+    fetch_image: bool = False,
+    fetch_image_path: bool = True,
+    fetch_text: bool = True,
+    fetch_html: bool = False,
+    trim_text: bool = True,
+) -> MCPToolResult:
+    """Convert standard capture results to MCP format with configurable output.
 
     Args:
         capture_result: Results from capture_webpage
         format: Image format used
+        fetch_image: Whether to include image data
+        fetch_image_path: Whether to include image path
+        fetch_text: Whether to include extracted text
+        fetch_html: Whether to include HTML content
+        trim_text: Whether to trim text to 200 characters
 
     Returns:
-        MCPToolResult with proper content items
+        MCPToolResult with configured content items
 
     """
     content_items = []
@@ -6372,26 +6458,38 @@ def _convert_to_mcp_result(capture_result: dict[str, dict[str, Any]], format: Im
 
     for filepath, metadata in capture_result.items():
         try:
-            # Read the image file
-            with open(filepath, "rb") as f:
-                image_bytes = f.read()
+            # Only process image if fetch_image is True
+            if fetch_image:
+                with open(filepath, "rb") as f:
+                    image_bytes = f.read()
 
-            # Create image content
-            image_content = MCPImageContent(
-                data=base64.b64encode(image_bytes).decode(),
-                mime_type=(format.mime_type if isinstance(format, ImageFormat) else "image/png"),
-            )
-            content_items.append(image_content)
+                image_content = MCPImageContent(
+                    data=base64.b64encode(image_bytes).decode(),
+                    mime_type=(format.mime_type if isinstance(format, ImageFormat) else "image/png"),
+                )
+                content_items.append(image_content)
 
-            # Create metadata content
-            meta_dict = {filepath: {"selector": metadata.get("selector", "body"), "text": metadata.get("text", "")}}
+            # Build metadata based on flags
+            meta_dict = {}
 
-            # Add compressed HTML if present
-            if "html" in metadata:
+            if fetch_image_path:
+                meta_dict["image_path"] = filepath
+
+            meta_dict["selector"] = metadata.get("selector", "body")
+
+            if fetch_text:
+                text = metadata.get("text", "")
+                if trim_text and len(text) > 200:
+                    text = text[:200] + "..."
+                meta_dict["text"] = text
+
+            if fetch_html and "html" in metadata:
                 compressed = dom_processor.compress_html(metadata["html"])
-                meta_dict[filepath]["html"] = compressed
+                meta_dict["html"] = compressed
 
-            content_items.append(MCPTextContent(text=json.dumps(meta_dict)))
+            # Only add text content if there's something to add
+            if meta_dict:
+                content_items.append(MCPTextContent(text=json.dumps(meta_dict)))
 
         except Exception as e:
             logger.error(f"Failed to process {filepath}: {e}")
@@ -6492,34 +6590,15 @@ if __name__ == "__main__":
 </file>
 
 <file path="TODO.md">
-✅ COMPLETED: Codebase Cleaning
+# TODO.md
 
-## Summary of Changes:
+- Analyze `PLAN.md` and then update `CHANGELOG.md` with the changes performed. Remove the things that are done from `PLAN.md`
+- Run `./cleanup.sh` 
+- Analyze the response and replace `PLAN.md` with a new plan to fix the issues. 
+- Analyze `llms.txt` (which is the entire codebase). 
+- Update `README.md`. This is extremely important. REMOVE all content that no longer is correct or relevant. ADD new content that is correct and relevant (to the recent changes or to the whole codebase). 
 
-1. **Deleted `src/brosh/brosh.py`** - Entire file was unrelated to browser screenshot functionality
-   - Contained unused `Config` dataclass and `process_data()` function
-   - Had missing imports and TODO comments
-   - Not referenced anywhere in the codebase
-
-2. **Cleaned `src/brosh/image.py`** - Removed 4 legacy file-based methods:
-   - `scale_image()` - replaced by `downsample_png_bytes()`
-   - `convert_to_jpg()` - replaced by `convert_png_to_jpg_bytes()`
-   - `optimize_png()` - replaced by `optimize_png_bytes()`
-   - `create_apng()` - replaced by `create_apng_bytes()`
-
-3. **Cleaned `src/brosh/models.py`** - Removed 4 unused model classes:
-   - `BrowserConfig` - not used anywhere
-   - `MCPResource` - not used anywhere
-   - `MCPContentItem` - not used anywhere
-   - `MCPScreenshotResult` - not used anywhere
-
-## Results:
-- ✅ Package still imports successfully
-- ✅ CLI functionality tested and working
-- ✅ No broken imports or dependencies
-- ✅ Codebase is now cleaner and more maintainable
-
-See `PLAN.md` for the detailed analysis and execution plan.
+Be resilient. Be autonomous. Be creative. Be efficient. Be effective. Be concise. Be clear. Be precise. Be correct. Be complete.
 </file>
 
 </files>

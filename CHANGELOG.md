@@ -40,6 +40,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Progressive compression strategy for MCP results exceeding 1MB size limit
 - Automatic downsampling and content reduction for oversized MCP responses
 - Separate `capture_webpage_async` API function for async contexts
+- New MCP configuration flags for granular output control:
+  - `fetch_image`: Controls whether image data is included in MCP output (default: False)
+  - `fetch_image_path`: Controls whether image paths are included (default: True)
+  - `fetch_text`: Controls whether extracted text is included (default: True)
+  - `trim_text`: Controls whether text is trimmed to 200 characters (default: True)
+
+### Changed
+- MCP output structure changed from nested dictionary to flat JSON format
+  - Old: `{"/path/to/file.png": {"selector": "...", "text": "..."}}`
+  - New: `{"image_path": "/path/to/file.png", "selector": "...", "text": "..."}`
+- Renamed `html` parameter to `fetch_html` throughout the codebase for consistency
+- Text extraction now automatically trims to 200 characters by default (configurable)
 
 ## [0.1.0] - 2025-06-12
 

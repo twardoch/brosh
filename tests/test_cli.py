@@ -153,8 +153,8 @@ class TestBrowserScreenshotCLI:
         cli = BrowserScreenshotCLI(output_dir=temp_output_dir)
         assert cli.output_dir == temp_output_dir
 
-        # Test with default (should use user_pictures_dir)
-        with patch("brosh.cli.user_pictures_dir") as mock_pictures_dir:
+        # Test with default (should use dflt_output_folder)
+        with patch("brosh.cli.dflt_output_folder") as mock_pictures_dir:
             mock_pictures_dir.return_value = "/home/user/Pictures"
             cli_default = BrowserScreenshotCLI()
             # Default should be set during initialization

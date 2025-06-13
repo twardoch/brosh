@@ -1,77 +1,64 @@
-# Code Cleaning Plan for brosh
+# Development Plan
 
-## Analysis Summary
+## Completed Features ✅
+- MCP data model restructuring (flat JSON)
+- Parameter renaming (html → fetch_html)
+- New configuration flags (fetch_image, fetch_image_path, fetch_text, trim_text)
+- Test updates for all new functionality
 
-After analyzing all Python files in `src/brosh/`, the following unused constructs have been identified for removal:
+## Immediate Issues to Fix
 
-## 1. Entire Files to Remove
+### Code Quality Issues (from cleanup.sh analysis)
+1. **Import Issues**
+   - Remove unused import `async_playwright` in browser.py
+   - Fix import organization
 
-### `src/brosh/brosh.py`
-- **Reason**: Completely unrelated to browser screenshot functionality
-- **Issues**:
-  - Contains unrelated `Config` dataclass and `process_data()` function
-  - Has a missing import (`logging` not imported but used)
-  - Contains TODO comment indicating incomplete implementation
-  - Not imported or referenced by any other module
-- **Action**: DELETE entire file
+2. **Security Warnings**
+   - Address subprocess security warnings (S603, S607)
+   - Use safer subprocess execution methods
 
-## 2. Unused Functions/Methods to Remove
+3. **Code Style Issues**
+   - Replace magic numbers with constants (2560, 100, 200, etc.)
+   - Fix boolean parameter warnings (FBT001, FBT002)
+   - Use Path.exists() instead of os.path.exists()
+   - Add timezone to datetime.now() calls
 
-### In `src/brosh/image.py`
-Legacy file-based methods that are no longer used (replaced by in-memory versions):
-- `scale_image()` (lines 136-152) - Not used anywhere
-- `convert_to_jpg()` (lines 154-181) - Not used anywhere
-- `optimize_png()` (lines 184-202) - Not used anywhere
-- `create_apng()` (lines 205-236) - Not used anywhere
+4. **Test Improvements**
+   - Fix pytest.raises() blocks to contain single statements
+   - Add match parameters to pytest.raises for specificity
+   - Simplify nested with statements
 
-These were kept "for backward compatibility" but analysis shows they are not actually used anywhere in the codebase.
+5. **Async Best Practices**
+   - Fix ASYNC221 warning about blocking methods in async functions
 
-## 3. Unused Classes to Remove
+## Future Enhancements
 
-### In `src/brosh/models.py`
-The following classes are defined but never imported or used:
-- `BrowserConfig` (lines 84-89) - Not used anywhere
-- `MCPResource` (lines 119-127) - Not used anywhere
-- `MCPContentItem` (lines 129-133) - Not used anywhere
-- `MCPScreenshotResult` (lines 135-138) - Not used anywhere
+### Performance Optimization
+- Implement concurrent screenshot capture for multi-frame operations
+- Add caching mechanism for repeated captures of the same URL
+- Optimize image processing pipeline for faster conversions
 
-## 4. Code Quality Observations
+### Feature Additions
+- Add support for custom user agents
+- Implement proxy support for captures
+- Add watermark/annotation capabilities
+- Support for capturing specific regions/elements only
+- Add PDF export format option
 
-### Active and Necessary Files:
--  `__init__.py` - Package exports
--  `__main__.py` - CLI entry point
--  `__version__.py` - Auto-generated version info
--  `api.py` - Public API functions
--  `browser.py` - Browser management
--  `capture.py` - Screenshot capture logic
--  `cli.py` - CLI interface
--  `image.py` - Image processing (after cleanup)
--  `mcp.py` - MCP server
--  `models.py` - Data models (after cleanup)
--  `texthtml.py` - HTML/text processing
--  `tool.py` - Main orchestration
+### Code Quality Improvements
+- Address remaining linter warnings (boolean parameters, magic numbers)
+- Add more comprehensive integration tests
+- Improve error messages and user feedback
+- Add performance benchmarks
 
-### Import Analysis:
-- No unused imports detected in active modules
-- No circular dependencies
-- Clean modular architecture
+### Documentation
+- Create detailed API documentation
+- Add more usage examples
+- Create video tutorials for common use cases
+- Document MCP integration best practices
 
-## Execution Plan
-
-1. **Delete `src/brosh/brosh.py`** - Entire file is unused
-2. **Clean `src/brosh/image.py`** - Remove 4 legacy methods
-3. **Clean `src/brosh/models.py`** - Remove 4 unused model classes
-4. **Run tests** to ensure nothing breaks
-5. **Update any documentation** if needed
-
-## Expected Benefits
-
-- Reduced code complexity
-- Clearer codebase without misleading legacy code
-- Smaller package size
-- Easier maintenance
-
-## Risk Assessment
-
-- **Low Risk**: All identified code is genuinely unused based on thorough analysis
-- **Mitigation**: Changes can be easily reverted via git if needed
+### Platform Support
+- Add Firefox browser support
+- Investigate headless mode optimizations
+- Add Linux-specific installation instructions
+- Test and document Docker deployment

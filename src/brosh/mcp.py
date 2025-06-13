@@ -10,9 +10,9 @@ from typing import Any
 
 from fastmcp import FastMCP
 from loguru import logger
-from platformdirs import user_pictures_dir
 
 from .api import capture_webpage_async
+from .tool import dflt_output_folder
 from .models import ImageFormat, MCPImageContent, MCPTextContent, MCPToolResult
 from .texthtml import DOMProcessor
 
@@ -48,7 +48,11 @@ def run_mcp_server() -> None:
         subdirs: bool = False,
         format: str = "png",
         anim_spf: float = 0.5,
-        html: bool = False,
+        fetch_html: bool = False,
+        fetch_image: bool = False,
+        fetch_image_path: bool = True,
+        fetch_text: bool = True,
+        trim_text: bool = True,
         max_frames: int = 0,
         from_selector: str = "",
     ) -> MCPToolResult:
@@ -69,7 +73,11 @@ def run_mcp_server() -> None:
             subdirs: Whether to create domain-based subdirectories
             format: Output image format (png, jpg, apng)
             anim_spf: Animation speed for APNG format
-            html: Whether to include HTML content in results
+            fetch_html: Whether to include HTML content in results
+            fetch_image: Whether to include image data in results (default False)
+            fetch_image_path: Whether to include image path in results (default True)
+            fetch_text: Whether to include extracted text in results (default True)
+            trim_text: Whether to trim text to 200 characters (default True)
             max_frames: Maximum frames to capture (0 for unlimited)
             from_selector: CSS selector to scroll to before starting capture
 
@@ -80,7 +88,7 @@ def run_mcp_server() -> None:
         try:
             # Convert string parameters to proper types for the API
             format_enum = ImageFormat(format.lower())
-            output_path = Path(output_dir) if output_dir else Path(user_pictures_dir())
+            output_path = Path(output_dir) if output_dir else Path(dflt_output_folder())
 
             # Build kwargs for the API call
             api_kwargs = {
@@ -95,7 +103,11 @@ def run_mcp_server() -> None:
                 "subdirs": subdirs,
                 "format": format_enum,
                 "anim_spf": anim_spf,
-                "html": html,
+                "fetch_html": fetch_html,
+                "fetch_image": False,  # FIXME: fetch_image,
+                "fetch_image_path": fetch_image_path,
+                "fetch_text": fetch_text,
+                "trim_text": trim_text,
                 "max_frames": max_frames,
                 "from_selector": from_selector,
             }
@@ -104,7 +116,9 @@ def run_mcp_server() -> None:
             result = await capture_webpage_async(**api_kwargs)
 
             # Process results for MCP format
-            return _convert_to_mcp_result(result, format_enum)
+            return _convert_to_mcp_result(
+                result, format_enum, fetch_image, fetch_image_path, fetch_text, fetch_html, trim_text
+            )
 
         except Exception as e:
             logger.error(f"MCP capture failed: {e}")
@@ -116,15 +130,28 @@ def run_mcp_server() -> None:
     mcp.run()
 
 
-def _convert_to_mcp_result(capture_result: dict[str, dict[str, Any]], format: ImageFormat) -> MCPToolResult:
-    """Convert standard capture results to MCP format.
+def _convert_to_mcp_result(
+    capture_result: dict[str, dict[str, Any]],
+    format: ImageFormat,
+    fetch_image: bool = False,
+    fetch_image_path: bool = True,
+    fetch_text: bool = True,
+    fetch_html: bool = False,
+    trim_text: bool = True,
+) -> MCPToolResult:
+    """Convert standard capture results to MCP format with configurable output.
 
     Args:
         capture_result: Results from capture_webpage
         format: Image format used
+        fetch_image: Whether to include image data
+        fetch_image_path: Whether to include image path
+        fetch_text: Whether to include extracted text
+        fetch_html: Whether to include HTML content
+        trim_text: Whether to trim text to 200 characters
 
     Returns:
-        MCPToolResult with proper content items
+        MCPToolResult with configured content items
 
     """
     content_items = []
@@ -132,26 +159,38 @@ def _convert_to_mcp_result(capture_result: dict[str, dict[str, Any]], format: Im
 
     for filepath, metadata in capture_result.items():
         try:
-            # Read the image file
-            with open(filepath, "rb") as f:
-                image_bytes = f.read()
+            # Only process image if fetch_image is True
+            if fetch_image:
+                with open(filepath, "rb") as f:
+                    image_bytes = f.read()
 
-            # Create image content
-            image_content = MCPImageContent(
-                data=base64.b64encode(image_bytes).decode(),
-                mime_type=(format.mime_type if isinstance(format, ImageFormat) else "image/png"),
-            )
-            content_items.append(image_content)
+                image_content = MCPImageContent(
+                    data=base64.b64encode(image_bytes).decode(),
+                    mime_type=(format.mime_type if isinstance(format, ImageFormat) else "image/png"),
+                )
+                content_items.append(image_content)
 
-            # Create metadata content
-            meta_dict = {filepath: {"selector": metadata.get("selector", "body"), "text": metadata.get("text", "")}}
+            # Build metadata based on flags
+            meta_dict = {}
 
-            # Add compressed HTML if present
-            if "html" in metadata:
+            if fetch_image_path:
+                meta_dict["image_path"] = filepath
+
+            meta_dict["selector"] = metadata.get("selector", "body")
+
+            if fetch_text:
+                text = metadata.get("text", "")
+                if trim_text and len(text) > 200:
+                    text = text[:200] + "..."
+                meta_dict["text"] = text
+
+            if fetch_html and "html" in metadata:
                 compressed = dom_processor.compress_html(metadata["html"])
-                meta_dict[filepath]["html"] = compressed
+                meta_dict["html"] = compressed
 
-            content_items.append(MCPTextContent(text=json.dumps(meta_dict)))
+            # Only add text content if there's something to add
+            if meta_dict:
+                content_items.append(MCPTextContent(text=json.dumps(meta_dict)))
 
         except Exception as e:
             logger.error(f"Failed to process {filepath}: {e}")

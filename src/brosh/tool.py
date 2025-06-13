@@ -16,6 +16,12 @@ from .capture import CaptureManager
 from .image import ImageProcessor
 from .models import CaptureConfig, CaptureFrame, ImageFormat
 from .texthtml import DOMProcessor
+from platformdirs import user_pictures_dir
+
+
+def dflt_output_folder(subfolder: str | Path = "brosh") -> Path:
+    """Get the 'brosh' folder within the user's pictures directory."""
+    return Path(user_pictures_dir(), subfolder)
 
 
 class BrowserScreenshotTool:
@@ -161,7 +167,7 @@ class BrowserScreenshotTool:
 
             # Store metadata
             metadata = {"selector": frame.active_selector, "text": frame.visible_text or ""}
-            if config.html and frame.visible_html:
+            if config.fetch_html and frame.visible_html:
                 metadata["html"] = self.dom_processor.compress_html(frame.visible_html)
 
             results[str(filepath)] = metadata

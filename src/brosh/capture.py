@@ -79,7 +79,7 @@ class CaptureManager:
         # Capture frames
         frames = []
         for pos in scroll_positions:
-            frame = await self._capture_single_frame(page, pos, total_height, viewport_height, config.html)
+            frame = await self._capture_single_frame(page, pos, total_height, viewport_height, config.fetch_html)
             if frame:
                 frames.append(frame)
 
@@ -146,7 +146,7 @@ class CaptureManager:
         return positions
 
     async def _capture_single_frame(
-        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, capture_html: bool
+        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, fetch_html: bool
     ) -> CaptureFrame | None:
         """Capture a single viewport frame.
 
@@ -155,7 +155,7 @@ class CaptureManager:
             scroll_pos: Y position to scroll to
             page_height: Total page height
             viewport_height: Viewport height
-            capture_html: Whether to capture HTML content
+            fetch_html: Whether to capture HTML content
 
         Returns:
             CaptureFrame or None if capture failed
@@ -180,7 +180,7 @@ class CaptureManager:
             visible_text = None
             active_selector = "body"
 
-            if capture_html:
+            if fetch_html:
                 visible_html, visible_text, active_selector = await self.dom_processor.extract_visible_content(page)
             else:
                 # Always get text and selector for metadata

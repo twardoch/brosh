@@ -7,12 +7,11 @@ import asyncio
 from pathlib import Path
 from typing import Annotated, Any
 
-from platformdirs import user_pictures_dir
 from pydantic import Field
 from pydantic.networks import AnyUrl
 
-from .models import CaptureConfig, CaptureResult, ImageFormat
-from .tool import BrowserScreenshotTool
+from .models import CaptureConfig, ImageFormat
+from .tool import BrowserScreenshotTool, dflt_output_folder
 
 
 def capture_webpage(
@@ -31,7 +30,7 @@ def capture_webpage(
     ] = "",
     output_dir: Annotated[
         Path | None,
-        Field(default_factory=lambda: Path(user_pictures_dir()), description="Output directory for screenshots"),
+        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
     ] = None,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
     format: Annotated[
@@ -40,7 +39,13 @@ def capture_webpage(
     anim_spf: Annotated[
         float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
     ] = 0.5,
-    html: Annotated[bool, Field(default=False, description="Include visible HTML content for each screenshot")] = False,
+    fetch_html: Annotated[
+        bool, Field(default=False, description="Include visible HTML content for each screenshot")
+    ] = False,
+    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
+    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
+    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
+    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
     max_frames: Annotated[
         int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
     ] = 0,
@@ -65,7 +70,11 @@ def capture_webpage(
         subdirs: Whether to create domain-based subdirectories
         format: Output image format
         anim_spf: Animation speed for APNG format
-        html: Whether to include HTML content in results
+        fetch_html: Whether to include HTML content in results
+        fetch_image: Whether to include image data in MCP output
+        fetch_image_path: Whether to include image path in MCP output
+        fetch_text: Whether to include extracted text in MCP output
+        trim_text: Whether to trim text to 200 characters
         max_frames: Maximum frames to capture (0 for unlimited)
         from_selector: CSS selector to start capture from
 
@@ -75,7 +84,7 @@ def capture_webpage(
             "/path/to/screenshot.png": {
                 "selector": "main",
                 "text": "visible text content",
-                "html": "<div>...</div>"  # if html=True
+                "html": "<div>...</div>"  # if fetch_html=True
             },
             ...
         }
@@ -91,7 +100,7 @@ def capture_webpage(
     """
     # Handle default for output_dir
     if output_dir is None:
-        output_dir = Path(user_pictures_dir())
+        output_dir = Path(dflt_output_folder())
 
     # Create configuration object
     config = CaptureConfig(
@@ -106,7 +115,11 @@ def capture_webpage(
         output_dir=str(output_dir),
         subdirs=subdirs,
         anim_spf=anim_spf,
-        html=html,
+        fetch_html=fetch_html,
+        fetch_image=fetch_image,
+        fetch_image_path=fetch_image_path,
+        fetch_text=fetch_text,
+        trim_text=trim_text,
         max_frames=max_frames,
         from_selector=from_selector,
     )
@@ -150,7 +163,7 @@ async def capture_webpage_async(
     ] = "",
     output_dir: Annotated[
         Path | None,
-        Field(default_factory=lambda: Path(user_pictures_dir()), description="Output directory for screenshots"),
+        Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
     ] = None,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
     format: Annotated[
@@ -159,7 +172,13 @@ async def capture_webpage_async(
     anim_spf: Annotated[
         float, Field(default=0.5, ge=0.1, le=10.0, description="Seconds per frame for APNG animation")
     ] = 0.5,
-    html: Annotated[bool, Field(default=False, description="Include visible HTML content for each screenshot")] = False,
+    fetch_html: Annotated[
+        bool, Field(default=False, description="Include visible HTML content for each screenshot")
+    ] = False,
+    fetch_image: Annotated[bool, Field(default=False, description="Include image data in MCP output")] = False,
+    fetch_image_path: Annotated[bool, Field(default=True, description="Include image path in MCP output")] = True,
+    fetch_text: Annotated[bool, Field(default=True, description="Include extracted text in MCP output")] = True,
+    trim_text: Annotated[bool, Field(default=True, description="Trim text to 200 characters")] = True,
     max_frames: Annotated[
         int, Field(default=0, ge=0, description="Maximum number of frames to capture (0: unlimited)")
     ] = 0,
@@ -173,7 +192,7 @@ async def capture_webpage_async(
     """
     # Handle default for output_dir
     if output_dir is None:
-        output_dir = Path(user_pictures_dir())
+        output_dir = Path(dflt_output_folder())
 
     # Create configuration object
     config = CaptureConfig(
@@ -188,7 +207,11 @@ async def capture_webpage_async(
         output_dir=str(output_dir),
         subdirs=subdirs,
         anim_spf=anim_spf,
-        html=html,
+        fetch_html=fetch_html,
+        fetch_image=fetch_image,
+        fetch_image_path=fetch_image_path,
+        fetch_text=fetch_text,
+        trim_text=trim_text,
         max_frames=max_frames,
         from_selector=from_selector,
     )

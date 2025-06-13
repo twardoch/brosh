@@ -44,9 +44,9 @@ A powerful browser screenshot tool that captures scrolling screenshots of webpag
 - **🖼️ Multiple Formats**: PNG, JPG, and animated PNG (APNG) output
 - **🌐 Browser Support**: Chrome, Edge, and Safari (macOS)
 - **🔌 Remote Debugging**: Connects to existing browser sessions preserving cookies/auth
-- **🤖 MCP Server**: Integrate with AI tools via Model Context Protocol
+- **🤖 MCP Server**: Integrate with AI tools via Model Context Protocol with configurable output
 - **📄 HTML Extraction**: Optionally capture HTML content of visible elements
-- **📝 Text Extraction**: Automatically converts visible content to Markdown text
+- **📝 Text Extraction**: Automatically converts visible content to Markdown text with optional trimming
 - **📐 Flexible Scrolling**: Configurable scroll steps and starting positions
 - **🎯 Precise Control**: Set viewport size, zoom level, and output scaling
 - **🔄 Automatic Retries**: Robust error handling with configurable retry logic
@@ -146,7 +146,7 @@ brosh shot "https://example.com" --format apng
 brosh --width 1920 --height 1080 shot "https://example.com"
 
 # Extract HTML content
-brosh shot "https://example.com" --html --json > content.json
+brosh shot "https://example.com" --fetch_html --json > content.json
 ```
 
 ## 6. Usage
@@ -313,7 +313,22 @@ brosh [OPTIONS] shot URL [SHOT_OPTIONS]
 
 - `URL`: The webpage URL to capture
 
-**Shot Options:** | Option | Type | Default | Description | |--------|------|---------|-------------| | `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) | | `--scale` | int | 100 | Scale output images by % (10-200) | | `--format` | str | png | Output format: `png`, `jpg`, `apng` | | `--anim_spf` | float | 0.5 | Seconds per frame for APNG | | `--html` | bool | False | Extract HTML content of visible elements | | `--json` | bool | False | Output results as JSON | | `--max_frames` | int | 0 | Maximum screenshots (0 = all) | | `--from_selector` | str | "" | CSS selector to start capture from |
+**Shot Options:** 
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) |
+| `--scale` | int | 100 | Scale output images by % (10-200) |
+| `--format` | str | png | Output format: `png`, `jpg`, `apng` |
+| `--anim_spf` | float | 0.5 | Seconds per frame for APNG |
+| `--fetch_html` | bool | False | Extract HTML content of visible elements |
+| `--fetch_image` | bool | False | Include image data in MCP output |
+| `--fetch_image_path` | bool | True | Include image paths in MCP output |
+| `--fetch_text` | bool | True | Include extracted text in MCP output |
+| `--trim_text` | bool | True | Trim text to 200 characters |
+| `--json` | bool | False | Output results as JSON |
+| `--max_frames` | int | 0 | Maximum screenshots (0 = all) |
+| `--from_selector` | str | "" | CSS selector to start capture from |
 
 #### 7.2.4. `mcp` - Run MCP Server
 
@@ -354,7 +369,7 @@ github_com-250612-185234-00500-readme.png
 
 The tool now always extracts text content from visible elements. When using `--json`:
 
-**Default output (without --html):**
+**Default output (without --fetch_html):**
 
 ```json
 {
@@ -365,7 +380,7 @@ The tool now always extracts text content from visible elements. When using `--j
 }
 ```
 
-**With --html flag:**
+**With --fetch_html flag:**
 
 ```json
 {
@@ -423,7 +438,7 @@ Extract the HTML content of visible elements for each screenshot:
 
 ```bash
 # Get HTML with screenshots
-brosh shot "https://example.com" --html --json > content.json
+brosh shot "https://example.com" --fetch_html --json > content.json
 
 # Process the extracted content
 cat content.json | jq 'to_entries | .[] | {
@@ -548,6 +563,26 @@ Once configured, you can ask Claude to:
 - "Show me what the Hacker News homepage looks like"
 
 Claude will use brosh to capture the screenshots and can analyze the visual content or extracted HTML.
+
+### 10.4. MCP Output Format
+
+The MCP server returns results in a flat JSON structure for better compatibility:
+
+```json
+{
+  "image_path": "/path/to/screenshot.png",
+  "selector": "main.content",
+  "text": "Extracted text content (trimmed to 200 chars by default)...",
+  "html": "<main>...</main>"  // Only if fetch_html=True
+}
+```
+
+**Control output with flags:**
+- `fetch_image`: Include actual image data (default: False)
+- `fetch_image_path`: Include image file path (default: True)
+- `fetch_text`: Include extracted text (default: True)
+- `trim_text`: Trim text to 200 characters (default: True)
+- `fetch_html`: Include HTML content (default: False)
 
 ## 11. Architecture
 

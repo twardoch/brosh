@@ -91,7 +91,11 @@ class TestCaptureWebpage:
                 subdirs=True,
                 format=ImageFormat.JPG,
                 anim_spf=1.0,
-                html=True,
+                fetch_html=True,
+                fetch_image=False,
+                fetch_image_path=True,
+                fetch_text=True,
+                trim_text=False,
                 max_frames=5,
                 from_selector="main",
             )
@@ -112,7 +116,11 @@ class TestCaptureWebpage:
             assert config.subdirs is True
             assert config.format == ImageFormat.JPG
             assert config.anim_spf == 1.0
-            assert config.html is True
+            assert config.fetch_html is True
+            assert config.fetch_image is False
+            assert config.fetch_image_path is True
+            assert config.fetch_text is True
+            assert config.trim_text is False
             assert config.max_frames == 5
             assert config.from_selector == "main"
 
@@ -121,7 +129,7 @@ class TestCaptureWebpage:
         with (
             patch("brosh.api.BrowserScreenshotTool") as mock_tool_class,
             patch("brosh.api.asyncio.run") as mock_asyncio_run,
-            patch("brosh.api.user_pictures_dir") as mock_pictures_dir,
+            patch("brosh.api.dflt_output_folder") as mock_pictures_dir,
         ):
             mock_pictures_dir.return_value = "/home/user/Pictures"
 
@@ -185,7 +193,11 @@ class TestCaptureWebpageAsync:
                 subdirs=False,
                 format=ImageFormat.PNG,
                 anim_spf=0.5,
-                html=False,
+                fetch_html=False,
+                fetch_image=False,
+                fetch_image_path=True,
+                fetch_text=True,
+                trim_text=True,
                 max_frames=0,
                 from_selector="",
             )

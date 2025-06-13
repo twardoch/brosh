@@ -13,11 +13,11 @@ from pathlib import Path
 
 import fire
 from loguru import logger
-from platformdirs import user_pictures_dir
 
 from .api import capture_webpage
 from .browser import BrowserManager
 from .models import ImageFormat
+from .tool import dflt_output_folder
 
 
 class BrowserScreenshotCLI:
@@ -36,7 +36,7 @@ class BrowserScreenshotCLI:
         width: int = 0,
         height: int = 0,
         zoom: int = 100,
-        output_dir: Path = Path(user_pictures_dir()),
+        output_dir: Path = Path(dflt_output_folder()),
         subdirs: bool = False,
         verbose: bool = False,
         json: bool = False,

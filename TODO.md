@@ -1,28 +1,9 @@
-✅ COMPLETED: Codebase Cleaning
+# TODO.md
 
-## Summary of Changes:
+- Analyze `PLAN.md` and then update `CHANGELOG.md` with the changes performed. Remove the things that are done from `PLAN.md`
+- Run `./cleanup.sh` 
+- Analyze the response and replace `PLAN.md` with a new plan to fix the issues. 
+- Analyze `llms.txt` (which is the entire codebase). 
+- Update `README.md`. This is extremely important. REMOVE all content that no longer is correct or relevant. ADD new content that is correct and relevant (to the recent changes or to the whole codebase). 
 
-1. **Deleted `src/brosh/brosh.py`** - Entire file was unrelated to browser screenshot functionality
-   - Contained unused `Config` dataclass and `process_data()` function
-   - Had missing imports and TODO comments
-   - Not referenced anywhere in the codebase
-
-2. **Cleaned `src/brosh/image.py`** - Removed 4 legacy file-based methods:
-   - `scale_image()` - replaced by `downsample_png_bytes()`
-   - `convert_to_jpg()` - replaced by `convert_png_to_jpg_bytes()`
-   - `optimize_png()` - replaced by `optimize_png_bytes()`
-   - `create_apng()` - replaced by `create_apng_bytes()`
-
-3. **Cleaned `src/brosh/models.py`** - Removed 4 unused model classes:
-   - `BrowserConfig` - not used anywhere
-   - `MCPResource` - not used anywhere
-   - `MCPContentItem` - not used anywhere
-   - `MCPScreenshotResult` - not used anywhere
-
-## Results:
-- ✅ Package still imports successfully
-- ✅ CLI functionality tested and working
-- ✅ No broken imports or dependencies
-- ✅ Codebase is now cleaner and more maintainable
-
-See `PLAN.md` for the detailed analysis and execution plan.
+Be resilient. Be autonomous. Be creative. Be efficient. Be effective. Be concise. Be clear. Be precise. Be correct. Be complete. 

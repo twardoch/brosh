@@ -119,6 +119,7 @@ class TestCaptureConfig:
         assert config.height == 0
         assert config.zoom == 100
         assert config.format == ImageFormat.PNG
+        assert config.trim_text is True  # Default value
 
     def test_capture_config_creation_full(self, temp_output_dir: Path) -> None:
         """Test creating CaptureConfig with all fields."""
@@ -134,7 +135,11 @@ class TestCaptureConfig:
             output_dir=str(temp_output_dir),
             subdirs=True,
             anim_spf=0.8,
-            html=True,
+            fetch_html=True,
+            fetch_image=False,
+            fetch_image_path=True,
+            fetch_text=True,
+            trim_text=False,
             max_frames=10,
             from_selector="main",
         )
@@ -150,7 +155,11 @@ class TestCaptureConfig:
         assert config.output_dir == str(temp_output_dir)
         assert config.subdirs is True
         assert config.anim_spf == 0.8
-        assert config.html is True
+        assert config.fetch_html is True
+        assert config.fetch_image is False
+        assert config.fetch_image_path is True
+        assert config.fetch_text is True
+        assert config.trim_text is False
         assert config.max_frames == 10
         assert config.from_selector == "main"
 

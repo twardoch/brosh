@@ -728,3 +728,210 @@ Let me investigate the differences between CLI and MCP usage:
 
 ---
 
+<details>
+            <summary>Searched codebase "BrowserScreenshotTool capture method implementation" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `src/brosh/tool.py` | L105-147 |
+| `src/brosh/tool.py` | L50-105 |
+| `src/brosh/tool.py` | L147-192 |
+| `llms.txt` | L2306-2354 |
+| `llms.txt` | L3890-3933 |
+| `src/brosh/tool.py` | L1-50 |
+| `src/brosh/cli.py` | L155-218 |
+| `llms.txt` | L1616-1658 |
+| `llms.txt` | L2218-2264 |
+| `src/brosh/capture.py` | L206-243 |
+| `llms.txt` | L2396-2435 |
+| `src/brosh/cli.py` | L89-117 |
+| `src/brosh/capture.py` | L1-62 |
+| `src/brosh/capture.py` | L122-162 |
+| `src/brosh/capture.py` | L62-122 |
+| `src/brosh/capture.py` | L162-206 |
+| `src/brosh/capture.py` | L243-275 |
+| `src/brosh/capture.py` | L275-299 |
+| `llms.txt` | L2435-2486 |
+| `llms.txt` | L1658-1721 |
+| `src/brosh/cli.py` | L1-55 |
+| `src/brosh/mcp.py` | L266-302 |
+| `llms.txt` | L2264-2306 |
+| `src/brosh/cli.py` | L117-155 |
+| `llms.txt` | L2354-2396 |
+
+</details>
+
+---
+
+<details>
+            <summary>Searched codebase "browser close cleanup finally block" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `src/brosh/browser.py` | L437-464 |
+| `llms.txt` | L1577-1616 |
+| `src/brosh/browser.py` | L333-364 |
+| `src/brosh/browser.py` | L396-437 |
+| `llms.txt` | L1454-1505 |
+| `src/brosh/cli.py` | L117-155 |
+| `llms.txt` | L1537-1577 |
+| `src/brosh/browser.py` | L364-396 |
+| `llms.txt` | L2141-2180 |
+| `llms.txt` | L2435-2486 |
+| `src/brosh/browser.py` | L213-243 |
+| `src/brosh/browser.py` | L1-37 |
+| `llms.txt` | L1153-1186 |
+| `src/brosh/browser.py` | L170-213 |
+| `src/brosh/browser.py` | L464-501 |
+| `llms.txt` | L2107-2141 |
+| `src/brosh/browser.py` | L73-126 |
+| `src/brosh/browser.py` | L243-294 |
+| `llms.txt` | L2180-2218 |
+| `src/brosh/cli.py` | L55-89 |
+| `llms.txt` | L1505-1537 |
+| `src/brosh/cli.py` | L89-117 |
+| `src/brosh/browser.py` | L126-170 |
+| `llms.txt` | L1310-1352 |
+| `src/brosh/tool.py` | L147-192 |
+
+</details>
+
+---
+
+Now I can see the key difference! The issue is in how the async event loop is handled between CLI and MCP usage:
+
+**CLI Usage (works fine):**
+- In `cli.py`, line 218: `result = asyncio.run(self._tool.capture(...))`
+- This creates a **new event loop** for each capture operation
+
+**MCP Usage (has the error):**
+- In `mcp.py`, the MCP server is already running in an async context
+- When we call `await tool.capture(...)`, we're running within the **existing event loop**
+- The Playwright connection cleanup happens in the same event loop that may have unhandled background tasks
+
+The `InvalidStateError` occurs because Playwright's internal connection tasks are trying to set results on futures that are already done, likely due to event loop lifecycle conflicts.
+
+Let me fix this by ensuring the MCP server runs the capture in a separate event loop, just like the CLI does:
+
+---
+
+```diff
+  import base64
+  from typing import Dict, List, Mapping, Union
++ import concurrent.futures
+  
+  import platformdirs
+```
+
+```diff
+          logger.debug(f"MCP see_webpage called for url={url} html={html}")
+          try:
+-             # Set a timeout for the capture operation (e.g., 60 seconds)
+-             result = await asyncio.wait_for(
++             # Run capture in a separate event loop to avoid conflicts
++             # This is similar to how the CLI works (asyncio.run)
++             def run_capture():
++                 return asyncio.run(
+                      tool.capture(
+                          url=url,
+```
+
+```diff
+                          max_frames=max_frames,
+                          from_selector=from_selector,
+-                 ),
+-                 timeout=60.0,
+-             )
+-             logger.debug("MCP see_webpage capture completed successfully")
++                     )
++                 )
++             
++             # Execute in thread executor with timeout
++             loop = asyncio.get_event_loop()
++             with concurrent.futures.ThreadPoolExecutor() as executor:
++                 future = loop.run_in_executor(executor, run_capture)
++                 result = await asyncio.wait_for(future, timeout=60.0)
++             
++             logger.debug(
++                 "MCP see_webpage capture completed successfully"
++             )
+          except asyncio.TimeoutError:
+              logger.error("MCP see_webpage: capture timed out")
+              return MCPToolResult(
+-                 content=[MCPContentItem(type="text", text="Error: Screenshot capture timed out.")],
+-                 structured_content=None,
++                 content=[
++                     MCPContentItem(
++                         type="text",
++                         text="Error: Screenshot capture timed out."
++                     )
++                 ],
++                 structured_content=None
+              )
+          except asyncio.exceptions.InvalidStateError as e:
+-             logger.error(f"MCP see_webpage: InvalidStateError: {e}")
++             logger.error(
++                 f"MCP see_webpage: InvalidStateError: {e}"
++             )
+              return MCPToolResult(
+-                 content=[MCPContentItem(type="text", text=f"Error: InvalidStateError: {e}")], structured_content=None
++                 content=[
++                     MCPContentItem(
++                         type="text",
++                         text=f"Error: InvalidStateError: {e}"
++                     )
++                 ],
++                 structured_content=None
+              )
+          except PlaywrightError as e:
+-             logger.error(f"MCP see_webpage: Playwright error: {e}")
++             logger.error(
++                 f"MCP see_webpage: Playwright error: {e}"
++             )
+              return MCPToolResult(
+-                 content=[MCPContentItem(type="text", text=f"Error: Playwright error: {e}")], structured_content=None
++                 content=[
++                     MCPContentItem(
++                         type="text",
++                         text=f"Error: Playwright error: {e}"
++                     )
++                 ],
++                 structured_content=None
+              )
+          except Exception as e:
+-             logger.error(f"MCP see_webpage: Unexpected error: {e}")
++             logger.error(
++                 f"MCP see_webpage: Unexpected error: {e}"
++             )
+              return MCPToolResult(
+-                 content=[MCPContentItem(type="text", text=f"Error: Unexpected error: {e}")], structured_content=None
++                 content=[
++                     MCPContentItem(
++                         type="text",
++                         text=f"Error: Unexpected error: {e}"
++                     )
++                 ],
++                 structured_content=None
+              )
+          # Process capture results for MCP response
+```
+
+---
+
+The key fix is now in place! The MCP server will run the Playwright capture operation in a separate event loop (using `asyncio.run()` in a thread executor), just like the CLI does. This should resolve the `InvalidStateError` because:
+
+1. **Event Loop Isolation**: The Playwright operations run in their own event loop, separate from the MCP server's event loop
+2. **Proper Cleanup**: Browser cleanup happens in the isolated event loop, preventing conflicts with the MCP server's async tasks
+3. **Timeout Handling**: The operation is still properly timed out and error-handled
+
+**Summary of the fix:**
+- **Root Cause**: The MCP server and Playwright were sharing the same event loop, causing `InvalidStateError` when Playwright's background tasks tried to set results on futures that were already done
+- **Solution**: Run the capture operation in a separate event loop using `asyncio.run()` in a thread executor, mimicking how the CLI works
+- **Result**: The MCP server should now work without the `InvalidStateError`, just like the CLI
+
+The remaining linter errors are just formatting issues and don't affect functionality. The core bug fix is complete!
+
+**Test this by running your MCP server again with the same request that was failing before.**
+
+---
+

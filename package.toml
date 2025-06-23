@@ -8,4 +8,4 @@ use_rich = true          # Use Rich for terminal output
 [features]
 mkdocs = false           # Enable MkDocs documentation
 vcs = true              # Initialize Git repository
-github_actions = true   # Add GitHub Actions workflows 
+github_actions = true   # Add GitHub Actions workflows

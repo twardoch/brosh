@@ -16,7 +16,7 @@ def process_image(
     resize: Annotated[bool, Field(description="Whether to resize the image")] = False,
     width: Annotated[int, Field(description="Target width in pixels", ge=1, le=2000)] = 800,
     format: Annotated[
-        Literal["jpeg", "png", "webp"], 
+        Literal["jpeg", "png", "webp"],
         Field(description="Output image format")
     ] = "jpeg"
 ) -> dict:
@@ -36,7 +36,7 @@ I'll help you add Pydantic field annotations to the `see_webpage` function in `m
 
 <details>
             <summary>Searched codebase "from pydantic import Field or from typing import Annotated" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `llms.txt` | L3808-3853 |
@@ -75,7 +75,7 @@ I see that the project uses Pydantic for data validation according to `package.t
 
 <details>
             <summary>Searched codebase "from models import ImageFormat or class ImageFormat" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `src/brosh/models.py` | L1-14 |
@@ -113,22 +113,22 @@ Great! I see that there's an existing `ImageFormat` enum in `models.py` that we 
 ---
 
 ```diff
-  
+
   import sys
 + from typing import Annotated, Literal
-  
+
   import platformdirs
 + from pydantic import Field
-  
+
   try:
 ```
 
 ```diff
   from loguru import logger
-  
+
 + from .models import ImageFormat
   from .tool import BrowserScreenshotTool
-  
+
 ```
 
 ```diff
@@ -168,8 +168,8 @@ Great! I see that there's an existing `ImageFormat` enum in `models.py` that we 
 
 ```diff
           fidelity for speed or file size.
-  
-- 
+
+-
 -         Args:
 -             url (str): The URL to capture.
 -             zoom (int): Zoom level in %; default: 100.
@@ -185,7 +185,7 @@ Great! I see that there's an existing `ImageFormat` enum in `models.py` that we 
 -             format (str): Output format: 'png' (default), 'jpg', 'apng'.
 -             anim_spf (float): APNG seconds per frame; default: 0.5.
 -             html (bool): Get visible 'html' code for each screenshot.
-- 
+-
           Returns:
               Dict with screenshot paths as keys and values containing:
 ```
@@ -202,7 +202,7 @@ Let me help continue improving the codebase by resolving the linting issues and 
 
 <details>
             <summary>Searched codebase "see_webpage function in mcp.py" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `src/brosh/mcp.py` | L138-163 |
@@ -241,7 +241,7 @@ Let me also check the models file to understand the `ImageFormat` enum:
 
 <details>
             <summary>Searched codebase "ImageFormat enum definition in models.py" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `src/brosh/models.py` | L1-14 |
@@ -292,11 +292,11 @@ Let me fix these issues:
 ---
 
 ```diff
-  
+
   import sys
 - from typing import Annotated, Literal
 + from typing import Annotated
-  
+
   import platformdirs
 ```
 
@@ -377,7 +377,7 @@ Let me fix these issues:
 
 ```diff
                       }
-  
+
 -                     # Handle both old format (string selector) and new format (dict with selector, html, and text)
 +                     # Handle HTML, selector and text data
                       if isinstance(value, dict):
@@ -385,23 +385,23 @@ Let me fix these issues:
 ```
 
 ```diff
-  
+
               return mcp_result
-+ 
++
           # Result is a list of paths (shouldn't happen with current logic)
           # Convert to dict format expected by MCP
 ```
 
 ```diff
                       img_format = "png"
-  
+
 +                 # Build response with just image and default selector
                   mcp_result[path] = {
                       "image": Image(data=img_bytes, format=img_format),
 -                     "selector": "body",  # Default selector
 +                     "selector": "body",
                   }
-+ 
++
               except Exception as e:
                   logger.error(f"Failed to read image {path}: {e}")
 ```
@@ -527,15 +527,15 @@ First, let's make the initial improvements:
 + # dependencies = ["fastmcp", "platformdirs", "pydantic", "loguru"]
 + # ///
   # this_file: src/brosh/mcp.py
-  
+
 - """MCP server implementation for brosh."""
 + """MCP server implementation for brosh.
-+ 
++
 + This module provides FastMCP server functionality for capturing browser screenshots
 + using the brosh tool. It enables AI tools to request and receive webpage captures
 + with visual context and optional HTML/text content.
 + """
-  
+
   import sys
 ```
 
@@ -544,17 +544,17 @@ First, let's make the initial improvements:
   except ImportError:
 +     logger.error("FastMCP not found. Please install it with: pip install fastmcp")
       sys.exit(1)
-  
+
 ```
 
 ```diff
-  
-  
+
+
 - def run_mcp_server():
 -     """Run the FastMCP server for browser screenshots."""
 + def run_mcp_server() -> None:
 +     """Run the FastMCP server for browser screenshots.
-      
+
 +     Initializes and runs a FastMCP server that provides webpage screenshot
 +     capabilities through the brosh tool. The server exposes a single endpoint
 +     that accepts various parameters for customizing the capture process.
@@ -634,17 +634,17 @@ First, let's make the initial improvements:
 -         """
 -         Capture visual context from a live webpage.
 +         """Capture visual context from a live webpage.
-  
+
 -         Call this tool when you must *see* the page as a user would
 -         (e.g. verify layout, extract client‑rendered text, or show an
 -         image of a long-scrolling document). It drives a real browser,
 -         scrolls from the given CSS selector (or top), and returns:
-- 
+-
 +         This function drives a real browser to capture screenshots of a webpage,
 +         with support for scrolling, custom viewports, and content extraction.
 +         It's ideal for dynamic or graphics-heavy pages where raw HTML is
 +         insufficient.
-+ 
++
 +         Args:
 +             url: The webpage URL to capture
 +             zoom: Browser zoom level (10-500%)
@@ -660,7 +660,7 @@ First, let's make the initial improvements:
 +             format: Output image format (png/jpg/apng)
 +             anim_spf: APNG animation speed (0.1-10.0 seconds)
 +             html: Include visible HTML content
-+ 
++
 +         Returns:
 +             A dictionary mapping screenshot paths to their metadata:
               {
@@ -677,14 +677,14 @@ First, let's make the initial improvements:
                   },
                   ...
               }
-  
+
 -         Best for dynamic or graphics‑heavy pages. Avoid it for small,
 -         static URLs whose raw HTML suffices.
-- 
+-
 -         Parameters mirror browser‑automation settings (zoom, viewport
 -         size, scroll_step, max_frames, format, etc.) so you can trade
 -         fidelity for speed or file size.
-- 
+-
 -         Returns:
 -             Dict with screenshot paths as keys and values containing:
 -             - 'image': image data of screenshot.
@@ -705,25 +705,25 @@ First, let's make the initial improvements:
               max_frames=max_frames,
               from_selector=from_selector,
           )
-  
+
 -         # For MCP mode, we need to return a dict with image data
 +         # Process capture results for MCP response
           if isinstance(result, dict):
 -             # Result is already a dict with paths as keys
 +             return _process_dict_result(result)
 +         return _process_list_result(result)
-+ 
++
 +     mcp.run()
-+ 
-+ 
++
++
 + def _process_dict_result(
 +     result: dict[str, str | dict],
 + ) -> dict[str, dict[str, str | Image]]:
 +     """Process dictionary-format capture results.
-+ 
++
 +     Args:
 +         result: Raw capture results with paths as keys
-+ 
++
 +     Returns:
 +         Processed results with image data and metadata
 +     """
@@ -733,7 +733,7 @@ First, let's make the initial improvements:
 -                 try:
 -                     with open(path, "rb") as f:
 -                         img_bytes = f.read()
-- 
+-
 -                     # Determine format from path
 -                     path_lower = path.lower()
 -                     if path_lower.endswith(".png"):
@@ -742,16 +742,16 @@ First, let's make the initial improvements:
 -                         img_format = "jpeg"
 -                     else:
 -                         img_format = "png"
-- 
+-
 -                     # Build the response dict
 -                     response_dict = {
 -                         "image": Image(data=img_bytes, format=img_format),
 -                     }
-- 
+-
 -                     # Handle HTML, selector and text data
 +         try:
 +             response_dict = _create_image_response(path)
-+             
++
 +             # Add metadata from the capture result
               if isinstance(value, dict):
                   response_dict["selector"] = value.get("selector", "body")
@@ -763,27 +763,27 @@ First, let's make the initial improvements:
 -                         # Old format - value is just the selector
 +                 # Legacy format - value is just the selector
                   response_dict["selector"] = value
-  
+
               mcp_result[path] = response_dict
-  
+
           except Exception as e:
 -                     logger.error(f"Failed to read image {path}: {e}")
 +             logger.error(f"Failed to process {path}: {e}")
               continue
-  
+
       return mcp_result
-  
+
 -         # Result is a list of paths (shouldn't happen with current logic)
 -         # Convert to dict format expected by MCP
-+ 
++
 + def _process_list_result(
 +     result: list[str],
 + ) -> dict[str, dict[str, str | Image]]:
 +     """Process list-format capture results.
-+ 
++
 +     Args:
 +         result: List of screenshot file paths
-+ 
++
 +     Returns:
 +         Processed results with image data
 +     """
@@ -797,19 +797,19 @@ First, let's make the initial improvements:
 +         except Exception as e:
 +             logger.error(f"Failed to process {path}: {e}")
 +             continue
-+ 
++
 +     return mcp_result
-+ 
-+ 
++
++
 + def _create_image_response(path: str) -> dict[str, Image]:
 +     """Create an image response from a file path.
-+ 
++
 +     Args:
 +         path: Path to the image file
-+ 
++
 +     Returns:
 +         Dict with image data and format
-+ 
++
 +     Raises:
 +         Exception: If image file cannot be read
 +     """
@@ -819,23 +819,23 @@ First, let's make the initial improvements:
 
 ```diff
           img_format = "png"
-  
+
 -                 # Build response with just image and default selector
 -                 mcp_result[path] = {
 -                     "image": Image(data=img_bytes, format=img_format),
 -                     "selector": "body",
 -                 }
-- 
+-
 -             except Exception as e:
 -                 logger.error(f"Failed to read image {path}: {e}")
 -                 continue
-- 
+-
 -         return mcp_result
-- 
+-
 -     mcp.run()
 +     return {"image": Image(data=img_bytes, format=img_format)}
-  
-  
+
+
 - def main():
 + def main() -> None:
       """Entry point for the brosh-mcp command."""
@@ -850,7 +850,7 @@ Let me fix the remaining linter errors:
 
 ```diff
   """MCP server implementation for brosh.
-  
+
 - This module provides FastMCP server functionality for capturing browser screenshots
 - using the brosh tool. It enables AI tools to request and receive webpage captures
 - with visual context and optional HTML/text content.
@@ -858,23 +858,23 @@ Let me fix the remaining linter errors:
 + screenshots using the brosh tool. It enables AI tools to request and receive
 + webpage captures with visual context and optional HTML/text content.
   """
-  
+
 ```
 
 ```diff
   import platformdirs
   from pydantic import Field
 + from loguru import logger
-  
+
   try:
       from fastmcp import FastMCP, Image
   except ImportError:
 -     logger.error("FastMCP not found. Please install it with: pip install fastmcp")
 +     logger.error("FastMCP package not found. Install with: pip install fastmcp")
       sys.exit(1)
-  
+
 - from loguru import logger
-- 
+-
   from .models import ImageFormat
   from .tool import BrowserScreenshotTool
 ```
@@ -922,11 +922,11 @@ Let me fix the remaining linter errors:
 ---
 
 ```diff
-  
+
   import sys
 - from typing import Annotated
 + from typing import Annotated, Any, Mapping
-  
+
   import platformdirs
 ```
 
@@ -936,7 +936,7 @@ Let me fix the remaining linter errors:
 -     logger.error("FastMCP package not found. Install with: pip install fastmcp")
 +     logger.error("FastMCP package not found. Install: pip install fastmcp")
       sys.exit(1)
-  
+
 ```
 
 ```diff
@@ -969,7 +969,7 @@ Let me fix the remaining linter errors:
 ```
 
 ```diff
-  
+
   def _process_dict_result(
 -     result: dict[str, str | dict],
 +     result: Mapping[str, Any],
@@ -1029,7 +1029,7 @@ Let me check the FastMCP documentation to understand the correct parameter name:
 
 <details>
             <summary>Searched web "FastMCP Python package documentation initialization parameters" • **6** results</summary>
-        
+
 | Title | URL |
 |-------|-----|
 | fastmcp-documentation.txt | https://github.com/MCP-Mirror/hannesrudolph_sqlite-explorer-fastmcp-mcp-server/blob/main/fastmcp-documentation.txt |
@@ -1098,15 +1098,15 @@ Let me make these changes:
       else:
 -         img_format = "png"
 +         img_format = "png"  # Default to PNG
-  
+
       return {"image": Image(data=img_bytes, format=img_format)}
-  
-  
+
+
   def main() -> None:
 -     """Entry point for the brosh-mcp command."""
 +     """Run the MCP server."""
       run_mcp_server()
-  
+
 ```
 
 ---
@@ -1160,19 +1160,19 @@ Now I'll update the models.py file to include proper Pydantic models for structu
 ---
 
 ```diff
-  
+
   from enum import Enum
 + from typing import Any, Dict, List, Optional, Union
-+ 
++
 + from pydantic import BaseModel, Field
-  
-  
+
+
 ```
 
 ```diff
       JPG = "jpg"
       APNG = "apng"
-+ 
++
 +     @property
 +     def mime_type(self) -> str:
 +         """Get the MIME type for this image format."""
@@ -1182,7 +1182,7 @@ Now I'll update the models.py file to include proper Pydantic models for structu
 +             self.APNG: "image/apng",
 +         }
 +         return mime_types[self]
-+ 
++
 +     @property
 +     def file_extension(self) -> str:
 +         """Get the file extension for this image format."""
@@ -1192,7 +1192,7 @@ Now I'll update the models.py file to include proper Pydantic models for structu
 +             self.APNG: ".apng",
 +         }
 +         return extensions[self]
-+ 
++
 +     @classmethod
 +     def from_mime_type(cls, mime_type: str) -> "ImageFormat":
 +         """Create an ImageFormat from a MIME type."""
@@ -1205,7 +1205,7 @@ Now I'll update the models.py file to include proper Pydantic models for structu
 +         if mime_type not in mime_map:
 +             raise ValueError(f"Unsupported MIME type: {mime_type}")
 +         return mime_map[mime_type]
-+ 
++
 +     @classmethod
 +     def from_extension(cls, extension: str) -> "ImageFormat":
 +         """Create an ImageFormat from a file extension."""
@@ -1220,20 +1220,20 @@ Now I'll update the models.py file to include proper Pydantic models for structu
 +         if extension.lower() not in ext_map:
 +             raise ValueError(f"Unsupported file extension: {extension}")
 +         return ext_map[extension.lower()]
-+ 
-+ 
++
++
 + class MCPResource(BaseModel):
 +     """Model for MCP resource content."""
-+ 
++
 +     uri: str = Field(..., description="Resource URI")
 +     mime_type: str = Field(..., description="MIME type of the resource")
 +     text: Optional[str] = Field(None, description="Text content if available")
 +     blob: Optional[str] = Field(None, description="Base64-encoded binary data")
-+ 
-+ 
++
++
 + class MCPContentItem(BaseModel):
 +     """Model for MCP content items."""
-+ 
++
 +     type: str = Field(..., description="Content type (text, image, resource)")
 +     text: Optional[str] = Field(None, description="Text content if type is text")
 +     data: Optional[str] = Field(
@@ -1241,27 +1241,27 @@ Now I'll update the models.py file to include proper Pydantic models for structu
 +     )
 +     mime_type: Optional[str] = Field(None, description="MIME type for binary content")
 +     resource: Optional[MCPResource] = Field(None, description="Resource content")
-+ 
-+ 
++
++
 + class MCPScreenshotResult(BaseModel):
 +     """Model for MCP screenshot result metadata."""
-+ 
++
 +     image: MCPContentItem = Field(..., description="Screenshot image data")
 +     selector: str = Field("body", description="CSS selector for visible element")
 +     text: Optional[str] = Field(None, description="Extracted text content")
 +     html: Optional[str] = Field(None, description="Extracted HTML content")
-+ 
-+ 
++
++
 + class MCPToolResult(BaseModel):
 +     """Model for MCP tool results."""
-+ 
++
 +     content: List[MCPContentItem] = Field(
 +         ..., description="Content items in the result"
 +     )
 +     structured_content: Optional[Dict[str, Any]] = Field(
 +         None, description="Structured data in the result"
 +     )
-  
+
 ```
 
 ---
@@ -1271,11 +1271,11 @@ Let me fix the linting issues in models.py:
 ---
 
 ```diff
-  
+
   from enum import Enum
 - from typing import Any, Dict, List, Optional, Union
 + from typing import Any, Dict, List, Optional
-  
+
   from pydantic import BaseModel, Field
 ```
 
@@ -1286,12 +1286,12 @@ Let me fix the linting issues in models.py:
 +     blob: Optional[str] = Field(
 +         None, description="Base64-encoded binary data"
 +     )
-  
-  
+
+
 ```
 
 ```diff
-  
+
       type: str = Field(..., description="Content type (text, image, resource)")
 -     text: Optional[str] = Field(None, description="Text content if type is text")
 -     data: Optional[str] = Field(None, description="Base64-encoded data for binary content")
@@ -1309,13 +1309,13 @@ Let me fix the linting issues in models.py:
 +     resource: Optional[MCPResource] = Field(
 +         None, description="Resource content"
 +     )
-  
-  
+
+
 ```
 
 ```diff
       """Model for MCP tool results."""
-  
+
 -     content: List[MCPContentItem] = Field(..., description="Content items in the result")
 -     structured_content: Optional[Dict[str, Any]] = Field(None, description="Structured data in the result")
 +     content: List[MCPContentItem] = Field(
@@ -1324,7 +1324,7 @@ Let me fix the linting issues in models.py:
 +     structured_content: Optional[Dict[str, Any]] = Field(
 +         None, description="Structured data in the result"
 +     )
-  
+
 ```
 
 ---
@@ -1341,7 +1341,7 @@ Let me fix the remaining line length issues in models.py:
 +                 f"Unsupported MIME type: {mime_type}"
 +             )
           return mime_map[mime_type]
-  
+
 ```
 
 ```diff
@@ -1352,7 +1352,7 @@ Let me fix the remaining line length issues in models.py:
 +                 f"Unsupported file extension: {extension}"
 +             )
           return ext_map[extension.lower()]
-  
+
 ```
 
 ```diff
@@ -1368,11 +1368,11 @@ Let me fix the remaining line length issues in models.py:
 +         None,
 +         description="Base64-encoded binary data",
 +     )
-  
-  
+
+
   class MCPContentItem(BaseModel):
       """Model for MCP content items."""
-  
+
 -     type: str = Field(..., description="Content type (text, image, resource)")
 -     text: Optional[str] = Field(None, description="Text content if type is text")
 -     data: Optional[str] = Field(None, description="Base64-encoded data for binary content")
@@ -1398,12 +1398,12 @@ Let me fix the remaining line length issues in models.py:
 +         None,
 +         description="Resource content",
 +     )
-  
-  
+
+
 ```
 
 ```diff
-  
+
       image: MCPContentItem = Field(..., description="Screenshot image data")
 -     selector: str = Field("body", description="CSS selector for visible element")
 -     text: Optional[str] = Field(None, description="Extracted text content")
@@ -1420,11 +1420,11 @@ Let me fix the remaining line length issues in models.py:
 +         None,
 +         description="Extracted HTML content",
 +     )
-  
-  
+
+
   class MCPToolResult(BaseModel):
       """Model for MCP tool results."""
-  
+
 -     content: List[MCPContentItem] = Field(..., description="Content items in the result")
 -     structured_content: Optional[Dict[str, Any]] = Field(None, description="Structured data in the result")
 +     content: List[MCPContentItem] = Field(
@@ -1435,7 +1435,7 @@ Let me fix the remaining line length issues in models.py:
 +         None,
 +         description="Structured data in the result",
 +     )
-  
+
 ```
 
 ---
@@ -1446,19 +1446,19 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 
 ```diff
   """
-  
+
 + import base64
   import sys
 - from typing import Annotated, Any, Mapping
 + from pathlib import Path
 + from typing import Dict, List, Union
-  
+
   import platformdirs
 ```
 
 ```diff
       sys.exit(1)
-  
+
 - from .models import ImageFormat
 + from .models import (
 +     ImageFormat,
@@ -1467,7 +1467,7 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 +     MCPToolResult,
 + )
   from .tool import BrowserScreenshotTool
-  
+
 ```
 
 ```diff
@@ -1486,7 +1486,7 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 +             "browser and returns images with optional text/HTML content."
           ),
       )
-  
+
       @mcp.tool
       async def see_webpage(
 -         url: Annotated[str, Field(description="The URL to capture")],
@@ -1603,11 +1603,11 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 +         ),
 +     ) -> MCPToolResult:
           """Capture visual context from a live webpage.
-  
+
 ```
 
 ```diff
-  
+
           Returns:
 -             A dictionary mapping screenshot paths to their metadata:
 -             {
@@ -1620,7 +1620,7 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 -                 ...
 -             }
 +             An MCPToolResult containing the screenshot data and metadata.
-  
+
           Raises:
 ```
 
@@ -1629,12 +1629,12 @@ Now that we have updated the models.py file with proper Pydantic models and impr
           if isinstance(result, dict):
 -             return _process_dict_result(result)
 -         return _process_list_result(result)
-- 
+-
 -     mcp.run()
 +             return _process_dict_result(result, format)
 +         return _process_list_result(result, format)
-  
-  
+
+
   def _process_dict_result(
 -     result: Mapping[str, Any],
 - ) -> dict[str, dict[str, str | Image]]:
@@ -1642,22 +1642,22 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 +     format: ImageFormat,
 + ) -> MCPToolResult:
       """Process dictionary-format capture results.
-  
+
       Args:
           result: Raw capture results with paths as keys
 +         format: Image format used for the captures
-  
+
       Returns:
           Processed results with image data and metadata
       """
 -     mcp_result = {}
 +     content_items = []
-+ 
++
       for path, value in result.items():
           try:
 -             response_dict = _create_image_response(path)
 +             screenshot = _create_screenshot_result(path, format)
-  
+
               # Add metadata from the capture result
               if isinstance(value, dict):
 -                 response_dict["selector"] = value.get("selector", "body")
@@ -1672,18 +1672,18 @@ Now that we have updated the models.py file with proper Pydantic models and impr
                   # Legacy format - value is just the selector
 -                 response_dict["selector"] = value
 +                 screenshot.selector = str(value)
-  
+
 -             mcp_result[path] = response_dict
 +             content_items.append(screenshot.image)
-  
+
           except Exception as e:
               logger.error(f"Failed to process {path}: {e}")
               continue
-  
+
 -     return mcp_result
 +     return MCPToolResult(content=content_items)
-  
-  
+
+
   def _process_list_result(
 -     result: list[str],
 - ) -> dict[str, dict[str, str | Image]]:
@@ -1691,17 +1691,17 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 +     format: ImageFormat,
 + ) -> MCPToolResult:
       """Process list-format capture results.
-  
+
       Args:
           result: List of screenshot file paths
 +         format: Image format used for the captures
-  
+
       Returns:
           Processed results with image data
       """
 -     mcp_result = {}
 +     content_items = []
-+ 
++
       for path in result:
           try:
 -             mcp_result[path] = {
@@ -1713,11 +1713,11 @@ Now that we have updated the models.py file with proper Pydantic models and impr
           except Exception as e:
               logger.error(f"Failed to process {path}: {e}")
               continue
-  
+
 -     return mcp_result
 +     return MCPToolResult(content=content_items)
-  
-  
+
+
 - def _create_image_response(path: str) -> dict[str, Image]:
 -     """Create an image response from a file path.
 + def _create_screenshot_result(
@@ -1725,21 +1725,21 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 +     format: ImageFormat,
 + ) -> MCPScreenshotResult:
 +     """Create a screenshot result from a file path.
-  
+
       Args:
           path: Path to the image file
 +         format: Image format used for the capture
-  
+
       Returns:
 -         Dict with image data and format
 +         Screenshot result with image data and metadata
-  
+
       Raises:
 ```
 
 ```diff
           img_bytes = f.read()
-  
+
 -     # Determine format from path
 -     path_lower = path.lower()
 -     if path_lower.endswith(".png"):
@@ -1750,7 +1750,7 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 -         img_format = "apng"
 -     else:
 -         img_format = "png"  # Default to PNG
-- 
+-
 -     return {"image": Image(data=img_bytes, format=img_format)}
 +     # Create image content item
 +     image = MCPContentItem(
@@ -1758,10 +1758,10 @@ Now that we have updated the models.py file with proper Pydantic models and impr
 +         data=base64.b64encode(img_bytes).decode(),
 +         mime_type=format.mime_type,
 +     )
-+ 
++
 +     return MCPScreenshotResult(image=image)
-  
-  
+
+
 ```
 
 ---
@@ -1776,12 +1776,12 @@ Let me fix the remaining linting issues in mcp.py:
 - from pathlib import Path
 - from typing import Dict, List, Union
 + from typing import Dict, List, Mapping, Union
-  
+
   import platformdirs
 ```
 
 ```diff
-  
+
   try:
 -     from fastmcp import FastMCP, Image
 +     from fastmcp import FastMCP
@@ -1800,10 +1800,10 @@ Let me fix the remaining linting issues in mcp.py:
 
 ```diff
           return _process_list_result(result, format)
-  
+
 +     mcp.run()
-+ 
-  
++
+
   def _process_dict_result(
 -     result: Dict[str, Union[str, Dict[str, str]]],
 +     result: Mapping[str, Union[str, Dict[str, str]]],
@@ -1813,20 +1813,20 @@ Let me fix the remaining linting issues in mcp.py:
 
 ```diff
               continue
-  
+
 -     return MCPToolResult(content=content_items)
 +     return MCPToolResult(content=content_items, structured_content=None)
-  
-  
+
+
 ```
 
 ```diff
               continue
-  
+
 -     return MCPToolResult(content=content_items)
 +     return MCPToolResult(content=content_items, structured_content=None)
-  
-  
+
+
 ```
 
 ```diff
@@ -1835,7 +1835,7 @@ Let me fix the remaining linting issues in mcp.py:
 +         text=None,
 +         resource=None,
       )
-  
+
 -     return MCPScreenshotResult(image=image)
 +     return MCPScreenshotResult(
 +         image=image,
@@ -1843,8 +1843,8 @@ Let me fix the remaining linting issues in mcp.py:
 +         text=None,
 +         html=None,
 +     )
-  
-  
+
+
 ```
 
 ---

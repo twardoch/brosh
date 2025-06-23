@@ -4,7 +4,6 @@
 """Browser management utilities for brosh."""
 
 import asyncio
-import os
 import platform
 import shutil
 import subprocess
@@ -31,6 +30,8 @@ BROWSER_CONNECT_RETRY_INTERVAL_SECONDS = 1
 BROWSER_CONNECT_MAX_ATTEMPTS = 10
 # Timeout in milliseconds for playwright.chromium.connect_over_cdp
 BROWSER_CONNECT_CDP_TIMEOUT_MS = 5000
+# Default zoom level percentage
+DEFAULT_ZOOM_LEVEL = 100
 
 
 class BrowserManager:
@@ -264,7 +265,7 @@ class BrowserManager:
                 page = await context.new_page()
 
                 # Apply zoom via CSS instead of device scale factor
-                if zoom != 100:
+                if zoom != DEFAULT_ZOOM_LEVEL:  # PLR2004
                     await page.add_init_script(f"""
                         document.addEventListener('DOMContentLoaded', () => {{
                             document.body.style.zoom = '{zoom}%';
@@ -334,7 +335,7 @@ class BrowserManager:
         page = await context.new_page()
 
         # Apply zoom via CSS instead of device scale factor
-        if zoom != 100:
+        if zoom != DEFAULT_ZOOM_LEVEL:  # PLR2004
             await page.add_init_script(f"""
                 document.addEventListener('DOMContentLoaded', () => {{
                     document.body.style.zoom = '{zoom}%';
@@ -462,9 +463,7 @@ class BrowserManager:
                     return True
 
                 except Exception as e:
-                    logger.debug(
-                        f"Connection attempt {attempt + 1}/{BROWSER_CONNECT_MAX_ATTEMPTS} failed: {e}"
-                    )
+                    logger.debug(f"Connection attempt {attempt + 1}/{BROWSER_CONNECT_MAX_ATTEMPTS} failed: {e}")
                     if attempt == BROWSER_CONNECT_MAX_ATTEMPTS - 1:  # Last attempt
                         # Kill the process we started if it's still running
                         try:

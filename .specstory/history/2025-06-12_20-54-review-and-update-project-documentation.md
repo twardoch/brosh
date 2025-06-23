@@ -4,7 +4,7 @@
 
 _**User**_
 
-Read @TODO.md  and work on @PLAN.md 
+Read @TODO.md  and work on @PLAN.md
 
 ---
 
@@ -16,7 +16,7 @@ I'll help improve and expand the PLAN.md document to make it more specific and d
 
 <details>
             <summary>Searched codebase "browser screenshot tool implementation details capture scroll viewport" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `src/brosh/capture.py` | L122-162 |
@@ -99,7 +99,7 @@ Let me analyze the current PLAN.md and the codebase to make improvements. I'll f
 - Session persistence for authenticated captures
 - Automatic recovery from disconnections
 
-2. Viewport Management 
+2. Viewport Management
 - Dynamic viewport resizing based on capture requirements
 - Content-aware dimension calculations
 - Platform-specific DPI handling
@@ -151,7 +151,7 @@ Core component interaction flow for browser screenshot operations:
 - Implements retry logic for failed frame captures
 - Maintains capture session state across retries
 
-3. Image Processing Failures 
+3. Image Processing Failures
 - ImageProcessor maintains partial results for recovery
 - Supports resuming from last successful frame
 - Preserves capture metadata during retries
@@ -195,7 +195,7 @@ File: src/brosh/models.py
   - APNG: Animated format for scroll sequences
 - Used for format validation and conversion logic
 
-### Capture Configuration Models 
+### Capture Configuration Models
 File: src/brosh/capture.py
 - Defines viewport capture parameters:
   - scroll_step: Controls content overlap percentage (10-200)
@@ -284,13 +284,13 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 
 ```diff
 - Of course. This is an excellent request. The codebase shows classic signs of organic growth where functionality was added as needed, leading to duplicated parameter lists and a blurring of responsibilities. The proposed refactoring is a significant step towards a more robust, maintainable, and scalable architecture.
-- 
+-
 - Here is a very extensive refactoring plan based on your analysis and goals.
-- 
+-
 - ### **High-Level Goal & Guiding Principles**
-- 
+-
 - The primary goal is to refactor the `brosh` codebase to adhere to the **Single Responsibility Principle (SRP)** and the **Don't Repeat Yourself (DRY)** principle.
-- 
+-
 - **Guiding Principles:**
 - 1.  **Centralized API Definition:** The parameters for taking a screenshot (`url`, `zoom`, `width`, etc.) will be defined in a single place (`api.py`) using `Annotated` and `Field`. All user-facing interfaces (CLI, MCP) will consume this definition.
 - 2.  **Clear Separation of Concerns:** Each module will have a distinct and well-defined job:
@@ -302,33 +302,33 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -     *   **Public API (`api.py`):** A clean, user-friendly entry point function.
 -     *   **User Interfaces (`cli.py`, `mcp.py`):** Thin wrappers that call the public API and format results for their respective protocols.
 - 3.  **In-Memory Data Flow:** The core components (`capture`, `image`, `texthtml`) will operate on and return in-memory data (bytes, strings, dataclasses). The `tool.py` orchestrator will be responsible for all file system interactions (writing images, creating directories).
-- 
+-
 - ---
-- 
+-
 - ### **Key Architectural Changes**
-- 
+-
 - 1.  **New File `src/brosh/api.py`:** This will host the primary user-facing function, `capture_webpage`, with its full parameter list defined using `Annotated`. This will be the single source of truth for the tool's capabilities.
 - 2.  **New File `src/brosh/texthtml.py`:** This module will consolidate all logic for interacting with a page's DOM to extract HTML, identify selectors, and convert HTML to text.
 - 3.  **Deprecating `src/brosh/optimize.py`:** Its functions will be moved into `image.py` and `texthtml.py`, and the file will be deleted.
 - 4.  **Refined `MCPToolResult` Model:** The models in `models.py` will be updated to better represent the in-flight data between capture and file-saving. We'll introduce a `CaptureFrame` dataclass.
 - 5.  **Re-architecting `mcp.py`:** It will no longer use a decorator. Instead, it will instantiate the `BrowserScreenshotTool` and register its `capture` method with FastMCP, as you suggested.
-- 
+-
 - ---
-- 
+-
 - ### **Step-by-Step Refactoring Plan**
-- 
+-
 - #### **Phase 1: Consolidate Core Utilities & Models**
-- 
+-
 - 1.  **`models.py` - Define Core Data Structures:**
 -     *   Create a new Pydantic `BaseModel` or a standard `@dataclass` named `CaptureFrame`:
 + # Brosh Refactoring Plan
-+ 
++
 + ## Overview
-+ 
++
 + This document provides a detailed plan for refactoring the `brosh` codebase, a browser screenshot tool that captures scrolling screenshots using Playwright's async API. The refactoring aims to improve code organization, maintainability, and extensibility while preserving existing functionality.
-+ 
++
 + ### Current Architecture
-+ 
++
 + ```
 + src/brosh/
 + ├── __init__.py      # Package exports
@@ -341,9 +341,9 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 + ├── models.py        # Data models and enums
 + └── mcp.py           # MCP server functionality
 + ```
-+ 
++
 + ### Core Business Rules
-+ 
++
 + 1. **Browser Priority System**
 +    - Chrome > Edge > Safari (macOS only)
 +    - Firefox explicitly unsupported
@@ -351,35 +351,35 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +      - Chromium: 9222
 +      - Edge: 9223
 +      - WebKit: 9225
-+ 
++
 + 2. **Screenshot Parameters**
 +    - Scroll step: 10-200% of viewport height
 +    - Zoom range: 10-500%
 +    - Scale range: 10-200%
 +    - Format options: PNG (default), JPG, APNG
-+ 
++
 + 3. **Content Processing**
 +    - Semantic section detection
 +    - Dynamic content handling
 +    - Viewport overlap management
 +    - HTML/text extraction capabilities
-+ 
++
 + ## Detailed Refactoring Plan
-+ 
++
 + ### Phase 1: Data Models and Core Utilities
-+ 
++
 + #### 1. `models.py` - Enhanced Data Structures
-+ 
++
   ```python
   from dataclasses import dataclass
 + from typing import Optional
 + from enum import Enum
-+ 
++
 + class ImageFormat(str, Enum):
 +     PNG = "png"
 +     JPG = "jpg"
 +     APNG = "apng"
-  
+
   @dataclass
   class CaptureFrame:
 +     """Represents a single captured viewport frame with metadata."""
@@ -391,21 +391,21 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
       page_height: int
 -         ```
 -     *   This object will be the standard return type from the refactored `CaptureManager`.
-- 
+-
 - 2.  **`image.py` - Consolidate Image Logic:**
 -     *   Move `optimize_png_file` from `optimize.py` to `image.py`. Rename it to `optimize_png_bytes` and change its signature to `(png_bytes: bytes, level: int = 6) -> bytes`. It will now operate purely on byte streams.
 -     *   Move `downsample_png_data` from `optimize.py` to `image.py`. Its signature is already good.
 -     *   The existing `ImageProcessor` class can be refactored to use these byte-oriented functions. For example, `convert_to_jpg` should accept bytes and return bytes.
 -     *   The `create_apng` function should be modified to accept a list of image `bytes` instead of a list of `Path` objects.
-- 
+-
 - 3.  **`texthtml.py` - Create New HTML/Text Module:**
 -     *   Create the new file `src/brosh/texthtml.py`.
 -     *   Move `compress_html_content` from `optimize.py` into this new file.
 -     *   Extract the JavaScript snippets used for finding headers, visible HTML, and selectors from `capture.py` into this file as string constants (e.g., `GET_VISIBLE_HTML_JS`).
 -     *   Create a new async function: `extract_visible_content(page) -> tuple[str, str, str]`. This function will execute the necessary JavaScript on the page object and return a tuple of `(visible_html, visible_text, active_selector)`. It will use `html2text` internally. This centralizes all DOM-querying logic.
-- 
+-
 - #### **Phase 2: Refactor Core Capture and Orchestration**
-- 
+-
 - 4.  **`capture.py` - Simplify to Raw Data Production:**
 -     *   The `CaptureManager.capture_screenshots` method will be heavily modified.
 -     *   **New Signature:** `async def capture_frames(self, page, scroll_positions: list[int]) -> list[CaptureFrame]:`
@@ -418,7 +418,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -             4.  Instantiate a `CaptureFrame` dataclass with all the collected in-memory data.
 -         *   It will return a `list[CaptureFrame]`.
 -         *   **Crucially, it will have NO logic for file paths, filenames, formats, or scaling.**
-- 
+-
 - 5.  **`tool.py` - The Grand Orchestrator:**
 -     *   The `BrowserScreenshotTool.capture` method will be the heart of the application logic.
 -     *   **New Signature:** Its signature will exactly mirror the one we will define in `api.py`.
@@ -439,9 +439,9 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -         6.  If `format` is `apng`, call `image.create_apng` with the list of processed PNG bytes, save the result, and add its path to the output.
 -         7.  Clean up browser resources.
 -         8.  Return the final dictionary of `{path: metadata}`.
-- 
+-
 - #### **Phase 3: Implement the Public API and User Interfaces**
-- 
+-
 - 6.  **`api.py` - The Single Source of Truth:**
 -     *   Create the new file `src/brosh/api.py`.
 -     *   Define one primary function: `capture_webpage`.
@@ -449,7 +449,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -     *   The body of this function will be simple:
 -         ```python
 -         from .tool import BrowserScreenshotTool
--         
+-
 -         def capture_webpage(... all the args ...):
 -             tool = BrowserScreenshotTool()
 -             # asyncio.run is needed if calling from a sync context like the CLI
@@ -457,7 +457,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -             return asyncio.run(tool.capture(... all the args ...))
 -         ```
 -     *   This function is now the clean, documented, public entry point.
-- 
+-
 - 7.  **`cli.py` - A Thin `fire` Wrapper:**
 -     *   Modify the `BrowserScreenshotCLI`. The `__init__` will still take global options.
 -     *   The `shot` method will be drastically simplified. It will no longer redefine all the parameters. Instead, it will call the new API function.
@@ -466,7 +466,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +     visible_html: Optional[str] = None
 +     visible_text: Optional[str] = None
 +     timestamp: Optional[str] = None
-+ 
++
 + @dataclass
 + class BrowserConfig:
 +     """Browser-specific configuration."""
@@ -474,7 +474,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +     app_name: str
 +     platform_support: list[str]
 +     launch_args: list[str]
-+ 
++
 + @dataclass
 + class CaptureConfig:
 +     """Screenshot capture configuration."""
@@ -488,69 +488,69 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +     html_capture: bool
 +     max_frames: int
 + ```
-+ 
++
 + #### 2. `image.py` - Pure Image Processing
-+ 
++
 + ```python
 + class ImageProcessor:
 +     """Handles all image manipulation operations."""
-+     
++
 +     def optimize_png_bytes(self, png_bytes: bytes, level: int = 6) -> bytes:
 +         """Optimize PNG data in memory."""
-+         
++
 +     def downsample_png_data(self, png_bytes: bytes, scale: int) -> bytes:
 +         """Scale PNG data without writing to disk."""
-+         
++
 +     def convert_png_to_jpg_bytes(self, png_bytes: bytes, quality: int = 85) -> bytes:
 +         """Convert PNG to JPG in memory."""
-+         
++
 +     def create_apng(
-+         self, 
++         self,
 +         frame_bytes: list[bytes],
 +         delay: float
 +     ) -> bytes:
 +         """Create APNG animation from frame bytes."""
 + ```
-+ 
++
 + #### 3. `texthtml.py` - DOM Processing
-+ 
++
 + ```python
 + class DOMProcessor:
 +     """Handles DOM querying and content extraction."""
-+     
++
 +     async def extract_visible_content(self, page) -> tuple[str, str, str]:
 +         """Extract visible HTML, text and active selector."""
 +         visible_html = await self._get_visible_html(page)
 +         visible_text = self._convert_to_markdown(visible_html)
 +         active_selector = await self._get_active_selector(page)
 +         return visible_html, visible_text, active_selector
-+         
++
 +     async def _get_visible_html(self, page) -> str:
 +         """Get HTML content of visible elements."""
-+         
++
 +     async def _get_active_selector(self, page) -> str:
 +         """Find most relevant selector in viewport."""
-+         
++
 +     def _convert_to_markdown(self, html: str) -> str:
 +         """Convert HTML to markdown text."""
 + ```
-+ 
++
 + ### Phase 2: Core Components
-+ 
++
 + #### 4. `capture.py` - Screenshot Capture
-+ 
++
   ```python
 -         # In src/brosh/cli.py
--         
+-
 -         from . import api
--         
+-
 -         class BrowserScreenshotCLI:
 -             # ... __init__ ...
--         
+-
 -             def shot(
 + class CaptureManager:
 +     """Manages viewport scrolling and screenshot capture."""
-+     
++
 +     async def capture_frames(
 +         self,
 +         page,
@@ -563,14 +563,14 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +             viewport_height=config.height,
 +             scroll_step=config.scroll_step
 +         )
-+         
++
 +         frames = []
 +         for pos in scroll_positions:
 +             frame = await self._capture_single_frame(page, pos)
 +             frames.append(frame)
-+             
++
 +         return frames
-+         
++
 +     async def _capture_single_frame(
 +         self,
 +         page,
@@ -578,13 +578,13 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +     ) -> CaptureFrame:
 +         """Capture a single viewport frame."""
 + ```
-+ 
++
 + #### 5. `browser.py` - Browser Management
-+ 
++
 + ```python
 + class BrowserManager:
 +     """Handles browser lifecycle and configuration."""
-+     
++
 +     BROWSER_CONFIGS = {
 +         "chrome": BrowserConfig(
 +             debug_port=9222,
@@ -605,7 +605,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +             launch_args=["--remote-automation"]
 +         )
 +     }
-+     
++
 +     async def get_browser_instance(
           self,
 -                 url: str,
@@ -614,12 +614,12 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -             ):
 -                 """Docstring is auto-generated by fire, but can be customized."""
 -                 # Combine global flags from __init__ with shot-specific flags
--                 all_args = {**self.__dict__, **locals()} 
+-                 all_args = {**self.__dict__, **locals()}
 -                 del all_args['self'] # Remove self from kwargs
--                 
+-
 -                 # Call the central API
 -                 result = api.capture_webpage(**all_args)
--                 
+-
 -                 if self.json:
 -                     import json
 -                     print(json.dumps(result, indent=2))
@@ -630,7 +630,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -                         print(f"- {path}")
 -         ```
 -     *   A more elegant approach is to make the `shot` method in the CLI directly expose the `api.capture_webpage` function to `fire`.
-- 
+-
 - 8.  **`mcp.py` - Refactor to Use the Tool Instance:**
 -     *   Remove the `see_webpage` function and its `@mcp.tool` decorator.
 -     *   Import `BrowserScreenshotTool` from `tool.py`.
@@ -643,15 +643,15 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +     ):
 +         """Get or create a browser instance."""
 + ```
-+ 
++
 + ### Phase 3: API and Integration
-+ 
++
 + #### 6. `api.py` - Public Interface
-+ 
++
 + ```python
 + from typing import Annotated
 + from pydantic import Field
-+ 
++
 + def capture_webpage(
 +     url: Annotated[str, Field(description="The webpage URL to capture")],
 +     zoom: Annotated[int, Field(ge=10, le=500, description="Browser zoom level")] = 100,
@@ -672,29 +672,29 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +     tool = BrowserScreenshotTool()
 +     return asyncio.run(tool.capture(**locals()))
 + ```
-+ 
++
 + #### 7. `tool.py` - Core Orchestration
-+ 
++
   ```python
 -         # In src/brosh/mcp.py
--         
+-
 -         from fastmcp import FastMCP
 -         from .tool import BrowserScreenshotTool
--         
+-
 -         def run_mcp_server():
 -             mcp = FastMCP(...)
--             
+-
 -             # Create an instance of the tool
 -             brosh_tool = BrowserScreenshotTool()
--             
+-
 -             # Register the instance's capture method
 -             # FastMCP will inspect its signature, which is now the single source of truth
 -             mcp.tool(brosh_tool.capture)
--             
+-
 -             # The async wrapper logic that was inside see_webpage
 -             # now moves inside BrowserScreenshotTool.capture
 -             # The logic to process results for MCP remains here.
--             
+-
 -             # It seems fastmcp can't decorate a method and wrap it for async
 -             # So, we create an async wrapper here
 -             async def capture_wrapper(**kwargs):
@@ -702,42 +702,42 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 -                 # for MCP.
 -                 capture_results = await brosh_tool.capture(**kwargs)
 -                 return _post_process_result(_process_dict_result(capture_results, kwargs.get('format', 'png')), has_html=kwargs.get('html', False))
-- 
+-
 -             # Re-register with the wrapper
 -             mcp.tool(capture_wrapper, name="see_webpage") # Give it the right name for MCP
--             
+-
 -             mcp.run()
 -         ```
 -     *   The result processing functions (`_process_dict_result`, `_post_process_result`) will remain in `mcp.py` as they are specific to formatting the output for the MCP protocol.
-- 
+-
 - #### **Phase 4: Cleanup**
-- 
+-
 - 9.  **Delete `src/brosh/optimize.py`**.
 - 10. **Update `__init__.py`** to export the new `api.capture_webpage` function as the primary public interface.
 - 11. **Review all `import` statements** across the modified files to ensure they point to the new locations of functions.
 - 12. **Run linters and tests.** New tests will be needed for the new modules and refactored logic.
-- 
+-
 - ---
-- 
+-
 - ### **Summary of Benefits Post-Refactoring**
-- 
+-
 - 1.  **Maintainability:** Changing a parameter's default value or adding a new one only requires an update in `tool.py`'s method signature. The CLI and MCP interfaces will reflect the change automatically.
 - 2.  **Testability:** Each component can be tested in isolation. You can test `image.py` by feeding it bytes, `capture.py` by mocking the `page` object, and `tool.py` by mocking the `CaptureManager` and file system.
 - 3.  **Extensibility:** Adding a new output target (e.g., uploading to S3) would be a simple change in the `tool.py` processing loop, without touching any browser or image logic. Adding a new image format is an isolated change in `image.py` and the `tool.py` pipeline.
 - 4.  **Readability:** The code for each file will be shorter, more focused, and easier to understand. The data flow (`cli` -> `api` -> `tool` -> `[capture, image, texthtml]`) will be explicit and logical.
 + class BrowserScreenshotTool:
 +     """Main tool implementation orchestrating the capture process."""
-+     
++
 +     def __init__(self):
 +         self.browser_manager = BrowserManager()
 +         self.capture_manager = CaptureManager()
 +         self.image_processor = ImageProcessor()
 +         self.dom_processor = DOMProcessor()
-+     
++
 +     async def capture(self, **kwargs):
 +         """Main capture method matching api.capture_webpage signature."""
 +         config = CaptureConfig(**kwargs)
-+         
++
 +         # 1. Browser setup
 +         browser, context, page = await self.browser_manager.get_browser_instance(
 +             playwright=self.playwright,
@@ -746,25 +746,25 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +             height=config.height,
 +             zoom=config.zoom
 +         )
-+         
++
 +         try:
 +             # 2. Capture frames
 +             frames = await self.capture_manager.capture_frames(page, config)
-+             
++
 +             # 3. Process frames
 +             results = {}
 +             for frame in frames:
 +                 # Generate filename
 +                 filename = self._generate_filename(frame)
 +                 filepath = Path(config.output_dir) / filename
-+                 
++
 +                 # Process image
 +                 image_bytes = frame.image_bytes
 +                 if config.scale != 100:
 +                     image_bytes = self.image_processor.downsample_png_data(
 +                         image_bytes, config.scale
 +                     )
-+                 
++
 +                 if config.format == ImageFormat.JPG:
 +                     image_bytes = self.image_processor.convert_png_to_jpg_bytes(
 +                         image_bytes
@@ -773,7 +773,7 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +                     image_bytes = self.image_processor.optimize_png_bytes(
 +                         image_bytes
 +                     )
-+                 
++
 +                 # Save and store results
 +                 filepath.write_bytes(image_bytes)
 +                 results[str(filepath)] = {
@@ -782,30 +782,30 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +                 }
 +                 if config.html_capture:
 +                     results[str(filepath)]["html"] = frame.visible_html
-+             
++
 +             return results
-+             
++
 +         finally:
 +             await self.browser_manager.cleanup_browser(page, context, browser)
 + ```
-+ 
++
 + ### Phase 4: User Interfaces
-+ 
++
 + #### 8. `cli.py` - Command Line Interface
-+ 
++
 + ```python
 + class BrowserScreenshotCLI:
 +     """Fire-based CLI implementation."""
-+     
++
 +     def shot(self, url: str, **kwargs):
 +         """Take screenshots of a webpage."""
 +         from .api import capture_webpage
-+         
++
 +         result = capture_webpage(url=url, **{
 +             **self.__dict__,  # Global options from __init__
 +             **kwargs         # Command-specific options
 +         })
-+         
++
 +         if self.json:
 +             print(json.dumps(result, indent=2))
 +         else:
@@ -813,117 +813,117 @@ Based on the codebase analysis and the rules, I'll now improve and expand the PL
 +             for path in result:
 +                 print(f"- {path}")
 + ```
-+ 
++
 + #### 9. `mcp.py` - AI Tool Integration
-+ 
++
 + ```python
 + def run_mcp_server():
 +     """Run FastMCP server for AI integration."""
 +     mcp = FastMCP()
-+     
++
 +     # Create tool instance
 +     tool = BrowserScreenshotTool()
-+     
++
 +     async def capture_wrapper(**kwargs):
 +         """Process results for MCP protocol."""
 +         results = await tool.capture(**kwargs)
 +         return _process_for_mcp(results)
-+     
++
 +     # Register with wrapper
 +     mcp.tool(capture_wrapper, name="see_webpage")
 +     mcp.run()
 + ```
-+ 
++
 + ## Implementation Strategy
-+ 
++
 + 1. **Preparation (Day 1)**
 +    - Create new branch: `refactor/modular-architecture`
 +    - Set up test environment
 +    - Create new module files
-+ 
++
 + 2. **Core Implementation (Days 2-4)**
 +    - Implement data models
 +    - Build core utilities
 +    - Write unit tests
-+ 
++
 + 3. **Integration (Days 5-6)**
 +    - Connect components
 +    - Implement API
 +    - Update CLI and MCP
-+ 
++
 + 4. **Testing & Documentation (Day 7)**
 +    - End-to-end testing
 +    - Update documentation
 +    - Performance testing
-+ 
++
 + ## Testing Strategy
-+ 
++
 + 1. **Unit Tests**
 +    - Test each component in isolation
 +    - Mock browser and file system operations
 +    - Test error handling
-+ 
++
 + 2. **Integration Tests**
 +    - Test component interactions
 +    - Verify data flow
 +    - Test browser management
-+ 
++
 + 3. **End-to-End Tests**
 +    - Test complete workflows
 +    - Verify output formats
 +    - Test error recovery
-+ 
++
 + ## Migration Plan
-+ 
++
 + 1. **Gradual Rollout**
 +    - Implement new structure alongside existing code
 +    - Add feature flags for new implementation
 +    - Migrate functionality piece by piece
-+ 
++
 + 2. **Backwards Compatibility**
 +    - Maintain existing CLI interface
 +    - Support legacy output formats
 +    - Preserve file naming conventions
-+ 
++
 + 3. **Documentation**
 +    - Update README.md
 +    - Add migration guide
 +    - Document new features
-+ 
++
 + ## Success Criteria
-+ 
++
 + 1. **Code Quality**
 +    - Reduced cyclomatic complexity
 +    - Improved test coverage
 +    - Clear component boundaries
-+ 
++
 + 2. **Performance**
 +    - Equal or better capture speed
 +    - Reduced memory usage
 +    - Faster startup time
-+ 
++
 + 3. **Maintainability**
 +    - Simplified error handling
 +    - Better logging
 +    - Clear upgrade path
-+ 
++
 + ## Rollback Plan
-+ 
++
 + 1. **Feature Flags**
 +    - Toggle between implementations
 +    - Monitor error rates
 +    - Track performance metrics
-+ 
++
 + 2. **Version Control**
 +    - Maintain clean commit history
 +    - Tag stable versions
 +    - Document breaking changes
-+ 
++
 + 3. **User Communication**
 +    - Announce changes
 +    - Provide migration guides
 +    - Monitor feedback
-+ 
++
 + This plan provides a comprehensive roadmap for refactoring the brosh codebase while maintaining stability and backwards compatibility. The modular architecture will make it easier to add features and fix bugs in the future.
 ```
 

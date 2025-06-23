@@ -79,35 +79,35 @@ The project has been refactored into a modular architecture:
 - MCP server uses the async API to avoid asyncio context issues
 # Working principles for software development
 ## When you write code (in any language)
-- Iterate gradually, avoiding major changes 
+- Iterate gradually, avoiding major changes
 - Minimize confirmations and checks
 - Preserve existing code/structure unless necessary
 - Use constants over magic numbers
 - Check for existing solutions in the codebase before starting
-- Check often the coherence of the code you’re writing with the rest of the code. 
+- Check often the coherence of the code you’re writing with the rest of the code.
 - Focus on minimal viable increments and ship early
 - Write explanatory docstrings/comments that explain what and WHY this does, explain where and how the code is used/referred to elsewhere in the code
-- Analyze code line-by-line 
+- Analyze code line-by-line
 - Handle failures gracefully with retries, fallbacks, user guidance
 - Address edge cases, validate assumptions, catch errors early
-- Let the computer do the work, minimize user decisions 
+- Let the computer do the work, minimize user decisions
 - Reduce cognitive load, beautify code
 - Modularize repeated logic into concise, single-purpose functions
 - Favor flat over nested structures
 - Consistently keep, document, update and consult the holistic overview mental image of the codebase:
-  - README.md (purpose and functionality) 
+  - README.md (purpose and functionality)
   - CHANGELOG.md (past changes)
   - TODO.md (future goals)
   - PROGRESS.md (detailed flat task list)
 ## Use MCP tools if you can
-Before and during coding (if have access to tools), you should: 
+Before and during coding (if have access to tools), you should:
 - consult the `context7` tool for most up-to-date software package documentation;
 - ask intelligent questions to the `deepseek/deepseek-r1-0528:free` model via the `chat_completion` tool to get additional reasoning;
 - also consult the `openai/o3` model via the `chat_completion` tool for additional reasoning and help with the task;
-- use the `sequentialthinking` tool to think about the best way to solve the task; 
+- use the `sequentialthinking` tool to think about the best way to solve the task;
 - use the `perplexity_ask` and `duckduckgo_web_search` tools to gather up-to-date information or context;
 ## Keep track of paths
-In each source file, maintain the up-to-date `this_file` record that shows the path of the current file relative to project root. Place the `this_file` record near the top of the file, as a comment after the shebangs, or in the YAML Markdown frontmatter. 
+In each source file, maintain the up-to-date `this_file` record that shows the path of the current file relative to project root. Place the `this_file` record near the top of the file, as a comment after the shebangs, or in the YAML Markdown frontmatter.
 ## If you write Python
 - PEP 8: Use consistent formatting and naming
 - Write clear, descriptive names for functions and variables
@@ -116,7 +116,7 @@ In each source file, maintain the up-to-date `this_file` record that shows the p
 - PEP 257: Write clear, imperative docstrings
 - Use f-strings. Use structural pattern matching where appropriate
 - ALWAYS add "verbose" mode logugu-based logging, & debug-log
-- For CLI Python scripts, use fire & rich, and start the script with 
+- For CLI Python scripts, use fire & rich, and start the script with
 ```
 #!/usr/bin/env -S uv run -s
 # /// script
@@ -129,8 +129,8 @@ After Python changes run:
 uzpy run .; fd -e py -x autoflake {}; fd -e py -x pyupgrade --py312-plus {}; fd -e py -x ruff check --output-format=github --fix --unsafe-fixes {}; fd -e py -x ruff format --respect-gitignore --target-version py312 {}; python -m pytest;
 ```
 ## Additional guidelines
-Ask before extending/refactoring existing code in a way that may add complexity or break things. 
-When you’re finished, print "Wait, but" to go back, think & reflect, revise & improvement what you’ve done (but don’t invent functionality freely). Repeat this. But stick to the goal of "minimal viable next version". 
+Ask before extending/refactoring existing code in a way that may add complexity or break things.
+When you’re finished, print "Wait, but" to go back, think & reflect, revise & improvement what you’ve done (but don’t invent functionality freely). Repeat this. But stick to the goal of "minimal viable next version".
 ## Virtual team work
 Be creative, diligent, critical, relentless & funny! Lead two experts: "Ideot" for creative, unorthodox ideas, and "Critin" to critique flawed thinking and moderate for balanced discussions. The three of you shall illuminate knowledge with concise, beautiful responses, process methodically for clear answers, collaborate step-by-step, sharing thoughts and adapting. If errors are found, step back and focus on accuracy and progress.
 ## API Usage Examples
@@ -172,16 +172,16 @@ The brosh system implements intelligent webpage screenshot capture through three
 Location: src/brosh/capture.py
 
 - Semantic Section Detection
-  - Analyzes DOM structure for meaningful content blocks  
+  - Analyzes DOM structure for meaningful content blocks
   - Generates contextual identifiers from visible elements
-  - Maps viewport intersections to content hierarchy 
+  - Maps viewport intersections to content hierarchy
 
 - Viewport Management
   - Progressive scrolling with content overlap detection
   - Dynamic height adjustment for expanding content
   - Section boundary identification during scrolling
 
-## Browser Integration Layer (Importance: 85) 
+## Browser Integration Layer (Importance: 85)
 Location: src/brosh/browser.py
 
 - Platform-Specific Browser Management
@@ -189,7 +189,7 @@ Location: src/brosh/browser.py
   - OS-specific resolution detection with Retina support
   - Debug mode orchestration with dedicated ports:
     - Chromium: 9222
-    - Edge: 9223 
+    - Edge: 9223
     - WebKit: 9225
 
 ## AI Integration Protocol (Importance: 80)
@@ -204,7 +204,7 @@ Location: src/brosh/mcp.py
 
 1. Screenshot Organization
 - Domain-based hierarchical storage
-- Semantic section identification  
+- Semantic section identification
 - Viewport overlap constraints (10-200%)
 
 2. Browser Constraints

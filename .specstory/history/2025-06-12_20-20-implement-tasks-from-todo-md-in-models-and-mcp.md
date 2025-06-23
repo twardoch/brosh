@@ -4,7 +4,7 @@
 
 _**User**_
 
-Read @TODO.md and implement tasks in @models.py and @mcp.py 
+Read @TODO.md and implement tasks in @models.py and @mcp.py
 
 ---
 
@@ -79,21 +79,21 @@ Read file: src/brosh/mcp.py
 
 ```diff
       )
-  
+
 +     def to_camel_dict(self) -> dict:
 +         """Return a dict with camelCase keys for MCP output."""
 +         d = self.dict(exclude_none=True)
 +         if 'mime_type' in d:
 +             d['mimeType'] = d.pop('mime_type')
 +         return d
-+ 
-  
++
+
   class MCPScreenshotResult(BaseModel):
 ```
 
 ```diff
       )
-  
+
 +     def metadata_json(self, path: str) -> str:
 +         """Return JSON metadata for the text content item, keyed by file path."""
 +         import json
@@ -106,8 +106,8 @@ Read file: src/brosh/mcp.py
 +         if self.html is not None:
 +             meta[path]["html"] = self.html
 +         return json.dumps(meta, ensure_ascii=False)
-+ 
-  
++
+
   class MCPToolResult(BaseModel):
 ```
 
@@ -116,7 +116,7 @@ Read file: src/brosh/mcp.py
 ```diff
           try:
               screenshot = _create_screenshot_result(path, format)
-- 
+-
               # Add metadata from the capture result
               if isinstance(value, dict):
 ```
@@ -124,9 +124,9 @@ Read file: src/brosh/mcp.py
 ```diff
                   # Legacy format - value is just the selector
                   screenshot.selector = str(value)
-- 
+-
 -             content_items.append(screenshot.image)
-- 
+-
 +             # Add image item (camelCase)
 +             content_items.append(MCPContentItem(**screenshot.image.to_camel_dict()))
 +             # Add text metadata item
@@ -134,15 +134,15 @@ Read file: src/brosh/mcp.py
           except Exception as e:
               logger.error(f"Failed to process {path}: {e}")
               continue
-- 
+-
       return MCPToolResult(content=content_items, structured_content=None)
-  
+
 ```
 
 ```diff
       """
       content_items = []
-- 
+-
       for path in result:
           try:
               screenshot = _create_screenshot_result(path, format)
@@ -152,9 +152,9 @@ Read file: src/brosh/mcp.py
           except Exception as e:
               logger.error(f"Failed to process {path}: {e}")
               continue
-- 
+-
       return MCPToolResult(content=content_items, structured_content=None)
-  
+
 ```
 
 ---
@@ -162,7 +162,7 @@ Read file: src/brosh/mcp.py
 ```diff
           """Return JSON metadata for the text content item, keyed by file path."""
           import json
-- 
+-
           meta = {
               path: {
 ```
@@ -171,7 +171,7 @@ Read file: src/brosh/mcp.py
 
 ```diff
       )
-  
+
 -     def to_camel_dict(self) -> dict:
 +     def to_camel_dict(self) -> dict[str, Any]:
           """Return a dict with camelCase keys for MCP output."""
@@ -181,13 +181,13 @@ Read file: src/brosh/mcp.py
 +         if 'mime_type' in d:
 +             d['mimeType'] = d.pop('mime_type')
           return d
-  
+
 ```
 
 ```diff
           """Return JSON metadata for the text content item, keyed by file path."""
           import json
-- 
+-
           meta = {
               path: {
 ```
@@ -200,8 +200,8 @@ Read file: src/brosh/mcp.py
 +             meta,
 +             ensure_ascii=False
 +         )
-  
-  
+
+
 ```
 
 ---
@@ -214,8 +214,8 @@ Read file: src/brosh/mcp.py
 +             meta,
 +             ensure_ascii=False
 +         )
-  
-  
+
+
 ```
 
 ---
@@ -247,7 +247,7 @@ Here’s a verification of the tasks from `TODO.md` against the changes made in 
 
 ## TODO.md Task Summary
 
-**Goal:**  
+**Goal:**
 Change the MCP output strategy so that the result is an interleaved list of:
 - An image content item (with `"type": "image"`, `"data"`, and `"mimeType"`)
 - A text content item (with `"type": "text"`, `"text"` containing a JSON string with metadata for the image, keyed by the file path, and including selector, text, and optionally html)
@@ -274,17 +274,17 @@ Change the MCP output strategy so that the result is an interleaved list of:
 ## IMPLEMENTATION VERIFICATION
 
 ### 1. `src/brosh/models.py`
-- **CamelCase serialization:**  
+- **CamelCase serialization:**
   - `MCPContentItem` now has a `to_camel_dict()` method that outputs camelCase keys (e.g., `"mimeType"`).
-- **Metadata JSON:**  
+- **Metadata JSON:**
   - `MCPScreenshotResult` has a `metadata_json(path)` method that produces the required JSON string for the text content item, keyed by file path, and includes selector, text, and html if present.
 
 ### 2. `src/brosh/mcp.py`
-- **Interleaved output:**  
+- **Interleaved output:**
   - In both `_process_dict_result` and `_process_list_result`, after each image content item, a text content item is added with the correct metadata JSON.
   - The image content item uses camelCase keys (e.g., `"mimeType"`).
   - The text content item’s `"text"` field contains the JSON metadata as specified.
-- **No extraneous or missing fields:**  
+- **No extraneous or missing fields:**
   - The output structure matches the example in `TODO.md`.
 
 ---
@@ -372,15 +372,15 @@ I will now implement these changes in `src/brosh/mcp.py` to make the MCP server 
 
 ```diff
   from loguru import logger
-  
+
 + import asyncio
 + try:
 +     from playwright.async_api import Error as PlaywrightError
 + except ImportError:
 +     PlaywrightError = Exception
-+ 
++
   from fastmcp import FastMCP
-  
+
 ```
 
 ```diff
@@ -388,7 +388,7 @@ I will now implement these changes in `src/brosh/mcp.py` to make the MCP server 
           """
 -         # Create a new instance to avoid recursion
           tool = BrowserScreenshotTool()
-- 
+-
 -         # Capture with both selectors and optionally HTML
 -         result = await tool.capture(
 +         logger.debug(f"MCP see_webpage called for url={url} html={html}")
@@ -404,7 +404,7 @@ I will now implement these changes in `src/brosh/mcp.py` to make the MCP server 
                       max_frames=max_frames,
                       from_selector=from_selector,
 -         )
-- 
+-
 +                 ),
 +                 timeout=60.0
 +             )
@@ -509,11 +509,11 @@ I will now implement these changes in `src/brosh/mcp.py` to make the MCP server 
 ---
 
 ```diff
-  
+
   import base64
 - import sys
   from typing import Dict, List, Mapping, Union
-  
+
 ```
 
 ---
@@ -557,7 +557,7 @@ I will now implement these changes in `src/brosh/mcp.py` to make the MCP server 
 +             "text and/or HTML content."
 +         ),
       )
-  
+
 ```
 
 ```diff
@@ -707,7 +707,7 @@ Would you like help adding a global asyncio exception handler, or reviewing your
 
 _**User**_
 
-CLI usage like 
+CLI usage like
 
 brosh shot "https://www.fontlab.com/" --json
 
@@ -730,7 +730,7 @@ Let me investigate the differences between CLI and MCP usage:
 
 <details>
             <summary>Searched codebase "BrowserScreenshotTool capture method implementation" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `src/brosh/tool.py` | L105-147 |
@@ -765,7 +765,7 @@ Let me investigate the differences between CLI and MCP usage:
 
 <details>
             <summary>Searched codebase "browser close cleanup finally block" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `src/brosh/browser.py` | L437-464 |
@@ -819,7 +819,7 @@ Let me fix this by ensuring the MCP server runs the capture in a separate event 
   import base64
   from typing import Dict, List, Mapping, Union
 + import concurrent.futures
-  
+
   import platformdirs
 ```
 
@@ -845,13 +845,13 @@ Let me fix this by ensuring the MCP server runs the capture in a separate event 
 -             logger.debug("MCP see_webpage capture completed successfully")
 +                     )
 +                 )
-+             
++
 +             # Execute in thread executor with timeout
 +             loop = asyncio.get_event_loop()
 +             with concurrent.futures.ThreadPoolExecutor() as executor:
 +                 future = loop.run_in_executor(executor, run_capture)
 +                 result = await asyncio.wait_for(future, timeout=60.0)
-+             
++
 +             logger.debug(
 +                 "MCP see_webpage capture completed successfully"
 +             )

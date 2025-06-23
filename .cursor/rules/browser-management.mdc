@@ -11,12 +11,12 @@ globs: src/brosh/browser.py,src/brosh/capture.py,src/brosh/mcp.py
 The browser management implements a hierarchical priority system for browser selection and debugging:
 1. **Browser Priority Chain**
 - Chrome (Priority 1)
-- Edge (Priority 2) 
+- Edge (Priority 2)
 - Safari (Priority 3, macOS only)
 - Firefox explicitly unsupported
 2. **Debug Port Allocation**
 - Chromium: 9222
-- Edge: 9223 
+- Edge: 9223
 - WebKit: 9225
 ### Connection Management
 The BrowserManager handles browser lifecycle with platform-specific implementations:
@@ -24,7 +24,7 @@ The BrowserManager handles browser lifecycle with platform-specific implementati
 - Aggressive process cleanup before debug launches
 - Platform-specific browser detection and path resolution
 - Debug mode connection verification with retry logic
-2. **State Management** 
+2. **State Management**
 - Platform-aware screen dimension detection including Retina support
 ### Cleanup Procedures
 Implements robust cleanup for browser processes:
@@ -48,7 +48,7 @@ File paths:
 
 ### Browser Priority System
 - Strictly enforced browser hierarchy: Chrome > Edge > Safari
-- Safari restricted to macOS platform only 
+- Safari restricted to macOS platform only
 - Firefox explicitly unsupported
 - Each browser type gets dedicated debug ports:
   - Chromium: 9222
@@ -78,7 +78,7 @@ Located in `src/brosh/browser.py`:
 
 ## Context Controls (Importance: 85)
 
-### Session Management 
+### Session Management
 - Maintains authentication state across captures
 - Preserves cookies and extensions
 - Handles viewport dimension settings

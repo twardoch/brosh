@@ -48,7 +48,7 @@ globs: src/brosh/models.py,src/brosh/capture.py,src/brosh/browser.py
 - File: `src/brosh/browser.py`
 2. Capture Parameter Validation (Importance: 90)
 - Zoom level constraints: 10-500%
-- Scroll step: 10-200% viewport 
+- Scroll step: 10-200% viewport
 - Scale constraints: 10-200%
 - Format validation: PNG/JPG/APNG
 - File: `src/brosh/models.py`
@@ -59,7 +59,7 @@ globs: src/brosh/models.py,src/brosh/capture.py,src/brosh/browser.py
 - File: `src/brosh/models.py`
 # === END USER INSTRUCTIONS ===
 
-# data-models 
+# data-models
 
 ## Core Data Models
 
@@ -72,7 +72,7 @@ Importance: 95
   - JPG: For size-optimized captures
   - APNG: For scroll animations with configurable frame rate
 
-### CaptureConfig 
+### CaptureConfig
 Location: `src/brosh/models.py`
 Importance: 90
 
@@ -89,7 +89,7 @@ Importance: 85
 
 Browser prioritization rules:
 - Chrome (Primary): Port 9222
-- Edge (Secondary): Port 9223 
+- Edge (Secondary): Port 9223
 - Safari (macOS only): Port 9225
 - Firefox: Explicitly unsupported
 

@@ -51,7 +51,7 @@ def run_mcp_server() -> None:
         output_dir: str = "",
         *,
         subdirs: bool = False,
-        format: str = "png",
+        output_format: str = "png",
         anim_spf: float = 0.5,
         fetch_html: bool = False,
         fetch_image: bool = False,
@@ -92,7 +92,7 @@ def run_mcp_server() -> None:
         """
         try:
             # Convert string parameters to proper types for the API
-            format_enum = ImageFormat(format.lower())
+            format_enum = ImageFormat(output_format.lower()) # Use output_format
             output_path = Path(output_dir) if output_dir else Path(dflt_output_folder())
 
             # Build kwargs for the API call
@@ -106,7 +106,7 @@ def run_mcp_server() -> None:
                 "app": app,
                 "output_dir": output_path,
                 "subdirs": subdirs,
-                "format": format_enum,
+                "output_format": format_enum, # Use output_format
                 "anim_spf": anim_spf,
                 "fetch_html": fetch_html,
                 "fetch_image": False,  # FIXME: fetch_image,
@@ -143,7 +143,7 @@ def run_mcp_server() -> None:
 
 def _convert_to_mcp_result(
     capture_result: dict[str, dict[str, Any]],
-    format: ImageFormat,
+    output_format: ImageFormat, # Renamed from format
     *,
     fetch_image: bool = False,
     fetch_image_path: bool = True,
@@ -178,7 +178,7 @@ def _convert_to_mcp_result(
 
                 image_content = MCPImageContent(
                     data=base64.b64encode(image_bytes).decode(),
-                    mime_type=(format.mime_type if isinstance(format, ImageFormat) else "image/png"),
+                    mime_type=(output_format.mime_type if isinstance(output_format, ImageFormat) else "image/png"), # Use output_format
                 )
                 content_items.append(image_content)
 

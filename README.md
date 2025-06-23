@@ -316,7 +316,7 @@ brosh [OPTIONS] shot URL [SHOT_OPTIONS]
 
 - `URL`: The webpage URL to capture
 
-**Shot Options:** 
+**Shot Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|

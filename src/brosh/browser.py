@@ -220,10 +220,7 @@ class BrowserManager:
         """
         paths = self.get_browser_paths(browser_name)
 
-        for path_str in paths:
-            if Path(path_str).exists():
-                return path_str
-        return None
+        return next((path_str for path_str in paths if Path(path_str).exists()), None)
 
     async def get_browser_instance(self, playwright, browser_name: str, width: int, height: int, zoom: int) -> tuple:
         """Get browser instance, connecting to user's actual browser.

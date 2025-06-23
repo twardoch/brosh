@@ -186,7 +186,7 @@ class TestBrowserManager:
         mock_browser.new_context.return_value = mock_context
         mock_context.new_page.return_value = mock_page
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="Could not connect to or launch firefox browser"):
             await manager.get_browser_instance(mock_playwright, "firefox", 1920, 1080, 125)
 
     @pytest.mark.asyncio
@@ -215,7 +215,7 @@ class TestBrowserManager:
         manager = BrowserManager()
         mock_playwright = AsyncMock()
 
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="Could not connect to or launch unsupported browser"):
             await manager.get_browser_instance(mock_playwright, "unsupported", 1024, 768, 100)
 
     def test_debug_ports_configuration(self) -> None:

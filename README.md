@@ -196,7 +196,7 @@ brosh shot "https://example.com" --scale 75
 brosh shot "https://example.com" --format apng --anim_spf 1.0
 
 # Extract visible HTML
-brosh shot "https://example.com" --html --json > page_content.json
+brosh shot "https://example.com" --fetch_html --json > page_content.json
 ```
 
 ### 6.2. MCP Server Mode
@@ -238,7 +238,7 @@ async def capture_async():
     # Capture with HTML extraction
     result = await capture_webpage_async(
         url="https://example.com",
-        html=True,
+        fetch_html=True,
         max_frames=3,
         from_selector="#main-content"
     )

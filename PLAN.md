@@ -6,31 +6,6 @@
 - New configuration flags (fetch_image, fetch_image_path, fetch_text, trim_text)
 - Test updates for all new functionality
 
-## Immediate Issues to Fix
-
-### Code Quality Issues (from cleanup.sh analysis)
-1. **Import Issues**
-   - Remove unused import `async_playwright` in browser.py
-   - Fix import organization
-
-2. **Security Warnings**
-   - Address subprocess security warnings (S603, S607)
-   - Use safer subprocess execution methods
-
-3. **Code Style Issues**
-   - Replace magic numbers with constants (2560, 100, 200, etc.)
-   - Fix boolean parameter warnings (FBT001, FBT002)
-   - Use Path.exists() instead of os.path.exists()
-   - Add timezone to datetime.now() calls
-
-4. **Test Improvements**
-   - Fix pytest.raises() blocks to contain single statements
-   - Add match parameters to pytest.raises for specificity
-   - Simplify nested with statements
-
-5. **Async Best Practices**
-   - Fix ASYNC221 warning about blocking methods in async functions
-
 ## Future Enhancements
 
 ### Performance Optimization

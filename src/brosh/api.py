@@ -32,6 +32,7 @@ def capture_webpage(
         Path | None,
         Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
     ] = None,
+    *,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
     format: Annotated[
         ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")
@@ -165,6 +166,7 @@ async def capture_webpage_async(
         Path | None,
         Field(default_factory=lambda: Path(dflt_output_folder()), description="Output directory for screenshots"),
     ] = None,
+    *,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
     format: Annotated[
         ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")

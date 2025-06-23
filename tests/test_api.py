@@ -69,10 +69,9 @@ class TestCaptureWebpage:
 
     def test_capture_webpage_config_creation(self, temp_output_dir: Path) -> None:
         """Test that CaptureConfig is created with correct parameters."""
-        with (
-            patch("brosh.api.BrowserScreenshotTool") as mock_tool_class,
-            patch("brosh.api.asyncio.run") as mock_asyncio_run,
-        ):
+        with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class, patch(
+            "brosh.api.asyncio.run"
+        ) as mock_asyncio_run:
             # Mock the tool
             mock_tool = MagicMock()
             mock_tool_class.return_value = mock_tool
@@ -126,11 +125,9 @@ class TestCaptureWebpage:
 
     def test_capture_webpage_default_output_dir(self) -> None:
         """Test default output directory handling."""
-        with (
-            patch("brosh.api.BrowserScreenshotTool") as mock_tool_class,
-            patch("brosh.api.asyncio.run") as mock_asyncio_run,
-            patch("brosh.api.dflt_output_folder") as mock_pictures_dir,
-        ):
+        with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class, patch(
+            "brosh.api.asyncio.run"
+        ) as mock_asyncio_run, patch("brosh.api.dflt_output_folder") as mock_pictures_dir:
             mock_pictures_dir.return_value = "/home/user/Pictures"
 
             # Mock the tool
@@ -219,7 +216,7 @@ class TestAPIParameterValidation:
         """Test that invalid config raises ValidationError."""
         with patch("brosh.api.BrowserScreenshotTool"), patch("brosh.api.asyncio.run"):
             # This should raise a validation error due to invalid zoom
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="Zoom"):
                 capture_webpage(
                     url=AnyUrl("https://example.com"),
                     zoom=5,  # Invalid zoom value
@@ -230,7 +227,7 @@ class TestAPIParameterValidation:
         """Test that async version validates config."""
         with patch("brosh.api.BrowserScreenshotTool"):
             # This should raise a validation error due to invalid zoom
-            with pytest.raises(ValueError):
+            with pytest.raises(ValueError, match="Zoom"):
                 await capture_webpage_async(
                     url=AnyUrl("https://example.com"),
                     zoom=5,  # Invalid zoom value

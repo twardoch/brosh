@@ -3,7 +3,7 @@
 
 """Main screenshot tool orchestration for brosh."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -17,6 +17,8 @@ from .capture import CaptureManager
 from .image import ImageProcessor
 from .models import CaptureConfig, CaptureFrame, ImageFormat
 from .texthtml import DOMProcessor
+
+MILLISECONDS_PER_SECOND = 1000
 
 
 def dflt_output_folder(subfolder: str | Path = "brosh") -> Path:
@@ -32,7 +34,7 @@ class BrowserScreenshotTool:
     - api.py
     """
 
-    def __init__(self, verbose: bool = False):
+    def __init__(self, *, verbose: bool = False):
         """Initialize the screenshot tool.
 
         Args:
@@ -141,7 +143,7 @@ class BrowserScreenshotTool:
 
         """
         results = {}
-        timestamp = datetime.now().strftime("%y%m%d-%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%y%m%d-%H%M%S")
 
         for _i, frame in enumerate(frames):
             # Generate filename
@@ -198,7 +200,7 @@ class BrowserScreenshotTool:
             frame_bytes_list.append(image_bytes)
 
         # Create APNG
-        delay_ms = int(config.anim_spf * 1000)
+        delay_ms = int(config.anim_spf * MILLISECONDS_PER_SECOND)
         apng_bytes = self.image_processor.create_apng_bytes(frame_bytes_list, delay_ms)
 
         # Save APNG

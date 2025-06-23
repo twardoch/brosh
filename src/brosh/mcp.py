@@ -193,7 +193,7 @@ def _convert_to_mcp_result(
             if fetch_text:
                 text = metadata.get("text", "")
                 if trim_text and len(text) > TRIM_TEXT_LENGTH:
-                    text = text[:TRIM_TEXT_LENGTH] + "..."
+                    text = f"{text[:TRIM_TEXT_LENGTH]}..."
                 meta_dict["text"] = text
 
             if fetch_html and "html" in metadata:

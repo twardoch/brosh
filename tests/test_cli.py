@@ -206,7 +206,7 @@ class TestCLIIntegration:
         cli = BrowserScreenshotCLI()
 
         # Test that errors are handled gracefully
-        with pytest.raises(RuntimeError):
+        with pytest.raises(RuntimeError, match="Browser error"):
             cli.run()
 
     @patch("brosh.cli.BrowserManager")

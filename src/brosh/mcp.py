@@ -21,6 +21,10 @@ MCP_DEFAULTS = {
     "scale": 50,  # Default to 50% scaling for MCP to reduce size
 }
 
+TRIM_TEXT_LENGTH = 200
+MCP_MAX_SIZE_BYTES = 1024 * 1024  # 1MB
+MCP_COMPRESSION_DOWNSAMPLE_PERCENTAGE = 50
+
 
 def run_mcp_server() -> None:
     """Run FastMCP server for browser screenshots.
@@ -45,6 +49,7 @@ def run_mcp_server() -> None:
         scale: int = 50,  # MCP default: lower scale for smaller images
         app: str = "",
         output_dir: str = "",
+        *,
         subdirs: bool = False,
         format: str = "png",
         anim_spf: float = 0.5,
@@ -117,7 +122,13 @@ def run_mcp_server() -> None:
 
             # Process results for MCP format
             return _convert_to_mcp_result(
-                result, format_enum, fetch_image, fetch_image_path, fetch_text, fetch_html, trim_text
+                result,
+                format_enum,
+                fetch_image=fetch_image,
+                fetch_image_path=fetch_image_path,
+                fetch_text=fetch_text,
+                fetch_html=fetch_html,
+                trim_text=trim_text,
             )
 
         except Exception as e:
@@ -133,6 +144,7 @@ def run_mcp_server() -> None:
 def _convert_to_mcp_result(
     capture_result: dict[str, dict[str, Any]],
     format: ImageFormat,
+    *,
     fetch_image: bool = False,
     fetch_image_path: bool = True,
     fetch_text: bool = True,
@@ -180,8 +192,8 @@ def _convert_to_mcp_result(
 
             if fetch_text:
                 text = metadata.get("text", "")
-                if trim_text and len(text) > 200:
-                    text = text[:200] + "..."
+                if trim_text and len(text) > TRIM_TEXT_LENGTH:
+                    text = text[:TRIM_TEXT_LENGTH] + "..."
                 meta_dict["text"] = text
 
             if fetch_html and "html" in metadata:
@@ -215,16 +227,14 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
         Size-limited MCPToolResult
 
     """
-    MAX_SIZE = 1048576  # 1MB
-
     # Calculate initial size
     result_dict = result.model_dump()
     size = len(json.dumps(result_dict).encode("utf-8"))
 
-    if size <= MAX_SIZE:
+    if size <= MCP_MAX_SIZE_BYTES:
         return result
 
-    logger.warning(f"Result size {size} exceeds limit, applying compression")
+    logger.warning(f"Result size {size} exceeds limit {MCP_MAX_SIZE_BYTES}, applying compression")
 
     # Step 1: Remove all but first HTML
     new_content = []
@@ -248,7 +258,7 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
     result = MCPToolResult(content=new_content)
     size = len(json.dumps(result.model_dump()).encode("utf-8"))
 
-    if size <= MAX_SIZE:
+    if size <= MCP_MAX_SIZE_BYTES:
         return result
 
     # Step 2: Downsample images
@@ -261,7 +271,7 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
         if isinstance(item, MCPImageContent):
             try:
                 img_data = base64.b64decode(item.data)
-                downsampled = processor.downsample_png_bytes(img_data, 50)
+                downsampled = processor.downsample_png_bytes(img_data, MCP_COMPRESSION_DOWNSAMPLE_PERCENTAGE)
                 item = MCPImageContent(data=base64.b64encode(downsampled).decode(), mime_type=item.mime_type)
             except Exception as e:
                 logger.error(f"Failed to downsample image: {e}")
@@ -270,12 +280,13 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
     result = MCPToolResult(content=new_content)
     size = len(json.dumps(result.model_dump()).encode("utf-8"))
 
-    if size <= MAX_SIZE:
+    if size <= MCP_MAX_SIZE_BYTES:
         return result
 
     # Step 3: Remove screenshots from end
-    while len(result.content) > 2 and size > MAX_SIZE:
-        result.content = result.content[:-2]
+    # Keep at least one image and one text block if possible (hence > 2)
+    while len(result.content) > 2 and size > MCP_MAX_SIZE_BYTES:
+        result.content = result.content[:-2]  # Remove an image and its corresponding text metadata
         size = len(json.dumps(result.model_dump()).encode("utf-8"))
 
     return result

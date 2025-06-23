@@ -6,6 +6,7 @@
 import inspect
 import json
 import platform
+import shutil
 import subprocess
 import sys
 import time
@@ -15,9 +16,20 @@ import fire
 from loguru import logger
 
 from .api import capture_webpage
-from .browser import BrowserManager
+from .browser import BrowserManager, DEFAULT_FALLBACK_HEIGHT, DEFAULT_FALLBACK_WIDTH
 from .models import ImageFormat
 from .tool import dflt_output_folder
+
+# Timeout for checking if browser is running via HTTP
+BROWSER_CHECK_TIMEOUT_SECONDS = 2
+# Seconds to wait after quitting browser before starting a new one
+BROWSER_RESTART_WAIT_SECONDS = 2
+# Max attempts to verify browser connection after launch
+BROWSER_CONNECT_VERIFY_ATTEMPTS = 10
+# Interval in seconds between browser connection verification attempts
+BROWSER_CONNECT_VERIFY_INTERVAL_SECONDS = 1
+# Timeout for pkill/taskkill subprocess calls
+SUBPROCESS_PKILL_TIMEOUT_CLI = 5
 
 
 class BrowserScreenshotCLI:
@@ -37,6 +49,7 @@ class BrowserScreenshotCLI:
         height: int = 0,
         zoom: int = 100,
         output_dir: Path = Path(dflt_output_folder()),
+        *,
         subdirs: bool = False,
         verbose: bool = False,
         json: bool = False,
@@ -69,7 +82,7 @@ class BrowserScreenshotCLI:
 
         self._browser_manager = BrowserManager()
 
-    def run(self, force_run: bool = False) -> str:
+    def run(self, *, force_run: bool = False) -> str:
         """Run browser in remote debug mode.
 
         Args:
@@ -92,7 +105,7 @@ class BrowserScreenshotCLI:
             try:
                 import urllib.request
 
-                urllib.request.urlopen(f"http://localhost:{debug_port}/json", timeout=2)
+                urllib.request.urlopen(f"http://localhost:{debug_port}/json", timeout=BROWSER_CHECK_TIMEOUT_SECONDS)
                 return f"{browser_name} already running on port {debug_port}"
             except Exception:
                 pass
@@ -100,7 +113,7 @@ class BrowserScreenshotCLI:
         # Kill existing processes first if force_run
         if force_run:
             self.quit()
-            time.sleep(2)
+            time.sleep(BROWSER_RESTART_WAIT_SECONDS)
 
         # Launch browser directly with debug args
         browser_path = self._browser_manager.find_browser_path(browser_name)
@@ -108,8 +121,8 @@ class BrowserScreenshotCLI:
             return f"Could not find {browser_name} installation"
 
         try:
-            width = self.width or 1440
-            height = self.height or 900
+            width = self.width or DEFAULT_FALLBACK_WIDTH
+            height = self.height or DEFAULT_FALLBACK_HEIGHT
 
             args = [browser_path, *self._browser_manager.get_browser_args(browser_name, width, height, debug_port)]
 
@@ -120,12 +133,12 @@ class BrowserScreenshotCLI:
             subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             # Wait and verify connection
-            for _attempt in range(10):
-                time.sleep(1)
+            for _attempt in range(BROWSER_CONNECT_VERIFY_ATTEMPTS):
+                time.sleep(BROWSER_CONNECT_VERIFY_INTERVAL_SECONDS)
                 try:
                     import urllib.request
 
-                    urllib.request.urlopen(f"http://localhost:{debug_port}/json", timeout=2)
+                    urllib.request.urlopen(f"http://localhost:{debug_port}/json", timeout=BROWSER_CHECK_TIMEOUT_SECONDS)
                     return f"Started {browser_name} in debug mode on port {debug_port}"
                 except Exception:
                     continue
@@ -148,26 +161,34 @@ class BrowserScreenshotCLI:
 
         try:
             if platform.system() == "Darwin":  # macOS
-                subprocess.run(
-                    ["pkill", "-f", f"remote-debugging-port={debug_port}"],
-                    capture_output=True,
-                    timeout=5,
-                    check=False,
-                )
-                if "chrome" in browser_name.lower():
+                pkill_path = shutil.which("pkill")
+                if pkill_path:
                     subprocess.run(
-                        ["pkill", "-f", "Google Chrome.*remote-debugging"],
+                        [pkill_path, "-f", f"remote-debugging-port={debug_port}"],
                         capture_output=True,
-                        timeout=5,
+                        timeout=SUBPROCESS_PKILL_TIMEOUT_CLI,
                         check=False,
                     )
+                    if "chrome" in browser_name.lower():
+                        subprocess.run(
+                            [pkill_path, "-f", "Google Chrome.*remote-debugging"],
+                            capture_output=True,
+                            timeout=SUBPROCESS_PKILL_TIMEOUT_CLI,
+                            check=False,
+                        )
+                else:
+                    logger.warning("pkill command not found.")
             else:  # Windows/Linux
-                subprocess.run(
-                    ["taskkill", "/F", "/IM", "chrome.exe"],
-                    capture_output=True,
-                    timeout=5,
-                    check=False,
-                )
+                taskkill_path = shutil.which("taskkill")
+                if taskkill_path:
+                    subprocess.run(
+                        [taskkill_path, "/F", "/IM", "chrome.exe"],
+                        capture_output=True,
+                        timeout=SUBPROCESS_PKILL_TIMEOUT_CLI,
+                        check=False,
+                    )
+                else:
+                    logger.warning("taskkill command not found.")
 
             return f"Quit {browser_name}"
         except Exception as e:

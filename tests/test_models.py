@@ -174,12 +174,10 @@ class TestCaptureConfig:
 
         # Invalid zoom values
         with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
-            config = CaptureConfig(url="https://example.com", zoom=5)
-            config.validate()
+            CaptureConfig(url="https://example.com", zoom=5).validate()
 
         with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
-            config = CaptureConfig(url="https://example.com", zoom=600)
-            config.validate()
+            CaptureConfig(url="https://example.com", zoom=600).validate()
 
     def test_capture_config_validation_scroll_step(self) -> None:
         """Test CaptureConfig scroll_step validation."""
@@ -192,12 +190,10 @@ class TestCaptureConfig:
 
         # Invalid scroll_step values
         with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scroll_step=5)
-            config.validate()
+            CaptureConfig(url="https://example.com", scroll_step=5).validate()
 
         with pytest.raises(ValueError, match="Scroll step must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scroll_step=250)
-            config.validate()
+            CaptureConfig(url="https://example.com", scroll_step=250).validate()
 
     def test_capture_config_validation_scale(self) -> None:
         """Test CaptureConfig scale validation."""
@@ -210,12 +206,10 @@ class TestCaptureConfig:
 
         # Invalid scale values
         with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scale=5)
-            config.validate()
+            CaptureConfig(url="https://example.com", scale=5).validate()
 
         with pytest.raises(ValueError, match="Scale must be between 10 and 200"):
-            config = CaptureConfig(url="https://example.com", scale=250)
-            config.validate()
+            CaptureConfig(url="https://example.com", scale=250).validate()
 
     def test_capture_config_validation_height(self) -> None:
         """Test CaptureConfig height validation."""
@@ -231,8 +225,7 @@ class TestCaptureConfig:
 
         # Invalid height values
         with pytest.raises(ValueError, match="Height must be -1, 0, or positive"):
-            config = CaptureConfig(url="https://example.com", height=-5)
-            config.validate()
+            CaptureConfig(url="https://example.com", height=-5).validate()
 
     def test_capture_config_validation_anim_spf(self) -> None:
         """Test CaptureConfig anim_spf validation."""
@@ -245,12 +238,10 @@ class TestCaptureConfig:
 
         # Invalid anim_spf values
         with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
-            config = CaptureConfig(url="https://example.com", anim_spf=0.05)
-            config.validate()
+            CaptureConfig(url="https://example.com", anim_spf=0.05).validate()
 
         with pytest.raises(ValueError, match="Animation SPF must be between 0.1 and 10.0"):
-            config = CaptureConfig(url="https://example.com", anim_spf=15.0)
-            config.validate()
+            CaptureConfig(url="https://example.com", anim_spf=15.0).validate()
 
 
 class TestCaptureResult:

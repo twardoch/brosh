@@ -4,7 +4,7 @@
 """Screenshot capture logic for brosh - pure browser interaction."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 
 from loguru import logger
 from playwright.async_api import Page
@@ -12,6 +12,13 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from .models import CaptureConfig, CaptureFrame
 from .texthtml import DOMProcessor
+
+# Seconds to wait after page.goto() for dynamic content to load
+PAGE_LOAD_DYNAMIC_CONTENT_WAIT_SECONDS = 3
+# Seconds to wait after scrolling to a specific selector
+SCROLL_TO_SELECTOR_WAIT_SECONDS = 1
+# Seconds to wait after scrolling to a position before taking a screenshot
+SCROLL_AND_CONTENT_WAIT_SECONDS = 0.8
 
 
 class CaptureManager:
@@ -54,7 +61,7 @@ class CaptureManager:
                 wait_until="domcontentloaded",
                 timeout=self.page_timeout * 1000,
             )
-            await asyncio.sleep(3)  # Wait for dynamic content
+            await asyncio.sleep(PAGE_LOAD_DYNAMIC_CONTENT_WAIT_SECONDS)  # Wait for dynamic content
         except PlaywrightTimeoutError:
             logger.warning("Page load timeout, proceeding anyway")
 
@@ -79,7 +86,9 @@ class CaptureManager:
         # Capture frames
         frames = []
         for pos in scroll_positions:
-            frame = await self._capture_single_frame(page, pos, total_height, viewport_height, config.fetch_html)
+            frame = await self._capture_single_frame(
+                page, pos, total_height, viewport_height, fetch_html=config.fetch_html
+            )
             if frame:
                 frames.append(frame)
 
@@ -111,7 +120,7 @@ class CaptureManager:
                     return 0;
                 }})()
             """)
-            await asyncio.sleep(1)
+            await asyncio.sleep(SCROLL_TO_SELECTOR_WAIT_SECONDS)
             return start_position
         except Exception as e:
             logger.warning(f"Failed to find selector '{from_selector}': {e}")
@@ -146,7 +155,7 @@ class CaptureManager:
         return positions
 
     async def _capture_single_frame(
-        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, fetch_html: bool
+        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, *, fetch_html: bool
     ) -> CaptureFrame | None:
         """Capture a single viewport frame.
 
@@ -164,7 +173,7 @@ class CaptureManager:
         try:
             # Scroll to position
             await page.evaluate(f"window.scrollTo(0, {scroll_pos})")
-            await asyncio.sleep(0.8)  # Wait for scroll and content
+            await asyncio.sleep(SCROLL_AND_CONTENT_WAIT_SECONDS)  # Wait for scroll and content
 
             # Capture screenshot as bytes
             screenshot_bytes = await page.screenshot(
@@ -194,7 +203,7 @@ class CaptureManager:
                 active_selector=active_selector,
                 visible_html=visible_html,
                 visible_text=visible_text,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
             )
 
         except PlaywrightTimeoutError:

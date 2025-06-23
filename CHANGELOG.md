@@ -54,6 +54,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Text extraction now automatically trims to 200 characters by default (configurable)
 - Added support for `file://` URLs to capture local HTML files
 
+### Code Quality
+- **Imports**: Removed unused imports and organized existing ones using Ruff.
+- **Security**: Hardened `subprocess` calls by using `shutil.which` to ensure absolute paths for system commands (`system_profiler`, `pkill`, `taskkill`), reducing potential S607 risks.
+- **Style**:
+    - Replaced `os.path.exists()` with `pathlib.Path().exists()` for consistency and modern practice.
+    - Ensured all `datetime.now()` calls use `timezone.utc` for timezone-aware timestamps.
+    - Made boolean parameters in function definitions keyword-only where appropriate to adhere to FBT001/FBT002 Ruff rules (e.g., in API functions, CLI class, MCP functions).
+    - Replaced various magic numbers with named constants for improved readability and maintainability across several modules (e.g., default dimensions, timeouts, retry counts, sleep durations).
+- **Testing**:
+    - Refactored `pytest.raises()` blocks in model validation tests to ensure only the exception-raising statement is within the `with` block.
+    - Added `match` parameter to several `pytest.raises()` calls for more specific exception message checking in API and browser tests.
+    - Simplified nested `with patch(...)` statements in API tests by combining them into single `with` statements.
+- **Async Practices**: Reviewed async functions for `time.sleep` and confirmed usage of `asyncio.sleep` where appropriate.
+
 ## [0.1.0] - 2025-06-12
 
 ### Added

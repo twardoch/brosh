@@ -28,7 +28,7 @@ The component flow between BrowserManager, CaptureManager and ImageProcessor fol
 ### Key Integration Points
 1. BrowserManager → CaptureManager
 - Browser instance handoff
-- Viewport dimension updates 
+- Viewport dimension updates
 - Scroll position coordination
 2. CaptureManager → ImageProcessor
 - Raw frame delivery
@@ -43,7 +43,7 @@ The component flow between BrowserManager, CaptureManager and ImageProcessor fol
 - Debug mode status
 - Connection health
 - Viewport position
-2. Capture State  
+2. Capture State
 - Active selectors
 - Scroll progress
 - Frame sequence
@@ -67,7 +67,7 @@ The core components interact through a series of data flows and control transfer
 ## CaptureManager → ImageProcessor Flow (Importance: 90)
 
 - Frame capture data streaming for processing
-- Viewport overlap detection and scroll position tracking  
+- Viewport overlap detection and scroll position tracking
 - Content visibility detection signals
 - Frame buffering for APNG animation creation
 
@@ -82,11 +82,11 @@ The core components interact through a series of data flows and control transfer
 
 1. BrowserManager Error Types:
 - Browser launch failures
-- Debug port conflicts 
+- Debug port conflicts
 - Connection timeouts
 - Platform compatibility issues
 
-2. CaptureManager Error Types:  
+2. CaptureManager Error Types:
 - Page load failures
 - JavaScript execution errors
 - DOM manipulation errors
@@ -111,10 +111,10 @@ Error propagation flows up the chain with specific error types and recovery stra
 
 1. MCP Server → BrowserManager
 - URL and viewport configuration
-- Browser selection parameters 
+- Browser selection parameters
 - Debug mode settings
 
-2. BrowserManager → CaptureManager  
+2. BrowserManager → CaptureManager
 - Browser instance handle
 - Page navigation status
 - Viewport metrics

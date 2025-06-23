@@ -11,11 +11,11 @@ globs: src/brosh/capture.py,src/brosh/image.py,src/brosh/browser.py,src/brosh/mo
 **Viewport Scrolling Algorithm**
 - Progressive viewport scrolling with overlap detection
 - Scroll positions calculated using viewport height and configurable overlap (10-200%)
-- Dynamic content detection between scroll operations 
+- Dynamic content detection between scroll operations
 - Scroll state maintenance across sequential captures
 - Support for starting capture from specific DOM selectors
 **Section Detection Engine**
-- Semantic section identification using visible headers and ID elements 
+- Semantic section identification using visible headers and ID elements
 - Viewport intersection mapping against content hierarchy
 - Generation of contextual section identifiers from visible elements
 - Real-time detection of expanding/collapsing content
@@ -24,11 +24,11 @@ globs: src/brosh/capture.py,src/brosh/image.py,src/brosh/browser.py,src/brosh/mo
 - APNG creation with configurable animation timing (0.1-10s per frame)
 - Alpha channel preservation across format conversions
 - Frame downsampling and optimization for size constraints
-**Browser Integration**  
+**Browser Integration**
 - Browser priority system (Chrome > Edge > Safari)
 - Debug port assignments per browser type:
   - Chromium: 9222
-  - Edge: 9223 
+  - Edge: 9223
   - WebKit: 9225
 - Platform-specific resolution detection with Retina support
 - Dynamic content loading detection and wait states
@@ -55,20 +55,20 @@ globs: src/brosh/capture.py,src/brosh/image.py,src/brosh/browser.py,src/brosh/mo
 Located in `src/brosh/capture.py`:
 - Analyzes DOM structure to identify meaningful content blocks
 - Maps viewport intersections to semantic sections
-- Generates contextual identifiers from visible elements 
+- Generates contextual identifiers from visible elements
 - Maintains section hierarchy during scrolling
 
 ### Viewport Management
 Located in `src/brosh/capture.py`:
 - Progressive scrolling with overlap constraints (10-200%)
-- Dynamic height adjustment for expanding content 
+- Dynamic height adjustment for expanding content
 - Section boundary detection during viewport movement
 - Content-aware scroll step calculation
 
-### Image Processing Pipeline 
+### Image Processing Pipeline
 Located in `src/brosh/image.py`:
 - Merges overlapping screenshots into seamless output
-- Handles animated PNG creation for scrolling animations 
+- Handles animated PNG creation for scrolling animations
 - Section-aware naming for captured frames
 - Viewport masking for clean section boundaries
 

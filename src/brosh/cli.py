@@ -16,8 +16,7 @@ import fire
 from loguru import logger
 
 from .api import capture_webpage
-from .browser import BrowserManager, DEFAULT_FALLBACK_HEIGHT, DEFAULT_FALLBACK_WIDTH
-from .models import ImageFormat
+from .browser import DEFAULT_FALLBACK_HEIGHT, DEFAULT_FALLBACK_WIDTH, BrowserManager
 from .tool import dflt_output_folder
 
 # Timeout for checking if browser is running via HTTP
@@ -48,7 +47,7 @@ class BrowserScreenshotCLI:
         width: int = 0,
         height: int = 0,
         zoom: int = 100,
-        output_dir: Path = Path(dflt_output_folder()),
+        output_dir: Path | None = None,  # B008: Changed default
         *,
         subdirs: bool = False,
         verbose: bool = False,
@@ -71,6 +70,8 @@ class BrowserScreenshotCLI:
         self.width = width
         self.height = height
         self.zoom = zoom
+        if output_dir is None:  # B008: Added handling
+            output_dir = Path(dflt_output_folder())
         self.output_dir = output_dir
         self.subdirs = subdirs
         self.json = json

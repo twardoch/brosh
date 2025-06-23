@@ -34,7 +34,7 @@ def capture_webpage(
     ] = None,
     *,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
-    format: Annotated[
+    output_format: Annotated[
         ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")
     ] = ImageFormat.PNG,
     anim_spf: Annotated[
@@ -111,7 +111,7 @@ def capture_webpage(
         zoom=zoom,
         scroll_step=scroll_step,
         scale=scale,
-        format=format,
+        format=output_format,
         app=app,
         output_dir=str(output_dir),
         subdirs=subdirs,
@@ -132,12 +132,11 @@ def capture_webpage(
     tool = BrowserScreenshotTool()
 
     # Handle async execution
+    from contextlib import suppress # Added import
+
     loop = None
-    try:
+    with suppress(RuntimeError): # SIM105
         loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # No running loop
-        pass
 
     if loop is not None:
         # Already in async context (e.g., from MCP)
@@ -168,7 +167,7 @@ async def capture_webpage_async(
     ] = None,
     *,
     subdirs: Annotated[bool, Field(default=False, description="Create subdirectories per domain")] = False,
-    format: Annotated[
+    output_format: Annotated[
         ImageFormat, Field(default=ImageFormat.PNG, description="Output format: png, jpg, or apng")
     ] = ImageFormat.PNG,
     anim_spf: Annotated[
@@ -204,7 +203,7 @@ async def capture_webpage_async(
         zoom=zoom,
         scroll_step=scroll_step,
         scale=scale,
-        format=format,
+        format=output_format,
         app=app,
         output_dir=str(output_dir),
         subdirs=subdirs,
@@ -255,5 +254,5 @@ def capture_animation(url: str, **kwargs) -> dict[str, dict[str, Any]]:
     Used in:
     - __init__.py
     """
-    kwargs["format"] = ImageFormat.APNG
+    kwargs["output_format"] = ImageFormat.APNG
     return capture_webpage(url, **kwargs)

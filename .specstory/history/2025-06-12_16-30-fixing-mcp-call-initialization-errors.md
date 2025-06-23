@@ -4,7 +4,7 @@
 
 _**User**_
 
-With MCP call 
+With MCP call
 
 ```
 {
@@ -62,7 +62,7 @@ Let me check the codebase to understand how we should properly initialize and us
 
 <details>
             <summary>Searched codebase "MCP server initialization and screenshot capture in mcp.py" • **25** results</summary>
-        
+
 | File | Lines |
 |------|-------|
 | `src/brosh/cli.py` | L217-231 |

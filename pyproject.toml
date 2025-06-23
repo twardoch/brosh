@@ -75,8 +75,10 @@ dev = [
     'mypy>=1.15.0',
     'absolufy-imports>=0.3.1',
     'pyupgrade>=3.19.1',
-    'isort>=6.0.1',
-    'uzpy>=1.0.0', 
+    'isort>=6.0.1', # Ruff now includes isort functionality, could be removed if using ruff format for imports
+    'uzpy>=1.0.0', # Keeping for now, though its role is unclear
+    'uv>=0.2.0',
+    'autoflake>=2.3.0', # Added autoflake
 ]
 
 # Testing tools and frameworks
@@ -98,6 +100,7 @@ docs = [
 
 # All optional dependencies combined
 all = [
+    "brosh[dev,test,docs]", # Combined all optional dependencies
 ]
 
 #------------------------------------------------------------------------------
@@ -165,6 +168,11 @@ type-check = "mypy src/brosh tests"
 lint = ["ruff check src/brosh tests", "ruff format --respect-gitignore src/brosh tests"]
 fmt = ["ruff format --respect-gitignore src/brosh tests", "ruff check --fix src/brosh tests"]
 fix = ["ruff check --fix --unsafe-fixes src/brosh tests", "ruff format --respect-gitignore src/brosh tests"]
+polish = [
+    "pre-commit run --all-files",
+    "ruff format --respect-gitignore src tests",
+    "ruff check --fix --unsafe-fixes src tests"
+]
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.10", "3.11", "3.12"]
@@ -296,7 +304,7 @@ output = "coverage.xml"
 #------------------------------------------------------------------------------
 # RUFF CONFIGURATION
 # Configuration for Ruff, including linter and formatter settings.
-#------------------------------------------------------------------------------ 
+#------------------------------------------------------------------------------
 
 [tool.ruff]
 target-version = "py310"
@@ -356,7 +364,8 @@ ignore = [
     'S106',
     'S107',
     'S110',
-    'SIM102'
+    'SIM102',
+    'ISC001', # Ignore implicit string concatenation, as Ruff formatter handles it
 ]
 unfixable = [
     'F401',
@@ -373,9 +382,5 @@ ban-relative-imports = 'parents'
     'PLR2004',
     'S101',
     'TID252'
-] 
-
-[dependency-groups]
-dev = [
-    "build>=1.2.2.post1",
 ]
+# Removed redundant/misplaced dependency-groups table

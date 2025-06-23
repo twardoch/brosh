@@ -374,8 +374,7 @@ class BrowserManager:
             # Kill existing processes with same debug port - more aggressive cleanup
             try:
                 if platform.system() == "Darwin":  # macOS
-                    pkill_path = shutil.which("pkill")
-                    if pkill_path:
+                    if pkill_path := shutil.which("pkill"):
                         # Kill by process name and port
                         subprocess.run(
                             [pkill_path, "-f", f"remote-debugging-port={debug_port}"],

@@ -387,7 +387,7 @@ class BrowserManager:
                             check=False,
                         )
                         # Also try killing by process name
-                        if "Chrome" in browser_path:
+                        if "chrome" in browser_path.lower():
                             subprocess.run(
                                 [pkill_path, "-f", "Google Chrome.*remote-debugging"],
                                 capture_output=True,

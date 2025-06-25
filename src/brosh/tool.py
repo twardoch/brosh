@@ -12,16 +12,15 @@ from loguru import logger
 from platformdirs import user_pictures_dir
 from playwright.async_api import async_playwright
 
+from . import constants
 from .browser import BrowserManager
 from .capture import CaptureManager
 from .image import ImageProcessor
 from .models import CaptureConfig, CaptureFrame, ImageFormat
 from .texthtml import DOMProcessor
 
-MILLISECONDS_PER_SECOND = 1000
 
-
-def dflt_output_folder(subfolder: str | Path = "brosh") -> Path:
+def dflt_output_folder(subfolder: str | Path = constants.DEFAULT_OUTPUT_SUBFOLDER) -> Path:
     """Get the 'brosh' folder within the user's pictures directory."""
     return Path(user_pictures_dir(), subfolder)
 
@@ -147,7 +146,7 @@ class BrowserScreenshotTool:
 
         for _i, frame in enumerate(frames):
             # Generate filename
-            section_id = await self._get_section_id_from_frame(frame)
+            section_id = self._get_section_id_from_frame(frame)  # Removed await
             filename = f"{domain}-{timestamp}-{frame.scroll_percentage:05d}-{section_id}.{config.format.value}"
             filepath = output_path / filename
 
@@ -200,7 +199,7 @@ class BrowserScreenshotTool:
             frame_bytes_list.append(image_bytes)
 
         # Create APNG
-        delay_ms = int(config.anim_spf * MILLISECONDS_PER_SECOND)
+        delay_ms = int(config.anim_spf * constants.MILLISECONDS_PER_SECOND)
         apng_bytes = self.image_processor.create_apng_bytes(frame_bytes_list, delay_ms)
 
         # Save APNG
@@ -217,16 +216,6 @@ class BrowserScreenshotTool:
             }
         }
 
-    async def _get_section_id_from_frame(self, frame: CaptureFrame) -> str:
-        """Extract section ID from frame metadata.
-
-        Args:
-            frame: Capture frame
-
-        Returns:
-            Section identifier string
-
-        """
-        # This would be populated during capture
-        # For now, return a default
-        return "section"
+    def _get_section_id_from_frame(self, frame: CaptureFrame) -> str:
+        """Extract section ID from frame metadata, defaulting to 'section'."""
+        return frame.section_id if frame.section_id else "section"

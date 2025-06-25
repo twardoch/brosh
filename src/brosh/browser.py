@@ -11,27 +11,7 @@ from pathlib import Path
 
 from loguru import logger
 
-# Default screen dimensions if detection fails
-DEFAULT_FALLBACK_WIDTH = 1440
-DEFAULT_FALLBACK_HEIGHT = 900
-# Minimum physical width to consider a display Retina for scaling
-RETINA_MIN_WIDTH = 2560
-# Timeout for subprocess calls like system_profiler
-SUBPROCESS_TIMEOUT = 10
-# Timeout for pkill/taskkill subprocess calls
-SUBPROCESS_PKILL_TIMEOUT = 5
-# Default viewport height to use when capturing "full page" (height = -1)
-DEFAULT_VIEWPORT_HEIGHT_IF_FULLPAGE = 900
-# Seconds to wait after killing browser processes before starting a new one
-BROWSER_LAUNCH_WAIT_SECONDS = 2
-# Seconds between attempts to connect to a newly launched browser
-BROWSER_CONNECT_RETRY_INTERVAL_SECONDS = 1
-# Maximum number of attempts to connect to a newly launched browser
-BROWSER_CONNECT_MAX_ATTEMPTS = 10
-# Timeout in milliseconds for playwright.chromium.connect_over_cdp
-BROWSER_CONNECT_CDP_TIMEOUT_MS = 5000
-# Default zoom level percentage
-DEFAULT_ZOOM_LEVEL = 100
+from . import constants
 
 
 class BrowserManager:
@@ -71,13 +51,13 @@ class BrowserManager:
                 system_profiler_path = shutil.which("system_profiler")
                 if not system_profiler_path:
                     logger.warning("system_profiler not found.")
-                    return DEFAULT_FALLBACK_WIDTH, DEFAULT_FALLBACK_HEIGHT
+                    return constants.DEFAULT_FALLBACK_WIDTH, constants.DEFAULT_FALLBACK_HEIGHT
                 result = subprocess.run(
                     [system_profiler_path, "SPDisplaysDataType"],
                     capture_output=True,
                     text=True,
                     check=True,
-                    timeout=SUBPROCESS_TIMEOUT,
+                    timeout=constants.SUBPROCESS_GENERAL_TIMEOUT,
                 )
                 for line in result.stdout.split("\n"):
                     if "Resolution:" in line:
@@ -88,7 +68,7 @@ class BrowserManager:
                                 physical_height = int(parts[i + 1])
 
                                 # Check if it's a Retina display
-                                if "Retina" in line or physical_width >= RETINA_MIN_WIDTH:
+                                if "Retina" in line or physical_width >= constants.RETINA_MIN_WIDTH:
                                     # Retina: logical = physical / 2
                                     return (
                                         physical_width // 2,
@@ -120,7 +100,7 @@ class BrowserManager:
                 logger.warning("tkinter not available on Windows")
 
         # Default fallback for unknown systems or errors
-        return DEFAULT_FALLBACK_WIDTH, DEFAULT_FALLBACK_HEIGHT  # Common laptop logical resolution
+        return constants.DEFAULT_FALLBACK_WIDTH, constants.DEFAULT_FALLBACK_HEIGHT  # Common laptop logical resolution
 
     def get_browser_name(self, app: str = "") -> str:
         """Determine browser name from app parameter or OS default.
@@ -254,18 +234,18 @@ class BrowserManager:
             if browser_name in ["chrome", "edge"]:
                 browser = await playwright.chromium.connect_over_cdp(
                     f"http://localhost:{debug_port}",
-                    timeout=self.connection_timeout * 1000,
+                    timeout=self.connection_timeout * 1000,  # TODO: Consider using a constant
                 )
 
             if browser:
                 # Don't set device_scale_factor - let browser use natural scaling
                 # Use default height if height is -1 (capture entire page)
-                viewport_height = height if height != -1 else DEFAULT_VIEWPORT_HEIGHT_IF_FULLPAGE
+                viewport_height = height if height != -1 else constants.DEFAULT_VIEWPORT_HEIGHT_IF_FULLPAGE
                 context = await browser.new_context(viewport={"width": width, "height": viewport_height})
                 page = await context.new_page()
 
                 # Apply zoom via CSS instead of device scale factor
-                if zoom != DEFAULT_ZOOM_LEVEL:  # PLR2004
+                if zoom != constants.DEFAULT_ZOOM_LEVEL:
                     await page.add_init_script(f"""
                         document.addEventListener('DOMContentLoaded', () => {{
                             document.body.style.zoom = '{zoom}%';
@@ -330,12 +310,12 @@ class BrowserManager:
 
         # Create context without device scale factor to avoid scaling issues
         # Use default height if height is -1 (capture entire page)
-        viewport_height = height if height != -1 else DEFAULT_VIEWPORT_HEIGHT_IF_FULLPAGE
+        viewport_height = height if height != -1 else constants.DEFAULT_VIEWPORT_HEIGHT_IF_FULLPAGE
         context = await browser.new_context(viewport={"width": width, "height": viewport_height})
         page = await context.new_page()
 
         # Apply zoom via CSS instead of device scale factor
-        if zoom != DEFAULT_ZOOM_LEVEL:  # PLR2004
+        if zoom != constants.DEFAULT_ZOOM_LEVEL:
             await page.add_init_script(f"""
                 document.addEventListener('DOMContentLoaded', () => {{
                     document.body.style.zoom = '{zoom}%';
@@ -380,7 +360,7 @@ class BrowserManager:
                         subprocess.run(
                             [pkill_path, "-f", f"remote-debugging-port={debug_port}"],
                             capture_output=True,
-                            timeout=SUBPROCESS_PKILL_TIMEOUT,
+                            timeout=constants.SUBPROCESS_PKILL_TIMEOUT,
                             check=False,
                         )
                         # Also try killing by process name
@@ -388,7 +368,7 @@ class BrowserManager:
                             subprocess.run(
                                 [pkill_path, "-f", "Google Chrome.*remote-debugging"],
                                 capture_output=True,
-                                timeout=SUBPROCESS_PKILL_TIMEOUT,
+                                timeout=constants.SUBPROCESS_PKILL_TIMEOUT,
                                 check=False,
                             )
                     else:
@@ -397,9 +377,14 @@ class BrowserManager:
                     taskkill_path = shutil.which("taskkill")
                     if taskkill_path:
                         subprocess.run(
-                            [taskkill_path, "/F", "/IM", "chrome.exe"],
+                            [
+                                taskkill_path,
+                                "/F",
+                                "/IM",
+                                "chrome.exe",
+                            ],  # Consider making "chrome.exe" a constant or browser-specific
                             capture_output=True,
-                            timeout=SUBPROCESS_PKILL_TIMEOUT,
+                            timeout=constants.SUBPROCESS_PKILL_TIMEOUT,
                             check=False,
                         )
                     else:
@@ -407,34 +392,16 @@ class BrowserManager:
             except Exception as e:
                 logger.debug(f"Process cleanup warning: {e}")
 
-            await asyncio.sleep(BROWSER_LAUNCH_WAIT_SECONDS)  # Give processes time to die
+            await asyncio.sleep(constants.BROWSER_LAUNCH_WAIT_SECONDS)  # Give processes time to die
 
             # Launch browser with remote debugging
             if browser_type in ["chrome", "edge"]:
-                args = [
-                    browser_path,
-                    f"--remote-debugging-port={debug_port}",
-                    "--no-startup-window",
-                    "--noerrdialogs",
-                    "--no-user-gesture-required",
-                    "--no-network-profile-warning",
-                    "--no-first-run",
-                    "--no-experiments",
-                    "--no-default-browser-check",
-                    "--remote-debug-mode",
-                    "--disable-web-security",
-                    "--disable-features=VizDisplayCompositor",
-                    "--disable-background-timer-throttling",
-                    "--disable-backgrounding-occluded-windows",
-                    "--disable-renderer-backgrounding",
-                    "--disable-infobars",
-                    "--disable-extensions",
-                    "--disable-sync",
-                    "--disable-translate",
-                    "--disable-background-networking",
-                    f"--window-size={width},{height}",
-                    "--user-data-dir=/tmp/chrome-debug-brosh",
-                ]
+                # Use get_browser_args to ensure consistency
+                browser_specific_args = self.get_browser_args(browser_type, width, height, debug_port)
+                if not browser_specific_args:  # Should not happen if browser_type is chrome/edge
+                    logger.error(f"Could not get browser arguments for {browser_type}")
+                    return False
+                args = [browser_path, *browser_specific_args]
             else:
                 return False
 
@@ -442,12 +409,12 @@ class BrowserManager:
             process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             # Wait for browser to start and test connection more robustly
-            for attempt in range(BROWSER_CONNECT_MAX_ATTEMPTS):  # More attempts
-                await asyncio.sleep(BROWSER_CONNECT_RETRY_INTERVAL_SECONDS)  # Shorter intervals
+            for attempt in range(constants.BROWSER_CONNECT_MAX_ATTEMPTS):  # More attempts
+                await asyncio.sleep(constants.BROWSER_CONNECT_RETRY_INTERVAL_SECONDS)  # Shorter intervals
                 try:
                     if browser_type in ["chrome", "edge"]:
                         test_browser = await playwright_browser.connect_over_cdp(
-                            f"http://localhost:{debug_port}", timeout=BROWSER_CONNECT_CDP_TIMEOUT_MS
+                            f"http://localhost:{debug_port}", timeout=constants.BROWSER_CONNECT_CDP_TIMEOUT_MS
                         )
                     else:
                         return False
@@ -463,12 +430,14 @@ class BrowserManager:
                     return True
 
                 except Exception as e:
-                    logger.debug(f"Connection attempt {attempt + 1}/{BROWSER_CONNECT_MAX_ATTEMPTS} failed: {e}")
-                    if attempt == BROWSER_CONNECT_MAX_ATTEMPTS - 1:  # Last attempt
+                    logger.debug(
+                        f"Connection attempt {attempt + 1}/{constants.BROWSER_CONNECT_MAX_ATTEMPTS} failed: {e}"
+                    )
+                    if attempt == constants.BROWSER_CONNECT_MAX_ATTEMPTS - 1:  # Last attempt
                         # Kill the process we started if it's still running
                         try:
                             process.terminate()
-                            await asyncio.sleep(BROWSER_CONNECT_RETRY_INTERVAL_SECONDS)
+                            await asyncio.sleep(constants.BROWSER_CONNECT_RETRY_INTERVAL_SECONDS)
                             if process.poll() is None:
                                 process.kill()
                         except Exception:

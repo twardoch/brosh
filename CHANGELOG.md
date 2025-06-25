@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Streamlining & Refinements
+- Standardized parameter name for image format to `output_format` across API and MCP functions; updated relevant docstrings.
+- Consolidated API logic in `api.py` by introducing a helper function for `CaptureConfig` creation and validation, reducing code duplication between sync and async public APIs.
+- Centralized common constants (e.g., default dimensions, timeouts, retry counts) into a new `src/brosh/constants.py` module and updated all other modules to use them.
+- Clarified and fully enabled dynamic section ID generation for filenames:
+    - Added `section_id` to `CaptureFrame` model.
+    - Ensured `capture.py` populates this field using the JavaScript-based DOM analysis.
+    - Updated `tool.py` to use this `section_id` from `CaptureFrame` for more descriptive filenames.
+- Refined `BrowserManager` in `browser.py`:
+    - Ensured `launch_browser_and_connect` uses `get_browser_args` for consistency.
+    - Removed a potentially redundant `--remote-debug-mode` argument from the browser launch arguments.
+- Verified that `cli.py` correctly passes parameters like `output_format` to the API due to its dynamic parameter handling.
+
 ### Added
 - Initial public release of brosh (Browser Screenshot Tool)
 - Playwright-based async implementation for capturing scrolling screenshots

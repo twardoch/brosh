@@ -143,7 +143,7 @@ brosh run
 brosh shot "https://example.com"
 
 # Create an animated PNG showing the scroll
-brosh shot "https://example.com" --format apng
+brosh shot "https://example.com" --output_format apng
 
 # Capture with custom viewport
 brosh --width 1920 --height 1080 shot "https://example.com"
@@ -193,7 +193,7 @@ brosh shot "https://example.com" --scroll_step 50
 brosh shot "https://example.com" --scale 75
 
 # Create animated PNG
-brosh shot "https://example.com" --format apng --anim_spf 1.0
+brosh shot "https://example.com" --output_format apng --anim_spf 1.0
 
 # Extract visible HTML
 brosh shot "https://example.com" --fetch_html --json > page_content.json
@@ -216,6 +216,7 @@ brosh mcp
 ```python
 import asyncio
 from brosh import capture_webpage, capture_webpage_async
+from brosh.models import ImageFormat
 
 # Synchronous usage (automatically handles async for you)
 def capture_sync():
@@ -225,7 +226,7 @@ def capture_sync():
         width=1920,
         height=1080,
         scroll_step=100,
-        format="png"
+        output_format=ImageFormat.PNG
     )
 
     print(f"Captured {len(result)} screenshots")
@@ -322,7 +323,7 @@ brosh [OPTIONS] shot URL [SHOT_OPTIONS]
 |--------|------|---------|-------------|
 | `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) |
 | `--scale` | int | 100 | Scale output images by % (10-200) |
-| `--format` | str | png | Output format: `png`, `jpg`, `apng` |
+| `--output_format` | str | png | Output format: `png`, `jpg`, `apng` |
 | `--anim_spf` | float | 0.5 | Seconds per frame for APNG |
 | `--fetch_html` | bool | False | Extract HTML content of visible elements |
 | `--fetch_image` | bool | False | Include image data in MCP output |
@@ -456,13 +457,13 @@ Create smooth animations showing page scroll:
 
 ```bash
 # Standard animation (0.5 seconds per frame)
-brosh shot "https://example.com" --format apng
+brosh shot "https://example.com" --output_format apng
 
 # Faster animation
-brosh shot "https://example.com" --format apng --anim_spf 0.2
+brosh shot "https://example.com" --output_format apng --anim_spf 0.2
 
 # Slower, more detailed
-brosh shot "https://example.com" --format apng --anim_spf 1.0 --scroll_step 50
+brosh shot "https://example.com" --output_format apng --anim_spf 1.0 --scroll_step 50
 ```
 
 ## 10. MCP Integration
@@ -702,7 +703,7 @@ brosh shot "https://example.com"
 
 ```bash
 # Simpler format
-brosh shot "https://example.com" --format jpg
+brosh shot "https://example.com" --output_format jpg
 
 # Fewer screenshots
 brosh shot "https://example.com" --scroll_step 200

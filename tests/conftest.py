@@ -12,7 +12,7 @@ from pydantic.networks import AnyUrl
 from brosh.models import CaptureConfig, CaptureFrame, ImageFormat
 
 
-@pytest.fixture()
+@pytest.fixture
 def temp_output_dir() -> Generator[Path, None, None]:
     """Provide a temporary directory for test outputs.
 
@@ -25,13 +25,13 @@ def temp_output_dir() -> Generator[Path, None, None]:
         yield Path(temp_dir)
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_url() -> AnyUrl:
     """Provide a sample URL for testing."""
     return AnyUrl("https://example.com")
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_capture_config(temp_output_dir: Path, sample_url: AnyUrl) -> CaptureConfig:
     """Provide a sample CaptureConfig for testing."""
     return CaptureConfig(
@@ -52,7 +52,7 @@ def sample_capture_config(temp_output_dir: Path, sample_url: AnyUrl) -> CaptureC
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def sample_capture_frame() -> CaptureFrame:
     """Provide a sample CaptureFrame for testing."""
     return CaptureFrame(
@@ -66,7 +66,7 @@ def sample_capture_frame() -> CaptureFrame:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_playwright_page() -> MagicMock:
     """Provide a mock Playwright page object."""
     page = AsyncMock()
@@ -79,7 +79,7 @@ def mock_playwright_page() -> MagicMock:
     return page
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_playwright_context() -> MagicMock:
     """Provide a mock Playwright context object."""
     context = AsyncMock()
@@ -88,7 +88,7 @@ def mock_playwright_context() -> MagicMock:
     return context
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_playwright_browser() -> MagicMock:
     """Provide a mock Playwright browser object."""
     browser = AsyncMock()
@@ -97,7 +97,7 @@ def mock_playwright_browser() -> MagicMock:
     return browser
 
 
-@pytest.fixture()
+@pytest.fixture
 def mock_playwright() -> MagicMock:
     """Provide a mock Playwright instance."""
     p = MagicMock()

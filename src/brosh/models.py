@@ -93,6 +93,7 @@ class CaptureFrame:
     active_selector: str
     visible_html: str | None = None
     visible_text: str | None = None
+    section_id: str | None = None
     timestamp: datetime | None = None
 
     @property

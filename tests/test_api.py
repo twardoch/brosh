@@ -149,7 +149,7 @@ class TestCaptureWebpage:
 class TestCaptureWebpageAsync:
     """Test the capture_webpage_async function."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_capture_webpage_async(self, temp_output_dir: Path) -> None:
         """Test capture_webpage_async function."""
         with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class:
@@ -171,7 +171,7 @@ class TestCaptureWebpageAsync:
             # Verify result
             assert result == {"test.png": {"selector": "body"}}
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_capture_webpage_async_config_validation(self, temp_output_dir: Path) -> None:
         """Test that capture_webpage_async validates config."""
         with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class:
@@ -217,25 +217,26 @@ class TestAPIParameterValidation:
 
     def test_capture_webpage_validates_config(self) -> None:
         """Test that invalid config raises ValidationError."""
-        with patch("brosh.api.BrowserScreenshotTool"), \
-             patch("brosh.api.asyncio.run"), \
-             pytest.raises(ValueError, match="Zoom"):  # SIM117
+        with (
+            patch("brosh.api.BrowserScreenshotTool"),
+            patch("brosh.api.asyncio.run"),
+            pytest.raises(ValueError, match="Zoom"),
+        ):  # SIM117
             # This should raise a validation error due to invalid zoom
             capture_webpage(
                 url=AnyUrl("https://example.com"),
                 zoom=5,  # Invalid zoom value
-                )
+            )
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_capture_webpage_async_validates_config(self) -> None:
         """Test that async version validates config."""
-        with patch("brosh.api.BrowserScreenshotTool"), \
-             pytest.raises(ValueError, match="Zoom"):  # SIM117
+        with patch("brosh.api.BrowserScreenshotTool"), pytest.raises(ValueError, match="Zoom"):  # SIM117
             # This should raise a validation error due to invalid zoom
             await capture_webpage_async(
                 url=AnyUrl("https://example.com"),
                 zoom=5,  # Invalid zoom value
-                )
+            )
 
 
 class TestAPIConvenienceMethods:

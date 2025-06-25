@@ -10,15 +10,9 @@ from loguru import logger
 from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
+from . import constants
 from .models import CaptureConfig, CaptureFrame
 from .texthtml import DOMProcessor
-
-# Seconds to wait after page.goto() for dynamic content to load
-PAGE_LOAD_DYNAMIC_CONTENT_WAIT_SECONDS = 3
-# Seconds to wait after scrolling to a specific selector
-SCROLL_TO_SELECTOR_WAIT_SECONDS = 1
-# Seconds to wait after scrolling to a position before taking a screenshot
-SCROLL_AND_CONTENT_WAIT_SECONDS = 0.8
 
 
 class CaptureManager:
@@ -59,9 +53,9 @@ class CaptureManager:
             await page.goto(
                 str(config.url),
                 wait_until="domcontentloaded",
-                timeout=self.page_timeout * 1000,
+                timeout=self.page_timeout * 1000,  # TODO: constants.MILLISECONDS_PER_SECOND
             )
-            await asyncio.sleep(PAGE_LOAD_DYNAMIC_CONTENT_WAIT_SECONDS)  # Wait for dynamic content
+            await asyncio.sleep(constants.PAGE_LOAD_DYNAMIC_CONTENT_WAIT_SECONDS)  # Wait for dynamic content
         except PlaywrightTimeoutError:
             logger.warning("Page load timeout, proceeding anyway")
 
@@ -120,7 +114,7 @@ class CaptureManager:
                     return 0;
                 }})()
             """)
-            await asyncio.sleep(SCROLL_TO_SELECTOR_WAIT_SECONDS)
+            await asyncio.sleep(constants.SCROLL_TO_SELECTOR_WAIT_SECONDS)
             return start_position
         except Exception as e:
             logger.warning(f"Failed to find selector '{from_selector}': {e}")
@@ -173,16 +167,16 @@ class CaptureManager:
         try:
             # Scroll to position
             await page.evaluate(f"window.scrollTo(0, {scroll_pos})")
-            await asyncio.sleep(SCROLL_AND_CONTENT_WAIT_SECONDS)  # Wait for scroll and content
+            await asyncio.sleep(constants.SCROLL_AND_CONTENT_WAIT_SECONDS)  # Wait for scroll and content
 
             # Capture screenshot as bytes
             screenshot_bytes = await page.screenshot(
                 full_page=False,
-                timeout=self.screenshot_timeout * 1000,
+                timeout=self.screenshot_timeout * 1000,  # TODO: constants.MILLISECONDS_PER_SECOND
             )
 
             # Get section identifier
-            await self.dom_processor.get_section_id(page)
+            section_id_str = await self.dom_processor.get_section_id(page)
 
             # Extract content if needed
             visible_html = None
@@ -203,6 +197,7 @@ class CaptureManager:
                 active_selector=active_selector,
                 visible_html=visible_html,
                 visible_text=visible_text,
+                section_id=section_id_str,
                 timestamp=datetime.now(timezone.utc),
             )
 

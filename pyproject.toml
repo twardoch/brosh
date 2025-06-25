@@ -45,6 +45,7 @@ dependencies = [
     'loguru>=0.7.0',
     'html2text>=2025.4.15',
     'pyoxipng>=9.1.0',
+    'pydantic>=2.11.0',
 ]
 
 # Author information

@@ -69,7 +69,7 @@ def capture_webpage(
         app: Browser to use (chrome/edge/safari, empty for auto-detect)
         output_dir: Directory to save screenshots
         subdirs: Whether to create domain-based subdirectories
-        format: Output image format
+        output_format: Output image format
         anim_spf: Animation speed for APNG format
         fetch_html: Whether to include HTML content in results
         fetch_image: Whether to include image data in MCP output
@@ -99,22 +99,17 @@ def capture_webpage(
     - cli.py
     - mcp.py
     """
-    # Handle default for output_dir
-    if output_dir is None:
-        output_dir = Path(dflt_output_folder())
-
-    # Create configuration object
-    config = CaptureConfig(
-        url=str(url),
+    config = _create_capture_config_and_validate(
+        url=url,
+        zoom=zoom,
         width=width,
         height=height,
-        zoom=zoom,
         scroll_step=scroll_step,
         scale=scale,
-        format=output_format,
         app=app,
-        output_dir=str(output_dir),
+        output_dir=output_dir,
         subdirs=subdirs,
+        output_format=output_format,
         anim_spf=anim_spf,
         fetch_html=fetch_html,
         fetch_image=fetch_image,
@@ -125,17 +120,13 @@ def capture_webpage(
         from_selector=from_selector,
     )
 
-    # Validate configuration
-    config.validate()
-
-    # Create and run tool
     tool = BrowserScreenshotTool()
 
     # Handle async execution
-    from contextlib import suppress # Added import
+    from contextlib import suppress  # Added import
 
     loop = None
-    with suppress(RuntimeError): # SIM105
+    with suppress(RuntimeError):  # SIM105
         loop = asyncio.get_running_loop()
 
     if loop is not None:
@@ -191,11 +182,55 @@ async def capture_webpage_async(
 
     See capture_webpage for full documentation.
     """
-    # Handle default for output_dir
+    config = _create_capture_config_and_validate(
+        url=url,
+        zoom=zoom,
+        width=width,
+        height=height,
+        scroll_step=scroll_step,
+        scale=scale,
+        app=app,
+        output_dir=output_dir,
+        subdirs=subdirs,
+        output_format=output_format,
+        anim_spf=anim_spf,
+        fetch_html=fetch_html,
+        fetch_image=fetch_image,
+        fetch_image_path=fetch_image_path,
+        fetch_text=fetch_text,
+        trim_text=trim_text,
+        max_frames=max_frames,
+        from_selector=from_selector,
+    )
+
+    tool = BrowserScreenshotTool()
+    return await tool.capture(config)
+
+
+def _create_capture_config_and_validate(
+    url: AnyUrl,
+    zoom: int,
+    width: int,
+    height: int,
+    scroll_step: int,
+    scale: int,
+    app: str,
+    output_dir: Path | None,
+    subdirs: bool,
+    output_format: ImageFormat,
+    anim_spf: float,
+    fetch_html: bool,
+    fetch_image: bool,
+    fetch_image_path: bool,
+    fetch_text: bool,
+    trim_text: bool,
+    max_frames: int,
+    from_selector: str,
+) -> CaptureConfig:
+    """Helper function to create and validate CaptureConfig."""
     if output_dir is None:
         output_dir = Path(dflt_output_folder())
 
-    # Create configuration object
     config = CaptureConfig(
         url=str(url),
         width=width,
@@ -216,13 +251,8 @@ async def capture_webpage_async(
         max_frames=max_frames,
         from_selector=from_selector,
     )
-
-    # Validate configuration
     config.validate()
-
-    # Create and run tool
-    tool = BrowserScreenshotTool()
-    return await tool.capture(config)
+    return config
 
 
 # Convenience functions for common use cases

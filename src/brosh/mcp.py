@@ -11,19 +11,11 @@ from typing import Any
 from fastmcp import FastMCP
 from loguru import logger
 
+from . import constants
 from .api import capture_webpage_async
 from .models import ImageFormat, MCPImageContent, MCPTextContent, MCPToolResult
 from .texthtml import DOMProcessor
 from .tool import dflt_output_folder
-
-# MCP has different defaults than CLI
-MCP_DEFAULTS = {
-    "scale": 50,  # Default to 50% scaling for MCP to reduce size
-}
-
-TRIM_TEXT_LENGTH = 200
-MCP_MAX_SIZE_BYTES = 1024 * 1024  # 1MB
-MCP_COMPRESSION_DOWNSAMPLE_PERCENTAGE = 50
 
 
 def run_mcp_server() -> None:
@@ -42,11 +34,11 @@ def run_mcp_server() -> None:
     # This avoids **kwargs which FastMCP doesn't support
     async def see_webpage(
         url: str,
-        zoom: int = 100,
+        zoom: int = 100,  # TODO: Use constants.DEFAULT_ZOOM_LEVEL,
         width: int = 0,
         height: int = 0,
-        scroll_step: int = 100,
-        scale: int = 50,  # MCP default: lower scale for smaller images
+        scroll_step: int = 100,  # TODO: Use a constant if one exists for default scroll_step
+        scale: int = constants.MCP_DEFAULT_SCALE,
         app: str = "",
         output_dir: str = "",
         *,
@@ -76,7 +68,7 @@ def run_mcp_server() -> None:
             app: Browser to use (chrome/edge/safari, empty for auto-detect)
             output_dir: Directory to save screenshots (empty for default)
             subdirs: Whether to create domain-based subdirectories
-            format: Output image format (png, jpg, apng)
+            output_format: Output image format (png, jpg, apng)
             anim_spf: Animation speed for APNG format
             fetch_html: Whether to include HTML content in results
             fetch_image: Whether to include image data in results (default False)
@@ -92,7 +84,7 @@ def run_mcp_server() -> None:
         """
         try:
             # Convert string parameters to proper types for the API
-            format_enum = ImageFormat(output_format.lower()) # Use output_format
+            format_enum = ImageFormat(output_format.lower())  # Use output_format
             output_path = Path(output_dir) if output_dir else Path(dflt_output_folder())
 
             # Build kwargs for the API call
@@ -106,7 +98,7 @@ def run_mcp_server() -> None:
                 "app": app,
                 "output_dir": output_path,
                 "subdirs": subdirs,
-                "output_format": format_enum, # Use output_format
+                "output_format": format_enum,  # Use output_format
                 "anim_spf": anim_spf,
                 "fetch_html": fetch_html,
                 "fetch_image": False,  # FIXME: fetch_image,
@@ -143,7 +135,7 @@ def run_mcp_server() -> None:
 
 def _convert_to_mcp_result(
     capture_result: dict[str, dict[str, Any]],
-    output_format: ImageFormat, # Renamed from format
+    output_format: ImageFormat,  # Renamed from format
     *,
     fetch_image: bool = False,
     fetch_image_path: bool = True,
@@ -178,7 +170,9 @@ def _convert_to_mcp_result(
 
                 image_content = MCPImageContent(
                     data=base64.b64encode(image_bytes).decode(),
-                    mime_type=(output_format.mime_type if isinstance(output_format, ImageFormat) else "image/png"), # Use output_format
+                    mime_type=(
+                        output_format.mime_type if isinstance(output_format, ImageFormat) else "image/png"
+                    ),  # Use output_format
                 )
                 content_items.append(image_content)
 
@@ -192,8 +186,8 @@ def _convert_to_mcp_result(
 
             if fetch_text:
                 text = metadata.get("text", "")
-                if trim_text and len(text) > TRIM_TEXT_LENGTH:
-                    text = f"{text[:TRIM_TEXT_LENGTH]}..."
+                if trim_text and len(text) > constants.MCP_TRIM_TEXT_LENGTH:
+                    text = f"{text[: constants.MCP_TRIM_TEXT_LENGTH]}..."
                 meta_dict["text"] = text
 
             if fetch_html and "html" in metadata:
@@ -231,10 +225,10 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
     result_dict = result.model_dump()
     size = len(json.dumps(result_dict).encode("utf-8"))
 
-    if size <= MCP_MAX_SIZE_BYTES:
+    if size <= constants.MCP_MAX_SIZE_BYTES:
         return result
 
-    logger.warning(f"Result size {size} exceeds limit {MCP_MAX_SIZE_BYTES}, applying compression")
+    logger.warning(f"Result size {size} exceeds limit {constants.MCP_MAX_SIZE_BYTES}, applying compression")
 
     # Step 1: Remove all but first HTML
     new_content = []
@@ -258,7 +252,7 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
     result = MCPToolResult(content=new_content)
     size = len(json.dumps(result.model_dump()).encode("utf-8"))
 
-    if size <= MCP_MAX_SIZE_BYTES:
+    if size <= constants.MCP_MAX_SIZE_BYTES:
         return result
 
     # Step 2: Downsample images
@@ -271,7 +265,7 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
         if isinstance(item, MCPImageContent):
             try:
                 img_data = base64.b64decode(item.data)
-                downsampled = processor.downsample_png_bytes(img_data, MCP_COMPRESSION_DOWNSAMPLE_PERCENTAGE)
+                downsampled = processor.downsample_png_bytes(img_data, constants.MCP_COMPRESSION_DOWNSAMPLE_PERCENTAGE)
                 item = MCPImageContent(data=base64.b64encode(downsampled).decode(), mime_type=item.mime_type)
             except Exception as e:
                 logger.error(f"Failed to downsample image: {e}")
@@ -280,12 +274,12 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
     result = MCPToolResult(content=new_content)
     size = len(json.dumps(result.model_dump()).encode("utf-8"))
 
-    if size <= MCP_MAX_SIZE_BYTES:
+    if size <= constants.MCP_MAX_SIZE_BYTES:
         return result
 
     # Step 3: Remove screenshots from end
     # Keep at least one image and one text block if possible (hence > 2)
-    while len(result.content) > 2 and size > MCP_MAX_SIZE_BYTES:
+    while len(result.content) > 2 and size > constants.MCP_MAX_SIZE_BYTES:
         result.content = result.content[:-2]  # Remove an image and its corresponding text metadata
         size = len(json.dumps(result.model_dump()).encode("utf-8"))
 

@@ -143,7 +143,7 @@ brosh run
 brosh shot "https://example.com"
 
 # Create an animated PNG showing the scroll
-brosh shot "https://example.com" --format apng
+brosh shot "https://example.com" --output_format apng
 
 # Capture with custom viewport
 brosh --width 1920 --height 1080 shot "https://example.com"
@@ -193,7 +193,7 @@ brosh shot "https://example.com" --scroll_step 50
 brosh shot "https://example.com" --scale 75
 
 # Create animated PNG
-brosh shot "https://example.com" --format apng --anim_spf 1.0
+brosh shot "https://example.com" --output_format apng --anim_spf 1.0
 
 # Extract visible HTML
 brosh shot "https://example.com" --fetch_html --json > page_content.json
@@ -216,6 +216,7 @@ brosh mcp
 ```python
 import asyncio
 from brosh import capture_webpage, capture_webpage_async
+from brosh.models import ImageFormat # Added import for ImageFormat
 
 # Synchronous usage (automatically handles async for you)
 def capture_sync():
@@ -225,7 +226,7 @@ def capture_sync():
         width=1920,
         height=1080,
         scroll_step=100,
-        format="png"
+        output_format=ImageFormat.PNG # Corrected: uses ImageFormat enum
     )
 
     print(f"Captured {len(result)} screenshots")
@@ -265,7 +266,7 @@ full_page = capture_full_page("https://example.com")
 visible = capture_visible_area("https://example.com")
 
 # Create animated PNG
-animation = capture_animation("https://example.com")
+animation = capture_animation("https://example.com", output_format=ImageFormat.APNG) # Corrected: uses ImageFormat enum
 ```
 
 ## 7. Command Reference
@@ -322,7 +323,7 @@ brosh [OPTIONS] shot URL [SHOT_OPTIONS]
 |--------|------|---------|-------------|
 | `--scroll_step` | int | 100 | Scroll step as % of viewport height (10-200) |
 | `--scale` | int | 100 | Scale output images by % (10-200) |
-| `--format` | str | png | Output format: `png`, `jpg`, `apng` |
+| `--output_format` | str | png | Output format: `png`, `jpg`, `apng` |
 | `--anim_spf` | float | 0.5 | Seconds per frame for APNG |
 | `--fetch_html` | bool | False | Extract HTML content of visible elements |
 | `--fetch_image` | bool | False | Include image data in MCP output |
@@ -569,16 +570,34 @@ Claude will use brosh to capture the screenshots and can analyze the visual cont
 
 ### 10.4. MCP Output Format
 
-The MCP server returns results in a flat JSON structure for better compatibility:
+The MCP server returns a result adhering to the `MCPToolResult` model. The `content` field is a list of items, typically alternating between image and text metadata if both are fetched.
 
+**Example MCP Output (with `fetch_image: true`, `fetch_image_path: true`, `fetch_text: true`, `fetch_html: true`):**
 ```json
 {
-  "image_path": "/path/to/screenshot.png",
-  "selector": "main.content",
-  "text": "Extracted text content (trimmed to 200 chars by default)...",
-  "html": "<main>...</main>"  // Only if fetch_html=True
+  "content": [
+    {
+      "type": "image",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+      "mimeType": "image/png"
+    },
+    {
+      "type": "text",
+      "text": "{\"image_path\": \"/path/to/screenshots/example_com-230101-120000-00000-body.png\", \"selector\": \"body\", \"text\": \"Example Domain This domain is for use in illustrative examples in documents...\", \"html\": \"<html><body><h1>Example Domain</h1><p>This domain is for use in illustrative examples in documents...</p></body></html>\"}"
+    }
+    // This pattern repeats for each captured frame/screenshot
+  ]
 }
 ```
+
+**Key points about MCP output:**
+- The `content` is a list.
+- `MCPImageContent` items (type: "image") contain base64 encoded image data and its `mimeType`. These are only included if `fetch_image: true`.
+- `MCPTextContent` items (type: "text") contain a JSON string as their `text` field. This JSON string holds metadata related to a screenshot.
+  - `image_path`: Included if `fetch_image_path: true`.
+  - `selector`: Always included.
+  - `text`: Extracted Markdown text, included if `fetch_text: true`. Can be trimmed if `trim_text: true`.
+  - `html`: Minified HTML of visible elements, included if `fetch_html: true`.
 
 **Control output with flags:**
 - `fetch_image`: Include actual image data (default: False)

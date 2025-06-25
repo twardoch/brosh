@@ -28,31 +28,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Browser connection issues with improved retry logic
-- MCP response format now properly excludes null fields and uses camelCase for field names (e.g., `mimeType` instead of `mime_type`)
-- MCP server results now handle size limits properly with progressive compression
-- Screenshot timeout handling
-- Image scaling and format conversion edge cases
-- MCP async execution error where Task object was returned instead of actual results
+- MCP response format now properly excludes null fields and uses camelCase for field names (e.g., `mimeType` instead of `mime_type`). This completes the MCP data model restructuring for flat JSON output.
+- MCP server results now handle size limits properly with progressive compression.
+- Screenshot timeout handling.
+- Image scaling and format conversion edge cases.
+- MCP async execution error where Task object was returned instead of actual results.
 
 ### Added
-- PNG optimization using pyoxipng for all captured screenshots
-- HTML content compression that removes SVG elements while preserving dimensions
-- Progressive compression strategy for MCP results exceeding 1MB size limit
-- Automatic downsampling and content reduction for oversized MCP responses
-- Separate `capture_webpage_async` API function for async contexts
+- PNG optimization using pyoxipng for all captured screenshots.
+- HTML content compression that removes SVG elements while preserving dimensions.
+- Progressive compression strategy for MCP results exceeding 1MB size limit.
+- Automatic downsampling and content reduction for oversized MCP responses.
+- Separate `capture_webpage_async` API function for async contexts.
 - New MCP configuration flags for granular output control:
-  - `fetch_image`: Controls whether image data is included in MCP output (default: False)
-  - `fetch_image_path`: Controls whether image paths are included (default: True)
-  - `fetch_text`: Controls whether extracted text is included (default: True)
-  - `trim_text`: Controls whether text is trimmed to 200 characters (default: True)
+  - `fetch_image`: Controls whether image data is included in MCP output (default: False).
+  - `fetch_image_path`: Controls whether image paths are included (default: True).
+  - `fetch_text`: Controls whether extracted text is included (default: True).
+  - `trim_text`: Controls whether text is trimmed to 200 characters (default: True).
+- Comprehensive test updates for all new functionality and refactoring.
 
 ### Changed
-- MCP output structure changed from nested dictionary to flat JSON format
+- MCP output structure changed from nested dictionary to flat JSON format, aligning with the data model restructuring.
   - Old: `{"/path/to/file.png": {"selector": "...", "text": "..."}}`
   - New: `{"image_path": "/path/to/file.png", "selector": "...", "text": "..."}`
-- Renamed `html` parameter to `fetch_html` throughout the codebase for consistency
-- Text extraction now automatically trims to 200 characters by default (configurable)
-- Added support for `file://` URLs to capture local HTML files
+- Renamed `html` parameter to `fetch_html` throughout the codebase for consistency.
+- Text extraction now automatically trims to 200 characters by default (configurable).
+- Added support for `file://` URLs to capture local HTML files.
 
 ### Code Quality
 - **Imports**: Removed unused imports and organized existing ones using Ruff.

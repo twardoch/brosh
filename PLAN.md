@@ -1,11 +1,5 @@
 # Development Plan
 
-## Completed Features ✅
-- MCP data model restructuring (flat JSON)
-- Parameter renaming (html → fetch_html)
-- New configuration flags (fetch_image, fetch_image_path, fetch_text, trim_text)
-- Test updates for all new functionality
-
 ## Future Enhancements
 
 ### Performance Optimization

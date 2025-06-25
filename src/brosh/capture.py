@@ -155,7 +155,7 @@ class CaptureManager:
         return positions
 
     async def _capture_single_frame(
-        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, *, fetch_html: bool
+        self, page: Page, scroll_pos: int, page_height: int, viewport_height: int, *, fetch_html: bool # fetch_html is already keyword-only
     ) -> CaptureFrame | None:
         """Capture a single viewport frame.
 
@@ -164,7 +164,7 @@ class CaptureManager:
             scroll_pos: Y position to scroll to
             page_height: Total page height
             viewport_height: Viewport height
-            fetch_html: Whether to capture HTML content
+            fetch_html: Whether to capture HTML content (keyword-only)
 
         Returns:
             CaptureFrame or None if capture failed
@@ -203,7 +203,7 @@ class CaptureManager:
                 active_selector=active_selector,
                 visible_html=visible_html,
                 visible_text=visible_text,
-                timestamp=datetime.now(timezone.utc),
+                timestamp=datetime.now(timezone.utc), # Ensured timezone.utc is used
             )
 
         except PlaywrightTimeoutError:

@@ -10,6 +10,13 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+# Validation constants
+MIN_ZOOM, MAX_ZOOM = 10, 500
+MIN_SCROLL_STEP, MAX_SCROLL_STEP = 10, 200
+MIN_SCALE, MAX_SCALE = 10, 200
+MIN_ANIM_SPF, MAX_ANIM_SPF = 0.1, 10.0
+MIN_HEIGHT = -1
+
 
 class ImageFormat(str, Enum):
     """Supported image output formats.
@@ -140,20 +147,20 @@ class CaptureConfig:
         if not self.url.startswith(("http://", "https://", "file://")):
             msg = f"Invalid URL: {self.url}"
             raise ValueError(msg)
-        if not 10 <= self.zoom <= 500:
-            msg = "Zoom must be between 10 and 500"
+        if not MIN_ZOOM <= self.zoom <= MAX_ZOOM:
+            msg = f"Zoom must be between {MIN_ZOOM} and {MAX_ZOOM}"
             raise ValueError(msg)
-        if not 10 <= self.scroll_step <= 200:
-            msg = "Scroll step must be between 10 and 200"
+        if not MIN_SCROLL_STEP <= self.scroll_step <= MAX_SCROLL_STEP:
+            msg = f"Scroll step must be between {MIN_SCROLL_STEP} and {MAX_SCROLL_STEP}"
             raise ValueError(msg)
-        if not 10 <= self.scale <= 200:
-            msg = "Scale must be between 10 and 200"
+        if not MIN_SCALE <= self.scale <= MAX_SCALE:
+            msg = f"Scale must be between {MIN_SCALE} and {MAX_SCALE}"
             raise ValueError(msg)
-        if self.height < -1:
-            msg = "Height must be -1, 0, or positive"
+        if self.height < MIN_HEIGHT:
+            msg = f"Height must be {MIN_HEIGHT}, 0, or positive"
             raise ValueError(msg)
-        if not 0.1 <= self.anim_spf <= 10.0:
-            msg = "Animation SPF must be between 0.1 and 10.0"
+        if not MIN_ANIM_SPF <= self.anim_spf <= MAX_ANIM_SPF:
+            msg = f"Animation SPF must be between {MIN_ANIM_SPF} and {MAX_ANIM_SPF}"
             raise ValueError(msg)
 
 

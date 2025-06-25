@@ -19,6 +19,7 @@ from .models import CaptureConfig, CaptureFrame, ImageFormat
 from .texthtml import DOMProcessor
 
 MILLISECONDS_PER_SECOND = 1000
+DEFAULT_SCALE_PERCENTAGE = 100
 
 
 def dflt_output_folder(subfolder: str | Path = "brosh") -> Path:
@@ -34,7 +35,7 @@ class BrowserScreenshotTool:
     - api.py
     """
 
-    def __init__(self, *, verbose: bool = False):
+    def __init__(self, *, verbose: bool = False): # verbose is already keyword-only
         """Initialize the screenshot tool.
 
         Args:
@@ -143,7 +144,7 @@ class BrowserScreenshotTool:
 
         """
         results = {}
-        timestamp = datetime.now(timezone.utc).strftime("%y%m%d-%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%y%m%d-%H%M%S") # Ensured timezone.utc is used
 
         for _i, frame in enumerate(frames):
             # Generate filename
@@ -155,7 +156,7 @@ class BrowserScreenshotTool:
             image_bytes = frame.image_bytes
 
             # Scale if needed
-            if config.scale != 100:
+            if config.scale != DEFAULT_SCALE_PERCENTAGE:
                 image_bytes = self.image_processor.downsample_png_bytes(image_bytes, config.scale)
 
             # Convert format if needed
@@ -195,7 +196,7 @@ class BrowserScreenshotTool:
         frame_bytes_list = []
         for frame in frames:
             image_bytes = frame.image_bytes
-            if config.scale != 100:
+            if config.scale != DEFAULT_SCALE_PERCENTAGE:
                 image_bytes = self.image_processor.downsample_png_bytes(image_bytes, config.scale)
             frame_bytes_list.append(image_bytes)
 
@@ -217,11 +218,11 @@ class BrowserScreenshotTool:
             }
         }
 
-    async def _get_section_id_from_frame(self, frame: CaptureFrame) -> str:
+    async def _get_section_id_from_frame(self, _frame: CaptureFrame) -> str: # Prefixed unused frame with _
         """Extract section ID from frame metadata.
 
         Args:
-            frame: Capture frame
+            _frame: Capture frame (currently unused, placeholder for future logic)
 
         Returns:
             Section identifier string

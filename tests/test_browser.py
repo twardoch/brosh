@@ -53,8 +53,7 @@ class TestBrowserManager:
         result = manager.get_browser_name("invalid_browser")
         assert result == "chrome"  # Fallback browser
 
-    @patch("brosh.browser.subprocess.run")
-    def test_browser_path_detection(self, mock_subprocess: MagicMock) -> None:
+    def test_browser_path_detection(self) -> None: # Removed unused mock_subprocess
         """Test browser path detection."""
         manager = BrowserManager()
 

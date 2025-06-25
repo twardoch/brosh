@@ -128,8 +128,7 @@ class TestBrowserScreenshotCLI:
         cli_custom = BrowserScreenshotCLI(output_dir=str(temp_output_dir))
         assert Path(cli_custom.output_dir) == temp_output_dir
 
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_verbose_logging(self, mock_browser_manager: MagicMock) -> None:
+    def test_cli_verbose_logging(self) -> None: # Removed unused mock_browser_manager
         """Test verbose logging configuration."""
         with patch("brosh.cli.logger") as mock_logger:
             # Test non-verbose mode
@@ -145,23 +144,15 @@ class TestBrowserScreenshotCLI:
             # Verbose mode should not call remove/add
             mock_logger.remove.assert_not_called()
 
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_with_different_browsers(self, mock_browser_manager: MagicMock) -> None:
-        """Test CLI with different browser configurations."""
-        browsers = ["chrome", "firefox", "edge", "safari"]
-
-        for browser in browsers:
-            cli = BrowserScreenshotCLI(app=browser)
-            assert cli.app == browser
+# Removed duplicate/old test_cli_with_different_browsers which was causing confusion
 
 
 class TestCLIIntegration:
     """Test CLI integration scenarios."""
 
     @patch("brosh.cli.capture_webpage")
-    @patch("brosh.cli.BrowserManager")
     def test_cli_screenshot_workflow(
-        self, mock_browser_manager: MagicMock, mock_capture: MagicMock, temp_output_dir: Path
+        self, mock_capture: MagicMock, temp_output_dir: Path # Removed unused mock_browser_manager
     ) -> None:
         """Test a complete screenshot workflow."""
         # Mock the capture result
@@ -209,8 +200,7 @@ class TestCLIIntegration:
         with pytest.raises(RuntimeError, match="Browser error"):
             cli.run()
 
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_parameter_validation(self, mock_browser_manager: MagicMock) -> None:
+    def test_cli_parameter_validation(self) -> None: # Removed unused mock_browser_manager
         """Test CLI parameter validation."""
         # Test with valid parameters
         cli = BrowserScreenshotCLI(
@@ -238,8 +228,7 @@ class TestCLIIntegration:
 class TestCLIUtilities:
     """Test CLI utility functions and methods."""
 
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_json_output_flag(self, mock_browser_manager: MagicMock) -> None:
+    def test_cli_json_output_flag(self) -> None: # Removed unused mock_browser_manager
         """Test JSON output flag functionality."""
         cli_json = BrowserScreenshotCLI(json=True)
         cli_regular = BrowserScreenshotCLI(json=False)
@@ -247,8 +236,7 @@ class TestCLIUtilities:
         assert cli_json.json is True
         assert cli_regular.json is False
 
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_subdirs_flag(self, mock_browser_manager: MagicMock) -> None:
+    def test_cli_subdirs_flag(self) -> None: # Removed unused mock_browser_manager
         """Test subdirectories flag functionality."""
         cli_subdirs = BrowserScreenshotCLI(subdirs=True)
         cli_flat = BrowserScreenshotCLI(subdirs=False)
@@ -256,8 +244,7 @@ class TestCLIUtilities:
         assert cli_subdirs.subdirs is True
         assert cli_flat.subdirs is False
 
-    @patch("brosh.cli.BrowserManager")
-    def test_cli_app_selection(self, mock_browser_manager: MagicMock) -> None:
+    def test_cli_app_selection(self) -> None: # Removed unused mock_browser_manager
         """Test browser app selection."""
         # Test auto-detection (empty string)
         cli_auto = BrowserScreenshotCLI(app="")

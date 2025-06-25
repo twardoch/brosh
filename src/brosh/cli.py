@@ -16,6 +16,7 @@ import fire
 from loguru import logger
 
 from .api import capture_webpage
+# Removed unused ImageFormat import: from .models import ImageFormat
 from .browser import DEFAULT_FALLBACK_HEIGHT, DEFAULT_FALLBACK_WIDTH, BrowserManager
 from .tool import dflt_output_folder
 
@@ -29,6 +30,8 @@ BROWSER_CONNECT_VERIFY_ATTEMPTS = 10
 BROWSER_CONNECT_VERIFY_INTERVAL_SECONDS = 1
 # Timeout for pkill/taskkill subprocess calls
 SUBPROCESS_PKILL_TIMEOUT_CLI = 5
+# Max length for text preview in CLI output
+CLI_TEXT_PREVIEW_LENGTH = 100
 
 
 class BrowserScreenshotCLI:
@@ -117,20 +120,25 @@ class BrowserScreenshotCLI:
             time.sleep(BROWSER_RESTART_WAIT_SECONDS)
 
         # Launch browser directly with debug args
-        browser_path = self._browser_manager.find_browser_path(browser_name)
-        if not browser_path:
+        browser_path_found = self._browser_manager.find_browser_path(browser_name)
+        if not browser_path_found:
             return f"Could not find {browser_name} installation"
+
+        # Ensure the found path is a valid executable using shutil.which
+        browser_executable_path = shutil.which(browser_path_found)
+        if not browser_executable_path:
+            return f"Browser executable not found or not runnable at {browser_path_found}"
 
         try:
             width = self.width or DEFAULT_FALLBACK_WIDTH
             height = self.height or DEFAULT_FALLBACK_HEIGHT
 
-            args = [browser_path, *self._browser_manager.get_browser_args(browser_name, width, height, debug_port)]
+            args = [browser_executable_path, *self._browser_manager.get_browser_args(browser_name, width, height, debug_port)]
 
             if not args[1:]:  # No args returned (not chromium/msedge)
                 return f"Browser {browser_name} not supported for direct launch"
 
-            logger.info(f"Starting {browser_name} with debug port {debug_port}")
+            logger.info(f"Starting {browser_name} with debug port {debug_port} using {browser_executable_path}")
             subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             # Wait and verify connection
@@ -141,7 +149,8 @@ class BrowserScreenshotCLI:
 
                     urllib.request.urlopen(f"http://localhost:{debug_port}/json", timeout=BROWSER_CHECK_TIMEOUT_SECONDS)
                     return f"Started {browser_name} in debug mode on port {debug_port}"
-                except Exception:
+                except Exception as e:
+                    logger.debug(f"Connection verification attempt failed for port {debug_port}: {e}")
                     continue
 
             return f"Started {browser_name} but could not verify debug connection"
@@ -241,7 +250,12 @@ class BrowserScreenshotCLI:
             # Pretty print results
             for _path, metadata in result.items():
                 if metadata.get("text"):
-                    metadata["text"][:100] + "..." if len(metadata["text"]) > 100 else metadata["text"]
+                    text = metadata["text"]
+                    metadata["text"] = (
+                        f"{text[:CLI_TEXT_PREVIEW_LENGTH]}..."
+                        if len(text) > CLI_TEXT_PREVIEW_LENGTH
+                        else text
+                    )
 
             return result
 

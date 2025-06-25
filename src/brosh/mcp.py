@@ -49,9 +49,10 @@ def run_mcp_server() -> None:
         scale: int = 50,  # MCP default: lower scale for smaller images
         app: str = "",
         output_dir: str = "",
+        # Made boolean arguments below keyword-only
         *,
         subdirs: bool = False,
-        output_format: str = "png",
+        output_format_str: str = "png", # Renamed from output_format to avoid conflict
         anim_spf: float = 0.5,
         fetch_html: bool = False,
         fetch_image: bool = False,
@@ -92,7 +93,7 @@ def run_mcp_server() -> None:
         """
         try:
             # Convert string parameters to proper types for the API
-            format_enum = ImageFormat(output_format.lower()) # Use output_format
+            format_enum = ImageFormat(output_format_str.lower()) # Use renamed output_format_str
             output_path = Path(output_dir) if output_dir else Path(dflt_output_folder())
 
             # Build kwargs for the API call
@@ -106,7 +107,7 @@ def run_mcp_server() -> None:
                 "app": app,
                 "output_dir": output_path,
                 "subdirs": subdirs,
-                "output_format": format_enum, # Use output_format
+                "output_format": format_enum, # API uses output_format
                 "anim_spf": anim_spf,
                 "fetch_html": fetch_html,
                 "fetch_image": False,  # FIXME: fetch_image,
@@ -143,7 +144,7 @@ def run_mcp_server() -> None:
 
 def _convert_to_mcp_result(
     capture_result: dict[str, dict[str, Any]],
-    output_format: ImageFormat, # Renamed from format
+    img_format: ImageFormat, # Renamed from output_format to avoid conflict
     *,
     fetch_image: bool = False,
     fetch_image_path: bool = True,
@@ -178,7 +179,7 @@ def _convert_to_mcp_result(
 
                 image_content = MCPImageContent(
                     data=base64.b64encode(image_bytes).decode(),
-                    mime_type=(output_format.mime_type if isinstance(output_format, ImageFormat) else "image/png"), # Use output_format
+                    mime_type=(img_format.mime_type if isinstance(img_format, ImageFormat) else "image/png"), # Use img_format
                 )
                 content_items.append(image_content)
 
@@ -248,14 +249,41 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
                     for path, metadata in data.items():
                         if "html" in metadata and html_found:
                             metadata.pop("html", None)
-                            item = MCPTextContent(text=json.dumps({path: metadata}))
+                            # Create a new item instead of reassigning loop variable
+                            new_item = MCPTextContent(text=json.dumps({path: metadata}))
+                            new_content.append(new_item)
+                            continue # Continue to next item in the original loop
                         elif "html" in metadata:
                             html_found = True
             except Exception:
                 pass
-        new_content.append(item)
+        new_content.append(item) # Appends original or potentially modified if not html case
 
-    result = MCPToolResult(content=new_content)
+    # This logic needs rethinking. The new_content should be built correctly.
+    # For now, I will just fix the reassignment.
+    # A better approach would be to build new_content from scratch.
+    # Corrected logic for building new_content:
+    processed_content = []
+    html_found_processed = False
+    for original_item in result.content: # Iterate over original list
+        current_item_to_add = original_item
+        if isinstance(original_item, MCPTextContent):
+            try:
+                data = json.loads(original_item.text)
+                if isinstance(data, dict):
+                    # Assuming single key in data dict which is path
+                    path_key = next(iter(data))
+                    metadata_val = data[path_key]
+                    if "html" in metadata_val:
+                        if html_found_processed:
+                            metadata_val.pop("html", None)
+                            current_item_to_add = MCPTextContent(text=json.dumps({path_key: metadata_val}))
+                        else:
+                            html_found_processed = True
+            except Exception:
+                pass
+        processed_content.append(current_item_to_add)
+    result = MCPToolResult(content=processed_content)
     size = len(json.dumps(result.model_dump()).encode("utf-8"))
 
     if size <= MCP_MAX_SIZE_BYTES:
@@ -267,17 +295,23 @@ def _apply_size_limits(result: MCPToolResult) -> MCPToolResult:
     processor = ImageProcessor()
 
     new_content = []
-    for item in result.content:
-        if isinstance(item, MCPImageContent):
+    # Step 2: Downsample images (Corrected logic)
+    content_after_downsample = []
+    for item_to_downsample in result.content: # Iterate on the potentially html-stripped list
+        if isinstance(item_to_downsample, MCPImageContent):
             try:
-                img_data = base64.b64decode(item.data)
-                downsampled = processor.downsample_png_bytes(img_data, MCP_COMPRESSION_DOWNSAMPLE_PERCENTAGE)
-                item = MCPImageContent(data=base64.b64encode(downsampled).decode(), mime_type=item.mime_type)
+                img_data = base64.b64decode(item_to_downsample.data)
+                downsampled_bytes = processor.downsample_png_bytes(img_data, MCP_COMPRESSION_DOWNSAMPLE_PERCENTAGE)
+                # Create new item instead of reassigning
+                downsampled_item = MCPImageContent(data=base64.b64encode(downsampled_bytes).decode(), mime_type=item_to_downsample.mime_type)
+                content_after_downsample.append(downsampled_item)
             except Exception as e:
                 logger.error(f"Failed to downsample image: {e}")
-        new_content.append(item)
+                content_after_downsample.append(item_to_downsample) # Append original on error
+        else:
+            content_after_downsample.append(item_to_downsample) # Append non-image items directly
 
-    result = MCPToolResult(content=new_content)
+    result = MCPToolResult(content=content_after_downsample)
     size = len(json.dumps(result.model_dump()).encode("utf-8"))
 
     if size <= MCP_MAX_SIZE_BYTES:

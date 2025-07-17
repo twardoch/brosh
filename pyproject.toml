@@ -81,6 +81,12 @@ dev = [
     'autoflake>=2.3.0', # Added autoflake
 ]
 
+# Binary building tools
+binary = [
+    'pyinstaller>=6.0.0',
+    'setuptools>=70.0.0',
+]
+
 # Testing tools and frameworks
 test = [
     'pytest>=8.3.4',
@@ -100,7 +106,7 @@ docs = [
 
 # All optional dependencies combined
 all = [
-    "brosh[dev,test,docs]", # Combined all optional dependencies
+    "brosh[dev,test,docs,binary]", # Combined all optional dependencies
 ]
 
 #------------------------------------------------------------------------------

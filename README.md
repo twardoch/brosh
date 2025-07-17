@@ -29,6 +29,7 @@
 - [Features](#features)
 - [How It Works (Conceptual Overview)](#how-it-works-conceptual-overview)
 - [Installation](#installation)
+  - [Binary Releases (Quick Start)](#binary-releases-quick-start)
   - [Using uv/uvx (Recommended)](#using-uvuvx-recommended)
   - [Using pip](#using-pip)
   - [Using pipx](#using-pipx)
@@ -127,7 +128,42 @@ This modular design allows for flexibility and robust error handling at each sta
 
 ## 4. Installation
 
-### 4.1. Using uv/uvx (Recommended)
+### 4.1. Binary Releases (Quick Start)
+
+Download pre-built binaries from the [latest release](https://github.com/twardoch/brosh/releases/latest) for your platform:
+
+#### Linux / macOS
+```bash
+# Download the appropriate binary
+wget https://github.com/twardoch/brosh/releases/latest/download/brosh-linux-x86_64
+# Or for macOS Intel:
+wget https://github.com/twardoch/brosh/releases/latest/download/brosh-macos-x86_64
+# Or for macOS Apple Silicon:
+wget https://github.com/twardoch/brosh/releases/latest/download/brosh-macos-arm64
+
+# Make it executable and install
+chmod +x brosh-*
+sudo mv brosh-* /usr/local/bin/brosh
+
+# Test the installation
+brosh --version
+```
+
+#### Windows
+```powershell
+# Download the Windows binary
+Invoke-WebRequest -Uri "https://github.com/twardoch/brosh/releases/latest/download/brosh-windows-x86_64.exe" -OutFile "brosh.exe"
+
+# Move to a directory in your PATH or create a local bin directory
+Move-Item brosh.exe C:\Windows\System32\brosh.exe
+
+# Test the installation
+brosh --version
+```
+
+**Note:** Binary releases include all dependencies and don't require Python or additional setup. However, you'll still need to install Playwright browsers as shown in section 4.6.
+
+### 4.2. Using uv/uvx (Recommended)
 
 [uv](https://github.com/astral-sh/uv) is a fast Python package manager.
 
@@ -145,7 +181,7 @@ uv tool install brosh
 uv tool install "brosh[all]"
 ```
 
-### 4.2. Using pip
+### 4.3. Using pip
 
 ```bash
 # Basic installation
@@ -155,7 +191,7 @@ python -m pip install brosh
 python -m pip install "brosh[all]"
 ```
 
-### 4.3. Using pipx
+### 4.4. Using pipx
 
 [pipx](https://pipx.pypa.io/) installs Python applications in isolated environments.
 
@@ -168,7 +204,7 @@ python -m pipx ensurepath
 pipx install brosh
 ```
 
-### 4.4. From Source
+### 4.5. From Source
 
 For development or to get the latest changes:
 
@@ -178,7 +214,7 @@ cd brosh
 python -m pip install -e ".[all]" # Editable install with all extras
 ```
 
-### 4.5. Install Playwright Browsers
+### 4.6. Install Playwright Browsers
 
 After installing the `brosh` package, you need to install the browser drivers required by Playwright:
 

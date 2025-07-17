@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Git-tag-based semantic versioning with hatch-vcs
+- Comprehensive test suite with pytest and coverage reporting
+- Multiplatform binary releases (Linux, Windows, macOS Intel/ARM)
+- Local development scripts for build, test, and release
+- GitHub Actions CI/CD with automated testing and releases
+- PyInstaller-based binary compilation
+- Makefile for convenient development workflows
+- Binary distribution via GitHub Releases
+- Comprehensive documentation for installation and usage
+
+### Changed
+- Enhanced GitHub Actions workflows for multiplatform support
+- Improved package metadata and dependency management
+- Updated README with binary installation instructions
+
+## [0.1.0] - Initial Release
+
+### Added
 - Initial public release of brosh (Browser Screenshot Tool)
 - Playwright-based async implementation for capturing scrolling screenshots
 - Support for Chrome, Edge, and Safari browsers

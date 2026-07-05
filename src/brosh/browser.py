@@ -72,16 +72,15 @@ class BrowserManager:
                 if not system_profiler_path:
                     logger.warning("system_profiler not found, using fallback dimensions.")
                     return DEFAULT_FALLBACK_WIDTH, DEFAULT_FALLBACK_HEIGHT
-                try:
-                    # This is a blocking call, but get_screen_dimensions is a sync utility function.
-                    result = subprocess.run(
-                        [system_profiler_path, "SPDisplaysDataType"],
-                        capture_output=True,
-                        text=True,
-                        check=True,
-                        timeout=SUBPROCESS_TIMEOUT,
-                    )
-                    for line in result.stdout.split("\n"):
+                # This is a blocking call, but get_screen_dimensions is a sync utility function.
+                result = subprocess.run(
+                    [system_profiler_path, "SPDisplaysDataType"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    timeout=SUBPROCESS_TIMEOUT,
+                )
+                for line in result.stdout.split("\n"):
                     if "Resolution:" in line:
                         parts = line.split()
                         for i, part in enumerate(parts):
@@ -106,9 +105,8 @@ class BrowserManager:
                 logger.warning("system_profiler call timed out, using fallback dimensions.")
             except (ValueError, IndexError) as e:
                 logger.warning(f"Failed to parse system_profiler output: {e}, using fallback dimensions.")
-            except Exception as e: # Catch any other unexpected error
+            except Exception as e:  # Catch any other unexpected error
                 logger.warning(f"Unexpected error getting macOS screen dimensions: {e}, using fallback dimensions.")
-
 
         elif platform.system() == "Windows":
             try:
@@ -384,13 +382,15 @@ class BrowserManager:
                         # These are fire-and-forget, so not strictly blocking the async flow.
                         subprocess.Popen(
                             [pkill_path, "-f", f"remote-debugging-port={debug_port}"],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
                         )
                         # Also try killing by process name
                         if "chrome" in browser_path.lower():
                             subprocess.Popen(
                                 [pkill_path, "-f", "Google Chrome.*remote-debugging"],
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
                             )
                     else:
                         logger.warning("pkill command not found for process cleanup.")
@@ -398,19 +398,21 @@ class BrowserManager:
                     taskkill_path = shutil.which("taskkill")
                     if taskkill_path:
                         subprocess.Popen(
-                            [taskkill_path, "/F", "/IM", "chrome.exe"], # General cleanup for Chrome
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                            [taskkill_path, "/F", "/IM", "chrome.exe"],  # General cleanup for Chrome
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
                         )
                         # Add similar for Edge if browser_type is edge
                         if "edge" in browser_path.lower():
-                             subprocess.Popen(
+                            subprocess.Popen(
                                 [taskkill_path, "/F", "/IM", "msedge.exe"],
-                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
                             )
                     else:
                         logger.warning("taskkill command not found for process cleanup.")
             except Exception as e:
-                logger.warning(f"Process cleanup issue: {e}") # Changed to warning
+                logger.warning(f"Process cleanup issue: {e}")  # Changed to warning
 
             await asyncio.sleep(BROWSER_LAUNCH_WAIT_SECONDS)
 

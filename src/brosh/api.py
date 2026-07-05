@@ -69,7 +69,7 @@ def capture_webpage(
         app: Browser to use (chrome/edge/safari, empty for auto-detect)
         output_dir: Directory to save screenshots
         subdirs: Whether to create domain-based subdirectories
-        format: Output image format
+        output_format: Output image format (png, jpg, or apng)
         anim_spf: Animation speed for APNG format
         fetch_html: Whether to include HTML content in results
         fetch_image: Whether to include image data in MCP output
@@ -132,16 +132,17 @@ def capture_webpage(
     tool = BrowserScreenshotTool()
 
     # Handle async execution
-    from contextlib import suppress # Added import
+    from contextlib import suppress  # Added import
 
     loop = None
-    with suppress(RuntimeError): # SIM105
+    with suppress(RuntimeError):  # SIM105
         loop = asyncio.get_running_loop()
 
     if loop is not None:
-        # Already in async context (e.g., from MCP)
-        # Return the coroutine directly - caller will await it
-        return tool.capture(config)
+        # Already in async context (e.g., from MCP): hand the coroutine back so the
+        # caller awaits it. The return type is declared as the resolved dict for the
+        # common sync path, so this branch is intentionally not statically checkable.
+        return tool.capture(config)  # type: ignore[return-value]
     # Sync context (e.g., from CLI)
     return asyncio.run(tool.capture(config))
 
@@ -235,7 +236,7 @@ def capture_full_page(url: str, **kwargs) -> dict[str, dict[str, Any]]:
     kwargs["height"] = -1
     kwargs["scroll_step"] = 100
     kwargs["max_frames"] = 1
-    return capture_webpage(url, **kwargs)
+    return capture_webpage(AnyUrl(url), **kwargs)
 
 
 def capture_visible_area(url: str, **kwargs) -> dict[str, dict[str, Any]]:
@@ -245,7 +246,7 @@ def capture_visible_area(url: str, **kwargs) -> dict[str, dict[str, Any]]:
     - __init__.py
     """
     kwargs["max_frames"] = 1
-    return capture_webpage(url, **kwargs)
+    return capture_webpage(AnyUrl(url), **kwargs)
 
 
 def capture_animation(url: str, **kwargs) -> dict[str, dict[str, Any]]:
@@ -255,4 +256,4 @@ def capture_animation(url: str, **kwargs) -> dict[str, dict[str, Any]]:
     - __init__.py
     """
     kwargs["output_format"] = ImageFormat.APNG
-    return capture_webpage(url, **kwargs)
+    return capture_webpage(AnyUrl(url), **kwargs)

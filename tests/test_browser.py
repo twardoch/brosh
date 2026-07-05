@@ -53,7 +53,7 @@ class TestBrowserManager:
         result = manager.get_browser_name("invalid_browser")
         assert result == "chrome"  # Fallback browser
 
-    def test_browser_path_detection(self) -> None: # Removed unused mock_subprocess
+    def test_browser_path_detection(self) -> None:  # Removed unused mock_subprocess
         """Test browser path detection."""
         manager = BrowserManager()
 
@@ -81,7 +81,7 @@ class TestBrowserManager:
         paths = manager.get_browser_paths("chrome")
         assert isinstance(paths, list)
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_launch_browser_and_connect(self) -> None:
         """Test launching browser and connecting."""
         manager = BrowserManager()
@@ -145,7 +145,7 @@ class TestBrowserManager:
         assert width == 1440
         assert height == 900
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_get_browser_instance_chrome(self) -> None:
         """Test getting browser instance for Chrome."""
         manager = BrowserManager()
@@ -170,7 +170,7 @@ class TestBrowserManager:
         mock_browser.new_context.assert_called_once()
         mock_context.new_page.assert_called_once()
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_get_browser_instance_firefox(self) -> None:
         """Test getting browser instance for Firefox."""
         manager = BrowserManager()
@@ -188,7 +188,7 @@ class TestBrowserManager:
         with pytest.raises(RuntimeError, match="Could not connect to or launch firefox browser"):
             await manager.get_browser_instance(mock_playwright, "firefox", 1920, 1080, 125)
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_get_browser_instance_safari(self) -> None:
         """Test getting browser instance for Safari."""
         manager = BrowserManager()
@@ -208,7 +208,7 @@ class TestBrowserManager:
         assert browser == mock_browser
         mock_playwright.webkit.launch.assert_called_once()
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_get_browser_instance_unsupported(self) -> None:
         """Test getting browser instance for unsupported browser."""
         manager = BrowserManager()
@@ -248,7 +248,7 @@ class TestBrowserManager:
         chrome_name = manager.get_browser_name("")
         assert chrome_name == "chrome"
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_browser_context_configuration(self) -> None:
         """Test browser context configuration with custom settings."""
         manager = BrowserManager()

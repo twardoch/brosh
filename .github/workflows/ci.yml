@@ -1,4 +1,4 @@
-name: Build & Test
+name: CI
 
 on:
   push:
@@ -9,8 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,7 +17,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Code Quality
+    name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -32,11 +31,21 @@ jobs:
           version: "latest"
           args: "check --output-format=github"
 
-      - name: Run Ruff Format
+      - name: Run Ruff format check
         uses: astral-sh/ruff-action@v3
         with:
           version: "latest"
           args: "format --check --respect-gitignore"
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Run mypy
+        run: uv run --extra dev mypy src/brosh
 
   test:
     name: Run Tests
@@ -51,11 +60,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
       - name: Install UV
         uses: astral-sh/setup-uv@v5
         with:
@@ -65,9 +69,7 @@ jobs:
           cache-suffix: ${{ matrix.os }}-${{ matrix.python-version }}
 
       - name: Install test dependencies
-        run: |
-          uv pip install --system --upgrade pip
-          uv pip install --system ".[test]"
+        run: uv pip install --system ".[test]"
 
       - name: Run tests with Pytest
         run: uv run pytest -n auto --maxfail=1 --disable-warnings --cov-report=xml --cov-config=pyproject.toml --cov=src/brosh --cov=tests tests/
@@ -85,11 +87,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          fetch-depth: 0
 
       - name: Install UV
         uses: astral-sh/setup-uv@v5
@@ -99,7 +98,7 @@ jobs:
           enable-cache: true
 
       - name: Install build tools
-        run: uv pip install build hatchling hatch-vcs
+        run: uv pip install --system build hatchling hatch-vcs
 
       - name: Build distributions
         run: uv run python -m build --outdir dist

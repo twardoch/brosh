@@ -85,7 +85,7 @@ class ImageProcessor:
             JPEG bytes
         """
         try:
-            img = Image.open(io.BytesIO(png_bytes))
+            img: Image.Image = Image.open(io.BytesIO(png_bytes))
 
             # Handle transparency
             if img.mode in ("RGBA", "LA", "P"):

@@ -1,0 +1,33 @@
+title: brosh
+description: Full-page browser screenshots, text, and HTML — from the CLI, Python, or an MCP server.
+baseurl: "/brosh"
+url: "https://twardoch.github.io"
+
+remote_theme: just-the-docs/just-the-docs
+
+plugins:
+  - jekyll-remote-theme
+
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+aux_links:
+  "brosh on GitHub":
+    - "https://github.com/twardoch/brosh"
+
+aux_links_new_tab: true
+
+nav_sort: case_sensitive
+heading_anchors: true
+
+back_to_top: true
+back_to_top_text: "Back to top"
+
+footer_content: "Copyright &copy; 2025 Adam Twardoch. Distributed under the MIT License."

@@ -89,7 +89,7 @@ class TestCaptureWebpage:
                 app="firefox",
                 output_dir=temp_output_dir,
                 subdirs=True,
-                format=ImageFormat.JPG,
+                output_format=ImageFormat.JPG,
                 anim_spf=1.0,
                 fetch_html=True,
                 fetch_image=False,
@@ -149,7 +149,7 @@ class TestCaptureWebpage:
 class TestCaptureWebpageAsync:
     """Test the capture_webpage_async function."""
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_capture_webpage_async(self, temp_output_dir: Path) -> None:
         """Test capture_webpage_async function."""
         with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class:
@@ -171,7 +171,7 @@ class TestCaptureWebpageAsync:
             # Verify result
             assert result == {"test.png": {"selector": "body"}}
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_capture_webpage_async_config_validation(self, temp_output_dir: Path) -> None:
         """Test that capture_webpage_async validates config."""
         with patch("brosh.api.BrowserScreenshotTool") as mock_tool_class:
@@ -191,7 +191,7 @@ class TestCaptureWebpageAsync:
                 app="chrome",
                 output_dir=temp_output_dir,
                 subdirs=False,
-                format=ImageFormat.PNG,
+                output_format=ImageFormat.PNG,
                 anim_spf=0.5,
                 fetch_html=False,
                 fetch_image=False,
@@ -217,28 +217,27 @@ class TestAPIParameterValidation:
 
     def test_capture_webpage_validates_config(self) -> None:
         """Test that invalid config raises ValidationError."""
-        # SIM117: Combined with statements
-        # PT011: `match` is already used, so this is fine.
-        # PT012: Single statement inside raises.
-        with patch("brosh.api.BrowserScreenshotTool"), patch("brosh.api.asyncio.run"):
-            with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
-                capture_webpage(
-                    url=AnyUrl("https://example.com"),
-                    zoom=5,  # Invalid zoom value
-                )
+        with (
+            patch("brosh.api.BrowserScreenshotTool"),
+            patch("brosh.api.asyncio.run"),
+            pytest.raises(ValueError, match="Zoom must be between 10 and 500"),
+        ):
+            capture_webpage(
+                url=AnyUrl("https://example.com"),
+                zoom=5,  # Invalid zoom value
+            )
 
-    @pytest.mark.asyncio()
+    @pytest.mark.asyncio
     async def test_capture_webpage_async_validates_config(self) -> None:
         """Test that async version validates config."""
-        # SIM117: Combined with statements
-        # PT011: `match` is already used, so this is fine.
-        # PT012: Single statement inside raises.
-        with patch("brosh.api.BrowserScreenshotTool"):
-            with pytest.raises(ValueError, match="Zoom must be between 10 and 500"):
-                await capture_webpage_async(
-                    url=AnyUrl("https://example.com"),
-                    zoom=5,  # Invalid zoom value
-                )
+        with (
+            patch("brosh.api.BrowserScreenshotTool"),
+            pytest.raises(ValueError, match="Zoom must be between 10 and 500"),
+        ):
+            await capture_webpage_async(
+                url=AnyUrl("https://example.com"),
+                zoom=5,  # Invalid zoom value
+            )
 
 
 class TestAPIConvenienceMethods:

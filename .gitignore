@@ -314,3 +314,29 @@ Thumbs.db
 __version__.py
 _private
 VERSION.txt
+
+# --- brosh project hygiene (added during modernization) ---
+# Python / uv
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+coverage.xml
+.coverage
+.coverage.*
+uv.lock
+
+# Generated codebase snapshot (regenerated via codetoprompt)
+llms.txt
+
+# Build output (keep the dir marker, ignore contents)
+dist/*
+!dist/.gitkeep
+
+# AI-assistant scratch dirs
+.specstory/
+.cursor/
+.cursorrules
+.cursorindexingignore
+.giga/

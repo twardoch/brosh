@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 2026 modernization pass
+
+#### Fixed
+- Repaired a broken `for`/`try` block in `browser.py:get_screen_dimensions` that made the whole package fail to import (an `IndentationError` on macOS screen detection). This was a hard crash on any import — the package could not be used at all.
+- Removed a dead, unreachable `new_content` reassignment in `mcp.py`.
+
+#### Changed
+- Renamed the CI workflow `push.yml` → `ci.yml` and added a `mypy` type-check step to the quality gate.
+- Public API docstring now names `output_format` (not the stale `format`).
+- Trimmed `README.md` from 878 to ~130 lines: hook first, Quick Start up top, the easily-missed `playwright install` step called out, MCP registration shown for Claude Code.
+- `.gitignore` now covers real project cruft (`.venv/`, coverage output, `llms.txt`, assistant scratch dirs).
+
+#### Added
+- Jekyll + Just-the-Docs site under `docs/` (installation, usage, CLI reference, Python API, MCP server, architecture, output).
+- Type annotations across `api.py`, `cli.py`, `mcp.py`, `image.py`; `mypy src/brosh` is clean.
+- Tests for the browser-free logic: `test_image.py`, `test_texthtml.py`, `test_mcp.py`. Coverage rose from 44% to ~62% (94 tests). Browser-driving modules stay uncovered in CI, which has no Chrome; the coverage floor is set to 60% to match.
+- Project icon at `docs/assets/icon.png`.
+
 ### Added
 - Git-tag-based semantic versioning with hatch-vcs
 - Comprehensive test suite with pytest and coverage reporting

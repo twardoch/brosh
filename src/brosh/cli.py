@@ -11,11 +11,13 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 import fire
 from loguru import logger
 
 from .api import capture_webpage
+
 # Removed unused ImageFormat import: from .models import ImageFormat
 from .browser import DEFAULT_FALLBACK_HEIGHT, DEFAULT_FALLBACK_WIDTH, BrowserManager
 from .tool import dflt_output_folder
@@ -133,7 +135,10 @@ class BrowserScreenshotCLI:
             width = self.width or DEFAULT_FALLBACK_WIDTH
             height = self.height or DEFAULT_FALLBACK_HEIGHT
 
-            args = [browser_executable_path, *self._browser_manager.get_browser_args(browser_name, width, height, debug_port)]
+            args = [
+                browser_executable_path,
+                *self._browser_manager.get_browser_args(browser_name, width, height, debug_port),
+            ]
 
             if not args[1:]:  # No args returned (not chromium/msedge)
                 return f"Browser {browser_name} not supported for direct launch"
@@ -237,7 +242,7 @@ class BrowserScreenshotCLI:
 
         # Filter to only valid parameters for capture_webpage
         sig = inspect.signature(capture_webpage)
-        valid_params = {k: v for k, v in merged_kwargs.items() if k in sig.parameters}
+        valid_params: dict[str, Any] = {k: v for k, v in merged_kwargs.items() if k in sig.parameters}
         if "app" in merged_kwargs:
             valid_params["app"] = merged_kwargs["app"]
 
@@ -252,9 +257,7 @@ class BrowserScreenshotCLI:
                 if metadata.get("text"):
                     text = metadata["text"]
                     metadata["text"] = (
-                        f"{text[:CLI_TEXT_PREVIEW_LENGTH]}..."
-                        if len(text) > CLI_TEXT_PREVIEW_LENGTH
-                        else text
+                        f"{text[:CLI_TEXT_PREVIEW_LENGTH]}..." if len(text) > CLI_TEXT_PREVIEW_LENGTH else text
                     )
 
             return result

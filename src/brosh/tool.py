@@ -35,7 +35,7 @@ class BrowserScreenshotTool:
     - api.py
     """
 
-    def __init__(self, *, verbose: bool = False): # verbose is already keyword-only
+    def __init__(self, *, verbose: bool = False):  # verbose is already keyword-only
         """Initialize the screenshot tool.
 
         Args:
@@ -144,7 +144,7 @@ class BrowserScreenshotTool:
 
         """
         results = {}
-        timestamp = datetime.now(timezone.utc).strftime("%y%m%d-%H%M%S") # Ensured timezone.utc is used
+        timestamp = datetime.now(timezone.utc).strftime("%y%m%d-%H%M%S")  # Ensured timezone.utc is used
 
         for _i, frame in enumerate(frames):
             # Generate filename
@@ -218,7 +218,7 @@ class BrowserScreenshotTool:
             }
         }
 
-    async def _get_section_id_from_frame(self, _frame: CaptureFrame) -> str: # Prefixed unused frame with _
+    async def _get_section_id_from_frame(self, _frame: CaptureFrame) -> str:  # Prefixed unused frame with _
         """Extract section ID from frame metadata.
 
         Args:

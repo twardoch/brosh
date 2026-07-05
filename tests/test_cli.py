@@ -77,7 +77,10 @@ class TestBrowserScreenshotCLI:
         mock_instance.get_browser_args.return_value = ["--remote-debugging-port=9222"]
 
         cli = BrowserScreenshotCLI()
-        with patch("urllib.request.urlopen", side_effect=Exception("no connection")):
+        with (
+            patch("urllib.request.urlopen", side_effect=Exception("no connection")),
+            patch("brosh.cli.shutil.which", return_value="/path/to/chrome"),
+        ):
             result = cli.run()
             assert "Started chrome" in result
             mock_popen.assert_called_once()
@@ -91,7 +94,11 @@ class TestBrowserScreenshotCLI:
         mock_instance.find_browser_path.return_value = "/path/to/chrome"
         mock_instance.get_browser_args.return_value = ["--remote-debugging-port=9222"]
         cli = BrowserScreenshotCLI()
-        with patch("urllib.request.urlopen"), patch.object(cli, "quit", return_value=None) as mock_quit:
+        with (
+            patch("urllib.request.urlopen"),
+            patch("brosh.cli.shutil.which", return_value="/path/to/chrome"),
+            patch.object(cli, "quit", return_value=None) as mock_quit,
+        ):
             result = cli.run(force_run=True)
             mock_quit.assert_called_once()
             assert "Started chrome" in result
@@ -128,7 +135,7 @@ class TestBrowserScreenshotCLI:
         cli_custom = BrowserScreenshotCLI(output_dir=str(temp_output_dir))
         assert Path(cli_custom.output_dir) == temp_output_dir
 
-    def test_cli_verbose_logging(self) -> None: # Removed unused mock_browser_manager
+    def test_cli_verbose_logging(self) -> None:  # Removed unused mock_browser_manager
         """Test verbose logging configuration."""
         with patch("brosh.cli.logger") as mock_logger:
             # Test non-verbose mode
@@ -144,6 +151,7 @@ class TestBrowserScreenshotCLI:
             # Verbose mode should not call remove/add
             mock_logger.remove.assert_not_called()
 
+
 # Removed duplicate/old test_cli_with_different_browsers which was causing confusion
 
 
@@ -152,7 +160,9 @@ class TestCLIIntegration:
 
     @patch("brosh.cli.capture_webpage")
     def test_cli_screenshot_workflow(
-        self, mock_capture: MagicMock, temp_output_dir: Path # Removed unused mock_browser_manager
+        self,
+        mock_capture: MagicMock,
+        temp_output_dir: Path,  # Removed unused mock_browser_manager
     ) -> None:
         """Test a complete screenshot workflow."""
         # Mock the capture result
@@ -200,7 +210,7 @@ class TestCLIIntegration:
         with pytest.raises(RuntimeError, match="Browser error"):
             cli.run()
 
-    def test_cli_parameter_validation(self) -> None: # Removed unused mock_browser_manager
+    def test_cli_parameter_validation(self) -> None:  # Removed unused mock_browser_manager
         """Test CLI parameter validation."""
         # Test with valid parameters
         cli = BrowserScreenshotCLI(
@@ -228,7 +238,7 @@ class TestCLIIntegration:
 class TestCLIUtilities:
     """Test CLI utility functions and methods."""
 
-    def test_cli_json_output_flag(self) -> None: # Removed unused mock_browser_manager
+    def test_cli_json_output_flag(self) -> None:  # Removed unused mock_browser_manager
         """Test JSON output flag functionality."""
         cli_json = BrowserScreenshotCLI(json=True)
         cli_regular = BrowserScreenshotCLI(json=False)
@@ -236,7 +246,7 @@ class TestCLIUtilities:
         assert cli_json.json is True
         assert cli_regular.json is False
 
-    def test_cli_subdirs_flag(self) -> None: # Removed unused mock_browser_manager
+    def test_cli_subdirs_flag(self) -> None:  # Removed unused mock_browser_manager
         """Test subdirectories flag functionality."""
         cli_subdirs = BrowserScreenshotCLI(subdirs=True)
         cli_flat = BrowserScreenshotCLI(subdirs=False)
@@ -244,7 +254,7 @@ class TestCLIUtilities:
         assert cli_subdirs.subdirs is True
         assert cli_flat.subdirs is False
 
-    def test_cli_app_selection(self) -> None: # Removed unused mock_browser_manager
+    def test_cli_app_selection(self) -> None:  # Removed unused mock_browser_manager
         """Test browser app selection."""
         # Test auto-detection (empty string)
         cli_auto = BrowserScreenshotCLI(app="")

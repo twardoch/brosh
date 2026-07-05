@@ -15,16 +15,20 @@
 - Add PDF export format option
 
 ### Code Quality Improvements
-- Address remaining linter warnings (boolean parameters, magic numbers)
-- Add more comprehensive integration tests
+- Add browser-mocked integration tests for `capture.py` and `tool.py` (see TODO.md)
 - Improve error messages and user feedback
 - Add performance benchmarks
 
+> Done in the 2026 modernization pass: ruff + mypy clean; magic numbers and
+> boolean-parameter warnings resolved or documented; the import-time crash in
+> `get_screen_dimensions` fixed.
+
 ### Documentation
-- Create detailed API documentation
-- Add more usage examples
 - Create video tutorials for common use cases
-- Document MCP integration best practices
+
+> Done in the 2026 modernization pass: Jekyll docs site under `docs/` covering
+> installation, usage, CLI reference, Python API, MCP server, architecture, and
+> output; README trimmed and refocused.
 
 ### Platform Support
 - Add Firefox browser support

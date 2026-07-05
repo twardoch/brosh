@@ -1,9 +1,18 @@
-# TODO.md
+# TODO
 
-- Analyze `PLAN.md` and then update `CHANGELOG.md` with the changes performed. Remove the things that are done from `PLAN.md`
-- Run `./cleanup.sh`
-- Analyze the response and replace `PLAN.md` with a new plan to fix the issues.
-- Analyze `llms.txt` (which is the entire codebase).
-- Update `README.md`. This is extremely important. REMOVE all content that no longer is correct or relevant. ADD new content that is correct and relevant (to the recent changes or to the whole codebase).
+Modernization pass is done (see CHANGELOG). Remaining ideas, roughly by effort:
 
-Be resilient. Be autonomous. Be creative. Be efficient. Be effective. Be concise. Be clear. Be precise. Be correct. Be complete.
+## Tests / coverage
+- [ ] Mock a Playwright `page` to cover `capture.py` scrolling logic (currently ~19%).
+- [ ] Mock `BrowserScreenshotTool.capture` to cover `tool.py` orchestration.
+- [ ] Add an integration test that captures a `file://` local HTML fixture end-to-end (needs Chrome; mark `@pytest.mark.integration`).
+
+## Features
+- [ ] Concurrent capture for multi-frame operations.
+- [ ] Capture a specific region/element only as a bounding capture.
+- [ ] PDF export format.
+- [ ] Custom user-agent and proxy support.
+
+## Docs / ops
+- [ ] Publish the `docs/` site to GitHub Pages (enable Pages on the `docs/` folder).
+- [ ] Document Docker deployment for headless Linux capture.

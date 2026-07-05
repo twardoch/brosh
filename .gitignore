@@ -316,6 +316,9 @@ _private
 VERSION.txt
 
 # --- brosh project hygiene (added during modernization) ---
+# The stock Visual Studio template above ignores `Makefile`; this repo ships a real one.
+!Makefile
+
 # Python / uv
 .venv/
 .pytest_cache/

@@ -343,3 +343,4 @@ dist/*
 .cursorrules
 .cursorindexingignore
 .giga/
+.roo/
